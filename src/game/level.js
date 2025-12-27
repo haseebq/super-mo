@@ -4,6 +4,8 @@ export function createLevel1() {
   const width = 20;
   const height = 12;
   const tiles = new Array(width * height).fill(0);
+  const coins = [];
+  const shards = [];
 
   const setTile = (x, y, id) => {
     if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -26,11 +28,42 @@ export function createLevel1() {
 
   setTile(18, 10, 3);
 
+  coins.push(createCoin(2, 9));
+  coins.push(createCoin(3, 9));
+  coins.push(createCoin(4, 9));
+  coins.push(createCoin(10, 6));
+  coins.push(createCoin(14, 8));
+  shards.push(createShard(6, 7));
+
   return {
     width,
     height,
     tileSize: TILE_SIZE,
     tiles,
+    coins,
+    shards,
+  };
+}
+
+function createCoin(x, y) {
+  return {
+    x: x * TILE_SIZE,
+    y: y * TILE_SIZE,
+    width: 16,
+    height: 16,
+    collected: false,
+    type: "coin",
+  };
+}
+
+function createShard(x, y) {
+  return {
+    x: x * TILE_SIZE,
+    y: y * TILE_SIZE,
+    width: 16,
+    height: 16,
+    collected: false,
+    type: "shard",
   };
 }
 

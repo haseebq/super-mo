@@ -64,6 +64,8 @@ function update(dt) {
     audio.playJump();
   }
 
+  handleCollectibles();
+
   for (const enemy of state.enemies) {
     updateMoomba(enemy, state.level, dt);
   }
@@ -74,6 +76,7 @@ function update(dt) {
 function render() {
   renderer.clear("#78c7f0");
   drawLevel(state.level);
+  drawCollectibles();
   if (state.assetsReady) {
     drawSprite("player", state.player.x, state.player.y);
   } else {
@@ -122,6 +125,30 @@ function drawLevel(level) {
   }
 }
 
+function drawCollectibles() {
+  for (const coin of state.level.coins) {
+    if (coin.collected) {
+      continue;
+    }
+    if (state.assetsReady) {
+      drawSprite("coin", coin.x, coin.y);
+    } else {
+      renderer.rect(coin.x + 4, coin.y + 4, 8, 8, "#f6d44d");
+    }
+  }
+
+  for (const shard of state.level.shards) {
+    if (shard.collected) {
+      continue;
+    }
+    if (state.assetsReady) {
+      drawSprite("shard", shard.x, shard.y);
+    } else {
+      renderer.rect(shard.x + 4, shard.y + 4, 8, 8, "#78c7f0");
+    }
+  }
+}
+
 function drawSprite(id, x, y) {
   const frame = state.assets.atlas[id];
   if (!frame) {
@@ -149,6 +176,30 @@ function handleEnemyCollisions() {
 
     resetPlayer();
     return;
+  }
+}
+
+function handleCollectibles() {
+  for (const coin of state.level.coins) {
+    if (coin.collected) {
+      continue;
+    }
+    if (overlaps(state.player, coin)) {
+      coin.collected = true;
+      state.hud.coins += 1;
+      updateHud();
+    }
+  }
+
+  for (const shard of state.level.shards) {
+    if (shard.collected) {
+      continue;
+    }
+    if (overlaps(state.player, shard)) {
+      shard.collected = true;
+      state.hud.shards += 1;
+      updateHud();
+    }
   }
 }
 
