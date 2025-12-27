@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Super Mo</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <canvas id="game" width="320" height="180" aria-label="Super Mo game"></canvas>
+      <div class="hud" aria-hidden="true">
+        <span id="hud-lives">Lives 3</span>
+        <span id="hud-coins">Coins 0</span>
+        <span id="hud-shards">Shards 0</span>
+      </div>
+      <div class="start-overlay" aria-hidden="true">
+        <h1>Super Mo</h1>
+        <p>Press Enter to Start</p>
+        <p class="controls">Arrows + Z (jump) + X (run)</p>
+      </div>
+      <div class="pause-overlay" aria-hidden="true">
+        <h2>Paused</h2>
+        <p>Press P to Resume</p>
+      </div>
+    </main>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
