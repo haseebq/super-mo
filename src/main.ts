@@ -80,6 +80,7 @@ type GameState = {
   storySeen: boolean;
   debugTiles: boolean;
   debugLabels: boolean;
+  debugPaint: boolean;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -166,8 +167,11 @@ function syncDebugToggle() {
 }
 
 function setDebugState(tiles: boolean, labels: boolean, updateUrl = true) {
+  const nextPaint = tiles || labels || DEBUG_FLAGS.has("debugPaint");
+  const paintChanged = nextPaint !== state.debugPaint;
   state.debugTiles = tiles;
   state.debugLabels = labels;
+  state.debugPaint = nextPaint;
   syncDebugToggle();
   if (!updateUrl) {
     return;
@@ -184,6 +188,9 @@ function setDebugState(tiles: boolean, labels: boolean, updateUrl = true) {
     url.searchParams.delete("debugLabels");
   }
   window.history.replaceState(null, "", url.toString());
+  if (paintChanged) {
+    loadAssets();
+  }
 }
 
 function loadControls() {
@@ -255,6 +262,7 @@ const state: GameState = {
   storySeen: false,
   debugTiles: DEBUG_FLAGS.has("debugTiles"),
   debugLabels: DEBUG_FLAGS.has("debugLabels"),
+  debugPaint: DEBUG_FLAGS.has("debugPaint") || DEBUG_FLAGS.has("debugTiles") || DEBUG_FLAGS.has("debugLabels"),
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -1416,6 +1424,60 @@ function triggerCameraShake(duration: number, strength: number) {
   state.cameraShakeStrength = Math.max(state.cameraShakeStrength, strength);
 }
 
+function buildDebugPalette(count: number) {
+  const palette = [
+    "#e04b3a",
+    "#5dbb63",
+    "#78c7f0",
+    "#f6d44d",
+    "#4a2b3f",
+    "#ff8a5c",
+    "#9bc7ff",
+    "#3c7d6b",
+    "#d47b9f",
+    "#7b4a6d",
+    "#f28cb0",
+    "#2b2b2b",
+    "#a37c2e",
+    "#6cc0a2",
+  ];
+  if (count <= palette.length) {
+    return palette;
+  }
+  const extended = [];
+  for (let i = 0; i < count; i += 1) {
+    extended.push(palette[i % palette.length]);
+  }
+  return extended;
+}
+
+async function createDebugPaintedImage(
+  image: HTMLImageElement,
+  atlas: Record<string, AssetFrame>
+): Promise<HTMLImageElement> {
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return image;
+  }
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const entries = Object.entries(atlas).sort(([a], [b]) => a.localeCompare(b));
+  const palette = buildDebugPalette(entries.length);
+  entries.forEach(([_, frame], index) => {
+    ctx.fillStyle = palette[index];
+    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
+  });
+  const debugImage = new Image();
+  debugImage.src = canvas.toDataURL();
+  await new Promise<void>((resolve, reject) => {
+    debugImage.onload = () => resolve();
+    debugImage.onerror = () => reject(new Error("Failed to load debug-painted image"));
+  });
+  return debugImage;
+}
+
 async function loadAssets() {
   try {
     let image: HTMLImageElement | null = null;
@@ -1427,6 +1489,9 @@ async function loadAssets() {
       console.warn("Production sprites missing, falling back to placeholder assets.", error);
       atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.json");
       image = await loadImage("assets/sprites.svg");
+    }
+    if (state.debugPaint) {
+      image = await createDebugPaintedImage(image, atlas);
     }
     state.assets = { image, atlas };
     state.assetScale = image.width >= 512 ? 0.5 : 1;
