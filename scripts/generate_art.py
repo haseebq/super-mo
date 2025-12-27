@@ -3,6 +3,7 @@ import argparse
 import base64
 import json
 import os
+import time
 from pathlib import Path
 from urllib import request
 from urllib.error import HTTPError
@@ -101,6 +102,133 @@ def generate_image(prompt: str, model: str, size: str) -> bytes:
     raise RuntimeError("OpenAI API response missing image data.")
 
 
+def request_json(url: str, method: str = "GET", payload: dict | None = None) -> dict:
+    body = None
+    headers = {}
+    if payload is not None:
+        body = json.dumps(payload).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    req = request.Request(url, data=body, headers=headers, method=method)
+    try:
+        with request.urlopen(req) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except HTTPError as error:
+        details = error.read().decode("utf-8")
+        raise RuntimeError(f"InvokeAI API error {error.code}: {details}") from error
+
+
+def workflow_to_graph(
+    workflow: dict,
+    prompt: str,
+    negative_prompt: str,
+    width: int,
+    height: int,
+    model: dict,
+    vae: dict,
+) -> dict:
+    nodes = {}
+    for node in workflow["nodes"]:
+        data = node["data"]
+        invocation = {
+            "id": data["id"],
+            "type": data["type"],
+            "is_intermediate": data.get("isIntermediate", False),
+            "use_cache": data.get("useCache", True),
+        }
+        for input_name, input_data in data.get("inputs", {}).items():
+            if "value" in input_data:
+                invocation[input_name] = input_data["value"]
+
+        label = data.get("label", "")
+        if data.get("type") == "string" and label == "Positive Prompt":
+            invocation["value"] = prompt
+        if data.get("type") == "string" and label == "Negative Prompt":
+            invocation["value"] = negative_prompt
+        if data.get("type") == "noise":
+            invocation["width"] = width
+            invocation["height"] = height
+        if data.get("type") == "sdxl_compel_prompt":
+            invocation["original_width"] = width
+            invocation["original_height"] = height
+            invocation["target_width"] = width
+            invocation["target_height"] = height
+        if data.get("type") == "sdxl_model_loader":
+            invocation["model"] = model
+        if data.get("type") == "vae_loader":
+            invocation["vae_model"] = vae
+
+        nodes[data["id"]] = invocation
+
+    edges = []
+    for edge in workflow["edges"]:
+        source_handle = edge.get("sourceHandle")
+        target_handle = edge.get("targetHandle")
+        if not source_handle or not target_handle:
+            continue
+        edges.append(
+            {
+                "source": {"node_id": edge["source"], "field": source_handle},
+                "destination": {"node_id": edge["target"], "field": target_handle},
+            }
+        )
+
+    return {"id": workflow["id"], "nodes": nodes, "edges": edges}
+
+
+def generate_image_invokeai(prompt: str, out_path: Path) -> None:
+    base_url = "http://127.0.0.1:9090"
+    outputs_path = Path("/Users/haseebq/invokeai/outputs/conditioning")
+    outputs_path.mkdir(parents=True, exist_ok=True)
+    workflow_id = "default_5e8b008d-c697-45d0-8883-085a954c6ace"
+    workflow_resp = request_json(f"{base_url}/api/v1/workflows/i/{workflow_id}")
+    workflow = workflow_resp["workflow"]
+
+    model = request_json(
+        f"{base_url}/api/v2/models/get_by_attrs?name=Juggernaut%20XL%20v9&type=main&base=sdxl"
+    )
+    vae = request_json(
+        f"{base_url}/api/v2/models/get_by_attrs?name=sdxl-vae-fp16-fix&type=vae&base=sdxl"
+    )
+
+    graph = workflow_to_graph(
+        workflow,
+        prompt,
+        "photograph, realistic, 3d, blurry",
+        1024,
+        1024,
+        model,
+        vae,
+    )
+
+    batch = {"batch_id": "mario-art", "runs": 1, "graph": graph}
+    request_json(
+        f"{base_url}/api/v1/queue/default/enqueue_batch",
+        method="POST",
+        payload={"batch": batch},
+    )
+
+    for _ in range(120):
+        status = request_json(f"{base_url}/api/v1/queue/default/status")
+        queue = status["queue"]
+        if queue["pending"] == 0 and queue["in_progress"] == 0:
+            break
+        time.sleep(2)
+    else:
+        raise RuntimeError("InvokeAI queue did not finish in time.")
+
+    images = request_json(
+        f"{base_url}/api/v1/images/?image_origin=internal&limit=1&offset=0"
+    )
+    if not images["items"]:
+        raise RuntimeError("No InvokeAI images found after generation.")
+    image_name = images["items"][0]["image_name"]
+    with request.urlopen(f"{base_url}/api/v1/images/i/{image_name}/full") as resp:
+        image_bytes = resp.read()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(image_bytes)
+    print(f"Wrote {out_path} from InvokeAI")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate art with OpenAI Images API.")
     parser.add_argument("--prompt", help="Prompt string to send")
@@ -119,6 +247,12 @@ def main() -> None:
     )
     parser.add_argument("--model", default="gpt-image-1", help="Image model name")
     parser.add_argument("--size", default="1024x1024", help="Image size")
+    parser.add_argument(
+        "--provider",
+        default="openai",
+        choices=["openai", "invokeai"],
+        help="Image generation provider",
+    )
     parser.add_argument("--out", default="art/batch.png", help="Output PNG path")
     args = parser.parse_args()
 
@@ -129,12 +263,14 @@ def main() -> None:
         print("All sprites already exist in the atlas. Nothing to generate.")
         return
     prompt = build_prompt_from_template(prompt, missing)
-    image_bytes = generate_image(prompt, args.model, args.size)
-
     out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_bytes(image_bytes)
-    print(f"Wrote {out_path}")
+    if args.provider == "invokeai":
+        generate_image_invokeai(prompt, out_path)
+    else:
+        image_bytes = generate_image(prompt, args.model, args.size)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(image_bytes)
+        print(f"Wrote {out_path}")
 
 
 if __name__ == "__main__":

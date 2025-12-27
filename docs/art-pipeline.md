@@ -27,6 +27,10 @@ Include only the following sprites in this sheet (left to right, top to bottom):
    ```bash
    python3 scripts/generate_art.py --prompt-file art/prompt.txt --out art/batch.png
    ```
+   InvokeAI local generation:
+   ```bash
+   python3 scripts/generate_art.py --provider invokeai --prompt-file art/prompt.txt --out art/batch.png
+   ```
 3. **Downscale**: Convert 1024x1024 -> 256x256 using nearest-neighbor (4x reduction).
 4. **Slice + atlas**: Slice the 256x256 sheet into 16x16 tiles using `art/layout.json` and emit production atlases.
    ```bash

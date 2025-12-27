@@ -2,7 +2,7 @@
 import argparse
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from PIL import Image
 
@@ -53,7 +53,7 @@ def build_atlas(
     if mark_production:
         payload = {
             "production": True,
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "source": str(input_path),
         }
         production_marker.parent.mkdir(parents=True, exist_ok=True)
