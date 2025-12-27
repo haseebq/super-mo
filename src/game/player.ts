@@ -135,17 +135,23 @@ function resolveVertical(player: Player, level: Level) {
   player.onGround = false;
 }
 
+type ControlBindings = {
+  jump: string;
+  run: string;
+};
+
 export function updatePlayer(
   player: Player,
   input: InputState,
   dt: number,
   level: Level,
-  speedBoost: number
+  speedBoost: number,
+  controls: ControlBindings
 ): PlayerEvents {
   const events: PlayerEvents = {
     jumped: false,
   };
-  const wantsRun = input.isDown("KeyX");
+  const wantsRun = input.isDown(controls.run);
   const speed = (wantsRun ? RUN_SPEED : WALK_SPEED) * speedBoost;
   const dir = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
   const accel = (player.onGround ? 1 : AIR_CONTROL) * ACCEL;
@@ -158,7 +164,7 @@ export function updatePlayer(
     player.vx = approach(player.vx, 0, decel * dt);
   }
 
-  if (input.consumePress("KeyZ")) {
+  if (input.consumePress(controls.jump)) {
     player.jumpBufferTimer = JUMP_BUFFER;
   }
 
@@ -185,7 +191,7 @@ export function updatePlayer(
 
   if (!player.onGround && player.vy < 0) {
     player.jumpHoldTime += dt;
-    if (!input.isDown("KeyZ") && !player.jumpCut && player.jumpHoldTime <= SHORT_HOP_WINDOW) {
+    if (!input.isDown(controls.jump) && !player.jumpCut && player.jumpHoldTime <= SHORT_HOP_WINDOW) {
       player.vy *= SHORT_HOP_FACTOR;
       player.jumpCut = true;
     }

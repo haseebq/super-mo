@@ -69,6 +69,10 @@ type GameState = {
   cameraShakeStrength: number;
   audioMuted: boolean;
   activeCheckpoint: Checkpoint | null;
+  controls: {
+    jump: string;
+    run: string;
+  };
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -115,6 +119,7 @@ const introTitle = requireElement<HTMLHeadingElement>("#intro-title");
 const introGoal = requireElement<HTMLParagraphElement>("#intro-goal");
 const introCollect = requireElement<HTMLParagraphElement>("#intro-collect");
 const introDifficulty = requireElement<HTMLParagraphElement>("#intro-difficulty");
+const controlHints = Array.from(document.querySelectorAll<HTMLParagraphElement>(".controls"));
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 const difficultyOptions = Array.from(
   document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
@@ -132,6 +137,23 @@ const LEVELS = [
   createLevel6,
 ];
 const DIFFICULTY_SPEED = [0.85, 1, 1.2];
+const DEFAULT_CONTROLS = { jump: "KeyZ", run: "KeyX" };
+
+function loadControls() {
+  try {
+    const raw = localStorage.getItem("supermo-controls");
+    if (!raw) {
+      return { ...DEFAULT_CONTROLS };
+    }
+    const parsed = JSON.parse(raw) as { jump?: string; run?: string };
+    return {
+      jump: parsed.jump || DEFAULT_CONTROLS.jump,
+      run: parsed.run || DEFAULT_CONTROLS.run,
+    };
+  } catch {
+    return { ...DEFAULT_CONTROLS };
+  }
+}
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
@@ -178,6 +200,7 @@ const state: GameState = {
   cameraShakeStrength: 0,
   audioMuted: false,
   activeCheckpoint: null,
+  controls: loadControls(),
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -221,6 +244,16 @@ function update(dt: number) {
     if (input.consumePress("Digit3")) {
       state.difficultyIndex = 2;
       updateDifficultySelect();
+    }
+    if (input.consumePress("KeyJ")) {
+      state.controls.jump = state.controls.jump === "KeyZ" ? "Space" : "KeyZ";
+      localStorage.setItem("supermo-controls", JSON.stringify(state.controls));
+      updateControlHints();
+    }
+    if (input.consumePress("KeyR")) {
+      state.controls.run = state.controls.run === "KeyX" ? "ShiftLeft" : "KeyX";
+      localStorage.setItem("supermo-controls", JSON.stringify(state.controls));
+      updateControlHints();
     }
     if (input.consumePress("Enter")) {
       state.levelIndex = state.titleSelection;
@@ -362,7 +395,7 @@ function update(dt: number) {
     state.player.vx = state.knockbackVelocity;
   }
   const controlInput = state.knockbackTimer > 0 ? neutralInput : input;
-  const events = updatePlayer(state.player, controlInput, dt, state.level, speedBoost);
+  const events = updatePlayer(state.player, controlInput, dt, state.level, speedBoost, state.controls);
   if (events.jumped) {
     audio.playJump();
     state.playerSquash = -0.12;
@@ -691,8 +724,8 @@ function drawPrompts() {
   }
   const prompts = [
     { x: 64, y: 120, text: "Arrows: Move" },
-    { x: 160, y: 96, text: "Z: Jump" },
-    { x: 240, y: 96, text: "X: Run" },
+    { x: 160, y: 96, text: `${formatKeyLabel(state.controls.jump)}: Jump` },
+    { x: 240, y: 96, text: `${formatKeyLabel(state.controls.run)}: Run` },
     { x: 360, y: 96, text: "Grab coins + shards" },
   ];
   for (const prompt of prompts) {
@@ -974,6 +1007,7 @@ function setMode(mode: Mode) {
   if (isTitle) {
     updateLevelSelect();
     updateDifficultySelect();
+    updateControlHints();
   }
   if (isIntro) {
     updateIntroCard();
@@ -1074,6 +1108,22 @@ function updatePauseMenu() {
   for (let i = 0; i < pauseOptions.length; i += 1) {
     pauseOptions[i].classList.toggle("is-selected", i === state.pauseSelection);
   }
+}
+
+function formatKeyLabel(code: string) {
+  if (code === "Space") return "Space";
+  if (code === "ShiftLeft" || code === "ShiftRight") return "Shift";
+  if (code.startsWith("Key")) return code.slice(3);
+  return code;
+}
+
+function updateControlHints() {
+  if (controlHints.length === 0) {
+    return;
+  }
+  const jumpLabel = formatKeyLabel(state.controls.jump);
+  const runLabel = formatKeyLabel(state.controls.run);
+  controlHints[0].textContent = `Arrows + ${jumpLabel} (jump) + ${runLabel} (run)`;
 }
 
 function updateIntroCard() {

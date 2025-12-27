@@ -15,6 +15,8 @@ export function createInput(): InputState {
     "Space",
     "KeyZ",
     "KeyX",
+    "ShiftLeft",
+    "ShiftRight",
   ]);
 
   function handleKeyDown(event: KeyboardEvent) {
