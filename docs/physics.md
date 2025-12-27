@@ -13,8 +13,8 @@
 - **Air control:** 70% of ground control
 
 ## Jumping
-- **Jump impulse:** 5.2 tiles/sec
-- **Gravity:** 11 tiles/sec^2
+- **Jump impulse:** 6.1 tiles/sec
+- **Gravity:** 10 tiles/sec^2
 - **Short hop:** release jump within 120ms to cut velocity by 55%
 - **Coyote time:** 120ms grace after leaving ground
 - **Jump buffer:** 120ms buffer before landing
