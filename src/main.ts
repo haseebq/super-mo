@@ -271,6 +271,9 @@ function update(dt: number) {
     state.particles.spawn(state.player.x + 8, state.player.y + state.player.height, 6, "#d4a86a");
     state.playerSquash = 0.18;
   }
+  if (prevVy < 0 && state.player.vy >= 0) {
+    state.particles.spawn(state.player.x + 8, state.player.y + 4, 4, "#f6d44d");
+  }
 
   if (state.powerupTimer > 0) {
     state.player.vy -= 40 * dt;
