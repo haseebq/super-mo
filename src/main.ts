@@ -61,6 +61,7 @@ type GameState = {
   completeGoalBonus: number;
   completeCoinScore: number;
   completeShardScore: number;
+  tutorialSeen: boolean;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -155,6 +156,7 @@ const state: GameState = {
   completeGoalBonus: 0,
   completeCoinScore: 0,
   completeShardScore: 0,
+  tutorialSeen: false,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -326,6 +328,9 @@ function update(dt: number) {
   updateCamera(dt);
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
+    if (state.levelIndex === 0) {
+      state.tutorialSeen = true;
+    }
     const timeBonus = Math.ceil(state.levelTimeRemaining) * 10;
     state.completeTimeBonus = timeBonus;
     state.completeGoalBonus = 500;
@@ -370,6 +375,7 @@ function render() {
   drawLevel(state.level);
   drawPlatforms(state.level.platforms);
   drawCollectibles();
+  drawPrompts();
   drawLandmark();
   const shouldDrawPlayer =
     state.invulnerableTimer === 0 || Math.floor(state.time * 12) % 2 === 0;
@@ -572,6 +578,22 @@ function drawCollectibles() {
           : "#ffffff";
     renderer.rect(powerup.x + 2, powerup.y + 2 + bob, 12, 12, outer);
     renderer.rect(powerup.x + 5, powerup.y + 5 + bob, 6, 6, inner);
+  }
+}
+
+function drawPrompts() {
+  if (state.tutorialSeen || state.levelIndex !== 0) {
+    return;
+  }
+  const prompts = [
+    { x: 64, y: 120, text: "Arrows: Move" },
+    { x: 160, y: 96, text: "Z: Jump" },
+    { x: 240, y: 96, text: "X: Run" },
+    { x: 360, y: 96, text: "Grab coins + shards" },
+  ];
+  for (const prompt of prompts) {
+    renderer.rect(prompt.x - 6, prompt.y - 12, 140, 18, "rgba(255,255,255,0.8)");
+    renderer.text(prompt.text, prompt.x, prompt.y, "#2b2b2b");
   }
 }
 
