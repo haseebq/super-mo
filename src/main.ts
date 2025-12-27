@@ -36,6 +36,7 @@ type GameState = {
   time: number;
   mode: Mode;
   invulnerableTimer: number;
+  titleScroll: number;
 };
 
 declare global {
@@ -89,6 +90,7 @@ const state: GameState = {
   time: 0,
   mode: "title",
   invulnerableTimer: 0,
+  titleScroll: 0,
 };
 
 loadAssets();
@@ -96,8 +98,20 @@ setMode("title");
 
 function update(dt: number) {
   if (state.mode === "title") {
+    state.titleScroll = (state.titleScroll + dt * 30) % (state.level.width * state.level.tileSize);
     if (input.consumePress("Enter")) {
       setMode("playing");
+    }
+    for (const enemy of state.enemies) {
+      if (enemy.kind === "moomba") {
+        updateMoomba(enemy, state.level, dt);
+      }
+      if (enemy.kind === "spikelet") {
+        updateSpikelet(enemy, state.level, dt);
+      }
+      if (enemy.kind === "flit") {
+        updateFlit(enemy, dt);
+      }
     }
     return;
   }
@@ -261,7 +275,9 @@ function renderTitlePreview() {
   const offsetY = (canvas.height - levelHeight * scale) / 2;
 
   renderer.ctx.save();
-  renderer.ctx.translate(offsetX, offsetY);
+  const maxScroll = Math.max(0, levelWidth - canvas.width / scale);
+  const scrollX = state.titleScroll % (maxScroll === 0 ? 1 : maxScroll);
+  renderer.ctx.translate(offsetX - scrollX * scale, offsetY);
   renderer.ctx.scale(scale, scale);
   drawLevel(state.level);
   drawCollectibles();
