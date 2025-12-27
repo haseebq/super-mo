@@ -92,6 +92,7 @@ const hudTime = requireElement<HTMLSpanElement>("#hud-time");
 const hudScore = requireElement<HTMLSpanElement>("#hud-score");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
+const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 const difficultyOptions = Array.from(
@@ -243,6 +244,9 @@ function update(dt: number) {
     state.powerupTimer = Math.max(0, state.powerupTimer - dt);
   }
   const previousTime = Math.ceil(state.levelTimeRemaining);
+  const prevPower = Math.ceil(state.powerupTimer);
+  const prevSpeed = Math.ceil(state.speedTimer);
+  const prevShield = Math.ceil(state.shieldTimer);
   if (state.levelTimeRemaining > 0) {
     state.levelTimeRemaining = Math.max(0, state.levelTimeRemaining - dt);
     if (state.levelTimeRemaining === 0) {
@@ -256,7 +260,12 @@ function update(dt: number) {
   if (state.shieldTimer > 0) {
     state.shieldTimer = Math.max(0, state.shieldTimer - dt);
   }
-  if (Math.ceil(state.levelTimeRemaining) !== previousTime) {
+  const timeChanged = Math.ceil(state.levelTimeRemaining) !== previousTime;
+  const buffsChanged =
+    Math.ceil(state.powerupTimer) !== prevPower ||
+    Math.ceil(state.speedTimer) !== prevSpeed ||
+    Math.ceil(state.shieldTimer) !== prevShield;
+  if (timeChanged || buffsChanged) {
     updateHud();
   }
   const speedBoost = state.speedTimer > 0 ? 1.35 : 1;
@@ -831,6 +840,17 @@ function updateHud() {
   hudScore.textContent = `Score ${state.hud.score}`;
   hudCoins.textContent = `Coins ${state.hud.coins}`;
   hudShards.textContent = `Shards ${state.hud.shards}`;
+  const buffs: string[] = [];
+  if (state.powerupTimer > 0) {
+    buffs.push(`Spring ${Math.ceil(state.powerupTimer)}s`);
+  }
+  if (state.speedTimer > 0) {
+    buffs.push(`Speed ${Math.ceil(state.speedTimer)}s`);
+  }
+  if (state.shieldTimer > 0) {
+    buffs.push(`Shield ${Math.ceil(state.shieldTimer)}s`);
+  }
+  hudBuffs.textContent = `Buffs ${buffs.length ? buffs.join(" / ") : "--"}`;
   completeScore.textContent = `Score ${state.hud.score}`;
 }
 
