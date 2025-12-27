@@ -39,6 +39,10 @@ Create a small script to:
 - Slice into tiles based on `art/layout.json`
 - Emit `assets/sprites.png` + `assets/sprites.json`
 
+Notes:
+- Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below; avoid placing other sprites in the rows beneath them.
+- The reference script uses Pillow (`pip install pillow`).
+
 ## QA Checklist
 - No anti-aliasing or gradients inside sprites.
 - Same light direction across all sprites.
