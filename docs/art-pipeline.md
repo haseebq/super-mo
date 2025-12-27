@@ -23,7 +23,10 @@ Include only the following sprites in this sheet (left to right, top to bottom):
 
 ## Workflow
 1. **Define batch**: List sprites/frames to generate (use sprite-sheet doc).
-2. **Generate 1024x1024 sheet**: Use the prompt template above; 16x16 grid with 64x64 cells.
+2. **Generate 1024x1024 sheet**: Use the prompt template above or `art/prompt.txt`.
+   ```bash
+   python3 scripts/generate_art.py --prompt-file art/prompt.txt --out art/batch.png
+   ```
 3. **Downscale**: Convert 1024x1024 -> 256x256 using nearest-neighbor (4x reduction).
 4. **Slice + atlas**: Slice the 256x256 sheet into 16x16 tiles using `art/layout.json` and emit `sprites.json`.
 5. **QA pass**:
@@ -43,6 +46,7 @@ Notes:
 - Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below; avoid placing other sprites in the rows beneath them.
 - The reference script uses Pillow (`pip install pillow`).
 - Runtime prefers `assets/sprites.png` when present, and falls back to `assets/sprites.svg`.
+- The generator script requires `OPENAI_API_KEY` to be set in the environment.
 
 ## QA Checklist
 - No anti-aliasing or gradients inside sprites.
