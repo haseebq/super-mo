@@ -9,6 +9,7 @@ export type FlitEnemy = {
   maxY: number;
   alive: boolean;
   stompable: boolean;
+  stompedTimer: number;
 };
 
 export function createFlit(x: number, y: number, range: number): FlitEnemy {
@@ -23,6 +24,7 @@ export function createFlit(x: number, y: number, range: number): FlitEnemy {
     maxY: y + range,
     alive: true,
     stompable: true,
+    stompedTimer: 0,
   };
 }
 

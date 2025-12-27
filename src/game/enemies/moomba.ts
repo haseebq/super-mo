@@ -12,6 +12,7 @@ export type MoombaEnemy = {
   vx: number;
   alive: boolean;
   stompable: boolean;
+  stompedTimer: number;
   anim: AnimationState;
 };
 
@@ -29,6 +30,7 @@ export function createMoomba(x: number, y: number): MoombaEnemy {
     vx: -20,
     alive: true,
     stompable: true,
+    stompedTimer: 0,
     anim: createAnimationState(MOOMBA_ANIMATIONS, "walk"),
   };
 }

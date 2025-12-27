@@ -390,6 +390,12 @@ function update(dt: number) {
     }
   }
 
+  for (const enemy of state.enemies) {
+    if ("stompedTimer" in enemy && enemy.stompedTimer > 0) {
+      enemy.stompedTimer = Math.max(0, enemy.stompedTimer - dt);
+    }
+  }
+
   resolvePlatformCollisions(state.player, state.level.platforms, prevY);
 
   handleEnemyCollisions();
@@ -438,18 +444,27 @@ function render() {
   }
 
   for (const enemy of state.enemies) {
-    if (!enemy.alive) {
+    if (!enemy.alive && (!("stompedTimer" in enemy) || enemy.stompedTimer === 0)) {
       continue;
     }
     if (state.assetsReady) {
+      const isStomped = "stompedTimer" in enemy && enemy.stompedTimer > 0;
       if (enemy.kind === "moomba") {
-        drawSprite(getCurrentFrame(enemy.anim), enemy.x, enemy.y, enemy.vx > 0);
+        if (isStomped) {
+          drawSpriteScaled("moomba", enemy.x, enemy.y + 6, 1.1, 0.4, enemy.vx > 0);
+        } else {
+          drawSprite(getCurrentFrame(enemy.anim), enemy.x, enemy.y, enemy.vx > 0);
+        }
       }
       if (enemy.kind === "spikelet") {
         drawSprite("spikelet", enemy.x, enemy.y);
       }
       if (enemy.kind === "flit") {
-        drawSprite("flit", enemy.x, enemy.y);
+        if (isStomped) {
+          drawSpriteScaled("flit", enemy.x, enemy.y + 6, 1.1, 0.4);
+        } else {
+          drawSprite("flit", enemy.x, enemy.y);
+        }
       }
     } else {
       const color = enemy.kind === "spikelet" ? "#4a2b3f" : "#7b4a6d";
@@ -752,6 +767,9 @@ function handleEnemyCollisions() {
     const stompThreshold = state.player.y + state.player.height - enemy.y;
     if (state.player.vy > 0 && stompThreshold <= 8 && enemy.stompable) {
       enemy.alive = false;
+      if ("stompedTimer" in enemy) {
+        enemy.stompedTimer = 0.25;
+      }
       bouncePlayer(state.player);
       audio.playStomp();
       state.hud.score += 100;
