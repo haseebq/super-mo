@@ -21,7 +21,7 @@ import type { InputState } from "./core/input.js";
 type AssetFrame = { x: number; y: number; w: number; h: number };
 type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
 type Camera = { x: number; y: number };
-type HudState = { lives: number; coins: number; shards: number };
+type HudState = { lives: number; score: number; coins: number; shards: number };
 type Mode = "title" | "playing" | "paused" | "complete" | "death";
 type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 
@@ -74,6 +74,7 @@ const startOverlay = requireElement<HTMLDivElement>(".start-overlay");
 const pauseOverlay = requireElement<HTMLDivElement>(".pause-overlay");
 const completeOverlay = requireElement<HTMLDivElement>(".complete-overlay");
 const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
+const hudScore = requireElement<HTMLSpanElement>("#hud-score");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 
@@ -92,6 +93,7 @@ const state: GameState = {
   },
   hud: {
     lives: 3,
+    score: 0,
     coins: 0,
     shards: 0,
   },
@@ -191,6 +193,8 @@ function update(dt: number) {
   updateCamera();
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
+    state.hud.score += 500;
+    updateHud();
     audio.playGoal();
     setMode("complete");
     return;
@@ -456,6 +460,8 @@ function handleEnemyCollisions() {
       enemy.alive = false;
       bouncePlayer(state.player);
       audio.playStomp();
+      state.hud.score += 100;
+      updateHud();
       state.particles.spawn(enemy.x + 8, enemy.y + 8, 8, "#7b4a6d");
       continue;
     }
@@ -473,6 +479,7 @@ function handleCollectibles() {
     if (overlaps(state.player, coin)) {
       coin.collected = true;
       state.hud.coins += 1;
+      state.hud.score += 10;
       updateHud();
       audio.playCoin();
       state.particles.spawn(coin.x + 8, coin.y + 8, 6, "#f6d44d");
@@ -486,6 +493,7 @@ function handleCollectibles() {
     if (overlaps(state.player, shard)) {
       shard.collected = true;
       state.hud.shards += 1;
+      state.hud.score += 50;
       updateHud();
       audio.playShard();
       state.particles.spawn(shard.x + 8, shard.y + 8, 10, "#78c7f0");
@@ -505,6 +513,8 @@ function handleCollectibles() {
       } else {
         state.shieldTimer = 6;
       }
+      state.hud.score += 25;
+      updateHud();
       audio.playPowerup();
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
     }
@@ -530,6 +540,7 @@ function resetPlayer() {
 
 function resetRun() {
   state.hud.lives = 3;
+  state.hud.score = 0;
   resetLevel();
 }
 
@@ -590,6 +601,7 @@ function clamp(value: number, min: number, max: number) {
 
 function updateHud() {
   hudLives.textContent = `Lives ${state.hud.lives}`;
+  hudScore.textContent = `Score ${state.hud.score}`;
   hudCoins.textContent = `Coins ${state.hud.coins}`;
   hudShards.textContent = `Shards ${state.hud.shards}`;
 }
