@@ -7,17 +7,24 @@ import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createParticles } from "./game/particles.js";
-const canvas = document.querySelector("#game");
+function requireElement(selector) {
+    const element = document.querySelector(selector);
+    if (!element) {
+        throw new Error(`Element not found: ${selector}`);
+    }
+    return element;
+}
+const canvas = requireElement("#game");
 const renderer = createRenderer(canvas);
 const input = createInput();
 const audio = createAudio();
-const hud = document.querySelector(".hud");
-const startOverlay = document.querySelector(".start-overlay");
-const pauseOverlay = document.querySelector(".pause-overlay");
-const completeOverlay = document.querySelector(".complete-overlay");
-const hudLives = document.querySelector("#hud-lives");
-const hudCoins = document.querySelector("#hud-coins");
-const hudShards = document.querySelector("#hud-shards");
+const hud = requireElement(".hud");
+const startOverlay = requireElement(".start-overlay");
+const pauseOverlay = requireElement(".pause-overlay");
+const completeOverlay = requireElement(".complete-overlay");
+const hudLives = requireElement("#hud-lives");
+const hudCoins = requireElement("#hud-coins");
+const hudShards = requireElement("#hud-shards");
 const spawnPoint = { x: 24, y: 96 };
 const state = {
     player: createPlayer(spawnPoint.x, spawnPoint.y),
@@ -77,7 +84,9 @@ function update(dt) {
         return;
     }
     for (const enemy of state.enemies) {
-        updateMoomba(enemy, state.level, dt);
+        if (enemy.kind === "moomba") {
+            updateMoomba(enemy, state.level, dt);
+        }
     }
     handleEnemyCollisions();
 }
@@ -160,6 +169,9 @@ function drawCollectibles() {
     }
 }
 function drawSprite(id, x, y) {
+    if (!state.assets) {
+        return;
+    }
     const frame = state.assets.atlas[id];
     if (!frame) {
         return;
@@ -175,7 +187,7 @@ function handleEnemyCollisions() {
             continue;
         }
         const stompThreshold = state.player.y + state.player.height - enemy.y;
-        if (state.player.vy > 0 && stompThreshold <= 8) {
+        if (state.player.vy > 0 && stompThreshold <= 8 && enemy.stompable) {
             enemy.alive = false;
             bouncePlayer(state.player);
             audio.playStomp();

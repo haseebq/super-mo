@@ -1,5 +1,8 @@
 export function createRenderer(canvas) {
     const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        throw new Error("Canvas 2D context not available.");
+    }
     ctx.imageSmoothingEnabled = false;
     return {
         clear(color) {

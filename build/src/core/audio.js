@@ -12,12 +12,15 @@ export function createAudio() {
     }
     function unlock() {
         ensureContext();
+        if (!ctx) {
+            return;
+        }
         if (ctx.state === "suspended") {
             ctx.resume();
         }
     }
     function playTone(freq, duration, type) {
-        if (!ctx) {
+        if (!ctx || !master) {
             return;
         }
         const osc = ctx.createOscillator();
@@ -37,7 +40,7 @@ export function createAudio() {
         playTone(220, 0.08, "triangle");
     }
     function startMusic() {
-        if (!ctx || music) {
+        if (!ctx || !master || music) {
             return;
         }
         const osc = ctx.createOscillator();
