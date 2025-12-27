@@ -10,6 +10,11 @@ export type Collectible = Rect & {
   type: "coin" | "shard";
 };
 
+export type Powerup = Rect & {
+  collected: boolean;
+  kind: "spring";
+};
+
 export type Level = {
   width: number;
   height: number;
@@ -19,6 +24,7 @@ export type Level = {
   shards: Collectible[];
   goal: Rect;
   landmark: Rect;
+  powerups: Powerup[];
 };
 
 const TILE_SIZE = 16;
@@ -29,6 +35,7 @@ export function createLevel1(): Level {
   const tiles = new Array<number>(width * height).fill(0);
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
+  const powerups: Powerup[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 74 * TILE_SIZE, y: 7 * TILE_SIZE, width: 32, height: 48 };
 
@@ -81,6 +88,7 @@ export function createLevel1(): Level {
   coins.push(createCoin(71, 6));
   coins.push(createCoin(75, 9));
   shards.push(createShard(50, 4));
+  powerups.push(createPowerup(28, 5));
 
   return {
     width,
@@ -91,6 +99,7 @@ export function createLevel1(): Level {
     shards,
     goal,
     landmark,
+    powerups,
   };
 }
 
@@ -113,6 +122,17 @@ function createShard(x: number, y: number): Collectible {
     height: 16,
     collected: false,
     type: "shard",
+  };
+}
+
+function createPowerup(x: number, y: number): Powerup {
+  return {
+    x: x * TILE_SIZE,
+    y: y * TILE_SIZE,
+    width: 16,
+    height: 16,
+    collected: false,
+    kind: "spring",
   };
 }
 

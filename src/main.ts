@@ -37,6 +37,7 @@ type GameState = {
   mode: Mode;
   invulnerableTimer: number;
   titleScroll: number;
+  powerupTimer: number;
 };
 
 declare global {
@@ -91,6 +92,7 @@ const state: GameState = {
   mode: "title",
   invulnerableTimer: 0,
   titleScroll: 0,
+  powerupTimer: 0,
 };
 
 loadAssets();
@@ -140,9 +142,16 @@ function update(dt: number) {
   if (state.invulnerableTimer > 0) {
     state.invulnerableTimer = Math.max(0, state.invulnerableTimer - dt);
   }
+  if (state.powerupTimer > 0) {
+    state.powerupTimer = Math.max(0, state.powerupTimer - dt);
+  }
   const events = updatePlayer(state.player, input, dt, state.level);
   if (events.jumped) {
     audio.playJump();
+  }
+
+  if (state.powerupTimer > 0) {
+    state.player.vy -= 40 * dt;
   }
 
   handleCollectibles();
@@ -295,6 +304,14 @@ function drawCollectibles() {
       renderer.rect(shard.x + 4, shard.y + 4, 8, 8, "#78c7f0");
     }
   }
+
+  for (const powerup of state.level.powerups) {
+    if (powerup.collected) {
+      continue;
+    }
+    renderer.rect(powerup.x + 2, powerup.y + 2, 12, 12, "#78c7f0");
+    renderer.rect(powerup.x + 5, powerup.y + 5, 6, 6, "#f6d44d");
+  }
 }
 
 function drawLandmark() {
@@ -396,6 +413,17 @@ function handleCollectibles() {
       state.particles.spawn(shard.x + 8, shard.y + 8, 10, "#78c7f0");
     }
   }
+
+  for (const powerup of state.level.powerups) {
+    if (powerup.collected) {
+      continue;
+    }
+    if (overlaps(state.player, powerup)) {
+      powerup.collected = true;
+      state.powerupTimer = 6;
+      state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
+    }
+  }
 }
 
 function overlaps(a: Rect, b: Rect) {
@@ -428,6 +456,7 @@ function resetLevel() {
   state.camera.x = 0;
   state.camera.y = 0;
   state.invulnerableTimer = 0;
+  state.powerupTimer = 0;
   resetPlayer();
   updateHud();
 }
