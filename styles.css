@@ -84,6 +84,24 @@ body {
   pointer-events: none;
 }
 
+.complete-overlay .yippee {
+  margin: 4px 0 0;
+  color: var(--accent);
+  font-size: 18px;
+  letter-spacing: 2px;
+  animation: yippee-bounce 0.9s ease-in-out infinite;
+}
+
+@keyframes yippee-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.05);
+  }
+}
+
 .is-hidden {
   display: none;
 }

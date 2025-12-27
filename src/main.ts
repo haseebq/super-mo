@@ -79,6 +79,7 @@ const hudTime = requireElement<HTMLSpanElement>("#hud-time");
 const hudScore = requireElement<HTMLSpanElement>("#hud-score");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
+const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 
 const spawnPoint = { x: 100, y: 152 };
 const LEVEL_TIME_LIMIT = 120;
@@ -621,6 +622,7 @@ function updateHud() {
   hudScore.textContent = `Score ${state.hud.score}`;
   hudCoins.textContent = `Coins ${state.hud.coins}`;
   hudShards.textContent = `Shards ${state.hud.shards}`;
+  completeScore.textContent = `Score ${state.hud.score}`;
 }
 
 function startDeath(exitMode: Mode) {
