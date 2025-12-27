@@ -4,9 +4,12 @@ import base64
 import json
 import os
 import time
+from io import BytesIO
 from pathlib import Path
 from urllib import request
 from urllib.error import HTTPError
+
+from PIL import Image
 
 SECRETS_PATH = Path("SECRETS")
 PRODUCTION_MARKER = Path("art/production.json")
@@ -49,21 +52,22 @@ def is_production_ready(marker_path: Path) -> bool:
     return bool(payload.get("production"))
 
 
-def list_missing_sprites(layout_path: Path, atlas_path: Path | None, force_full: bool) -> list[str]:
+def list_missing_tiles(layout_path: Path, tiles_dir: Path, force_full: bool) -> list[str]:
     layout = load_json(layout_path)
     sprite_ids = [entry["id"] for entry in layout.get("sprites", [])]
-    if force_full or not atlas_path or not atlas_path.exists():
+    if force_full:
         return sprite_ids
-    atlas = load_json(atlas_path)
-    missing = [sprite_id for sprite_id in sprite_ids if sprite_id not in atlas]
+    missing = []
+    for sprite_id in sprite_ids:
+        if not (tiles_dir / f"{sprite_id}.png").exists():
+            missing.append(sprite_id)
     return missing
 
 
-def build_prompt_from_template(template: str, sprite_ids: list[str]) -> str:
-    if "<LIST SPRITES HERE>" not in template:
-        raise ValueError("Prompt template missing <LIST SPRITES HERE> placeholder.")
-    sprite_list = ", ".join(sprite_ids)
-    return template.replace("<LIST SPRITES HERE>", sprite_list)
+def build_prompt_from_sprite_template(template: str, sprite_id: str) -> str:
+    if "<SPRITE_ID>" not in template:
+        raise ValueError("Prompt template missing <SPRITE_ID> placeholder.")
+    return template.replace("<SPRITE_ID>", sprite_id)
 
 
 def generate_image(prompt: str, model: str, size: str) -> bytes:
@@ -100,6 +104,15 @@ def generate_image(prompt: str, model: str, size: str) -> bytes:
         with request.urlopen(image_data["url"]) as resp:
             return resp.read()
     raise RuntimeError("OpenAI API response missing image data.")
+
+
+def resize_image(image_bytes: bytes, target_size: tuple[int, int]) -> bytes:
+    with Image.open(BytesIO(image_bytes)) as img:
+        img = img.convert("RGBA")
+        resized = img.resize(target_size, Image.NEAREST)
+        out = BytesIO()
+        resized.save(out, format="PNG")
+        return out.getvalue()
 
 
 def request_json(url: str, method: str = "GET", payload: dict | None = None) -> dict:
@@ -230,46 +243,62 @@ def generate_image_invokeai(prompt: str, out_path: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate art with OpenAI Images API.")
+    parser = argparse.ArgumentParser(description="Generate per-sprite art tiles.")
     parser.add_argument("--prompt", help="Prompt string to send")
     parser.add_argument("--prompt-file", type=Path, help="Path to prompt text")
     parser.add_argument("--layout", type=Path, default=Path("art/layout.json"), help="Layout manifest")
     parser.add_argument(
-        "--atlas",
+        "--tiles-dir",
         type=Path,
-        default=Path("assets/sprites.prod.json"),
-        help="Existing production atlas",
+        default=Path("assets/sprites-src"),
+        help="Output directory for per-sprite PNGs",
     )
     parser.add_argument(
         "--force-full",
         action="store_true",
-        help="Generate all sprites even if they exist in the atlas",
+        help="Generate all sprites even if tiles already exist",
     )
     parser.add_argument("--model", default="gpt-image-1", help="Image model name")
-    parser.add_argument("--size", default="1024x1024", help="Image size")
+    parser.add_argument(
+        "--sprite-size",
+        default="256x256",
+        help="Generation size for each sprite before downscaling",
+    )
     parser.add_argument(
         "--provider",
         default="openai",
         choices=["openai", "invokeai"],
         help="Image generation provider",
     )
-    parser.add_argument("--out", default="art/batch.png", help="Output PNG path")
     args = parser.parse_args()
 
     prompt = load_prompt(args.prompt, args.prompt_file)
     force_full = args.force_full or not is_production_ready(PRODUCTION_MARKER)
-    missing = list_missing_sprites(args.layout, args.atlas, force_full)
+    tiles_dir = args.tiles_dir
+    missing = list_missing_tiles(args.layout, tiles_dir, force_full)
     if not missing:
-        print("All sprites already exist in the atlas. Nothing to generate.")
+        print("All sprite tiles already exist. Nothing to generate.")
         return
-    prompt = build_prompt_from_template(prompt, missing)
-    out_path = Path(args.out)
-    if args.provider == "invokeai":
-        generate_image_invokeai(prompt, out_path)
-    else:
-        image_bytes = generate_image(prompt, args.model, args.size)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(image_bytes)
+
+    layout = load_json(args.layout)
+    sprite_sizes = {entry["id"]: (entry["w"], entry["h"]) for entry in layout.get("sprites", [])}
+
+    tiles_dir.mkdir(parents=True, exist_ok=True)
+    for sprite_id in missing:
+        sprite_prompt = build_prompt_from_sprite_template(prompt, sprite_id)
+        out_path = tiles_dir / f"{sprite_id}.png"
+        if args.provider == "invokeai":
+            temp_path = tiles_dir / f"{sprite_id}.raw.png"
+            generate_image_invokeai(sprite_prompt, temp_path)
+            raw_bytes = temp_path.read_bytes()
+            temp_path.unlink()
+        else:
+            raw_bytes = generate_image(sprite_prompt, args.model, args.sprite_size)
+        target_size = sprite_sizes.get(sprite_id)
+        if not target_size:
+            raise ValueError(f"Missing layout entry for sprite: {sprite_id}")
+        resized_bytes = resize_image(raw_bytes, target_size)
+        out_path.write_bytes(resized_bytes)
         print(f"Wrote {out_path}")
 
 

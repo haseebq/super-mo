@@ -1,7 +1,5 @@
-You are generating a single 1024x1024 image that contains a grid of pixel-art sprites.
+You are generating a single pixel-art sprite for a 16-bit platformer.
+Sprite ID: <SPRITE_ID>.
 Style: bright, playful 16-bit platformer; clean silhouettes; subtle outlines; soft 1-2 tone shading; light source from top-left.
 Palette: #78C7F0 sky, #D4A86A ground, #5DBB63 grass, #A0703D dirt, #E04B3A player, #F6D44D accent, #7B4A6D enemy, #2B2B2B UI.
-Grid: 16 columns x 16 rows. Each cell is 64x64 pixels (represents a 16x16 sprite scaled 4x).
-Keep sprites centered within cells with 4px padding. No text, no labels, no drop shadows.
-Include only the following sprites in this sheet (left to right, top to bottom):
-<LIST SPRITES HERE>
+Canvas: transparent background, sprite centered with minimal padding, no text, no labels, no drop shadows.
