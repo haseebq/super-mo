@@ -54,6 +54,7 @@ type GameState = {
   speedTimer: number;
   shieldTimer: number;
   backgroundTime: number;
+  playerSquash: number;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -138,6 +139,7 @@ const state: GameState = {
   speedTimer: 0,
   shieldTimer: 0,
   backgroundTime: 0,
+  playerSquash: 0,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -231,6 +233,7 @@ function update(dt: number) {
   }
 
   state.time += dt;
+  state.playerSquash = approach(state.playerSquash, 0, dt * 6);
   if (state.invulnerableTimer > 0) {
     state.invulnerableTimer = Math.max(0, state.invulnerableTimer - dt);
   }
@@ -262,9 +265,11 @@ function update(dt: number) {
   const events = updatePlayer(state.player, input, dt, state.level, speedBoost);
   if (events.jumped) {
     audio.playJump();
+    state.playerSquash = -0.12;
   }
   if (!wasOnGround && state.player.onGround && prevVy > 120) {
     state.particles.spawn(state.player.x + 8, state.player.y + state.player.height, 6, "#d4a86a");
+    state.playerSquash = 0.18;
   }
 
   if (state.powerupTimer > 0) {
@@ -318,7 +323,17 @@ function render() {
     state.invulnerableTimer === 0 || Math.floor(state.time * 12) % 2 === 0;
   if (shouldDrawPlayer) {
     if (state.assetsReady) {
-      drawSprite(getCurrentFrame(state.player.anim), state.player.x, state.player.y, state.player.facing < 0);
+      const squash = state.playerSquash;
+      const scaleX = Math.max(0.7, 1 - squash * 0.35);
+      const scaleY = Math.max(0.7, 1 + squash);
+      drawSpriteScaled(
+        getCurrentFrame(state.player.anim),
+        state.player.x,
+        state.player.y,
+        scaleX,
+        scaleY,
+        state.player.facing < 0
+      );
     } else {
       renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#e04b3a");
     }
@@ -584,6 +599,28 @@ function drawSprite(id: string, x: number, y: number, flipX = false) {
     return;
   }
   renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, x, y, frame.w, frame.h, flipX);
+}
+
+function drawSpriteScaled(
+  id: string,
+  x: number,
+  y: number,
+  scaleX: number,
+  scaleY: number,
+  flipX = false
+) {
+  if (!state.assets) {
+    return;
+  }
+  const frame = state.assets.atlas[id];
+  if (!frame) {
+    return;
+  }
+  const width = frame.w * scaleX;
+  const height = frame.h * scaleY;
+  const dx = x + (frame.w - width) / 2;
+  const dy = y + (frame.h - height);
+  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, dx, dy, width, height, flipX);
 }
 
 function handleEnemyCollisions() {
