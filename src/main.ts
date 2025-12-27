@@ -255,11 +255,16 @@ function update(dt: number) {
     updateHud();
   }
   const speedBoost = state.speedTimer > 0 ? 1.35 : 1;
+  const wasOnGround = state.player.onGround;
+  const prevVy = state.player.vy;
   applyPlatformCarry(state.player, state.level.platforms);
   const prevY = state.player.y;
   const events = updatePlayer(state.player, input, dt, state.level, speedBoost);
   if (events.jumped) {
     audio.playJump();
+  }
+  if (!wasOnGround && state.player.onGround && prevVy > 120) {
+    state.particles.spawn(state.player.x + 8, state.player.y + state.player.height, 6, "#d4a86a");
   }
 
   if (state.powerupTimer > 0) {
