@@ -52,5 +52,6 @@ bd sync               # Sync with git
 
 - Run the game via `npm run serve` (esbuild transpiles TS on the fly). `build/` is removed and no longer used.
 - Playwright runs against `scripts/serve.js`; if port 4173 is busy, tests fail—kill existing server first.
-- Title screen currently renders a zoomed-out scrolling preview; user wants full-scale scrolling camera (issue `mario-0mi`).
-- P1/P2 backlog includes animation system, animated backgrounds, level select + 3 levels, placeholder music/SFX, and expanded powerups.
+- Title screen now renders a full-scale scrolling camera (implemented in `mario-0mi`).
+- Animation system implemented (core + player/enemy states).
+- P1/P2 backlog includes level select + 3 levels, placeholder music/SFX, and expanded powerups.
