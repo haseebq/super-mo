@@ -180,6 +180,7 @@ function update(dt: number) {
   updateCamera();
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
+    audio.playGoal();
     setMode("complete");
     return;
   }
@@ -452,6 +453,7 @@ function handleCollectibles() {
       coin.collected = true;
       state.hud.coins += 1;
       updateHud();
+      audio.playCoin();
       state.particles.spawn(coin.x + 8, coin.y + 8, 6, "#f6d44d");
     }
   }
@@ -464,6 +466,7 @@ function handleCollectibles() {
       shard.collected = true;
       state.hud.shards += 1;
       updateHud();
+      audio.playShard();
       state.particles.spawn(shard.x + 8, shard.y + 8, 10, "#78c7f0");
     }
   }
@@ -475,6 +478,7 @@ function handleCollectibles() {
     if (overlaps(state.player, powerup)) {
       powerup.collected = true;
       state.powerupTimer = 6;
+      audio.playPowerup();
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
     }
   }
@@ -595,6 +599,7 @@ function applyDamage() {
   }
   state.hud.lives = Math.max(0, state.hud.lives - 1);
   updateHud();
+  audio.playHurt();
   if (state.hud.lives === 0) {
     startDeath("title");
   } else {

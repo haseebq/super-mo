@@ -50,6 +50,26 @@ export function createAudio() {
     playTone(220, 0.08, "triangle");
   }
 
+  function playCoin() {
+    playTone(880, 0.06, "square");
+  }
+
+  function playShard() {
+    playTone(540, 0.08, "triangle");
+  }
+
+  function playPowerup() {
+    playTone(330, 0.12, "sawtooth");
+  }
+
+  function playHurt() {
+    playTone(140, 0.14, "sine");
+  }
+
+  function playGoal() {
+    playTone(740, 0.16, "triangle");
+  }
+
   function startMusic() {
     if (!ctx || !master || music) {
       return;
@@ -76,6 +96,11 @@ export function createAudio() {
     unlock,
     playJump,
     playStomp,
+    playCoin,
+    playShard,
+    playPowerup,
+    playHurt,
+    playGoal,
     startMusic,
     stopMusic,
   };
