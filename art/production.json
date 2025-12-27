@@ -1,0 +1,4 @@
+{
+  "production": false,
+  "note": "Set to true after generating production-grade art via the pipeline."
+}

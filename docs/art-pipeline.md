@@ -28,7 +28,10 @@ Include only the following sprites in this sheet (left to right, top to bottom):
    python3 scripts/generate_art.py --prompt-file art/prompt.txt --out art/batch.png
    ```
 3. **Downscale**: Convert 1024x1024 -> 256x256 using nearest-neighbor (4x reduction).
-4. **Slice + atlas**: Slice the 256x256 sheet into 16x16 tiles using `art/layout.json` and emit `sprites.json`.
+4. **Slice + atlas**: Slice the 256x256 sheet into 16x16 tiles using `art/layout.json` and emit production atlases.
+   ```bash
+   python3 scripts/build_atlas.py --input art/batch.png --layout art/layout.json --mark-production
+   ```
 5. **QA pass**:
    - Pixel alignment: no blurry edges (nearest-neighbor only).
    - Consistent palette and outline weight.
@@ -45,7 +48,7 @@ Create a small script to:
 Notes:
 - Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below; avoid placing other sprites in the rows beneath them.
 - The reference script uses Pillow (`pip install pillow`).
-- Runtime prefers `assets/sprites.png` when present, and falls back to `assets/sprites.svg`.
+- Runtime prefers `assets/sprites.prod.png` + `assets/sprites.prod.json` when present, and falls back to placeholder `assets/sprites.svg` + `assets/sprites.json`.
 - The generator script reads `OPENAI_API_KEY` from the environment or from a local `SECRETS` file (gitignored). Example:
   ```
   OPENAI_API_KEY=your_key_here

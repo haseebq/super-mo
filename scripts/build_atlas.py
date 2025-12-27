@@ -2,6 +2,7 @@
 import argparse
 import json
 from pathlib import Path
+from datetime import datetime
 
 from PIL import Image
 
@@ -11,7 +12,14 @@ def load_layout(path: Path) -> dict:
         return json.load(handle)
 
 
-def build_atlas(input_path: Path, layout_path: Path, out_image: Path, out_json: Path) -> None:
+def build_atlas(
+    input_path: Path,
+    layout_path: Path,
+    out_image: Path,
+    out_json: Path,
+    mark_production: bool,
+    production_marker: Path,
+) -> None:
     layout = load_layout(layout_path)
     sheet = layout["sheet"]
     sprites = layout["sprites"]
@@ -42,16 +50,42 @@ def build_atlas(input_path: Path, layout_path: Path, out_image: Path, out_json: 
     with out_json.open("w", encoding="utf-8") as handle:
         json.dump(atlas, handle, indent=2, sort_keys=True)
 
+    if mark_production:
+        payload = {
+            "production": True,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "source": str(input_path),
+        }
+        production_marker.parent.mkdir(parents=True, exist_ok=True)
+        production_marker.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build sprite atlas from 1024x1024 AI sheet.")
     parser.add_argument("--input", default="art/batch.png", help="1024x1024 source PNG")
     parser.add_argument("--layout", default="art/layout.json", help="Layout manifest JSON")
-    parser.add_argument("--out-image", default="assets/sprites.png", help="Output PNG atlas")
-    parser.add_argument("--out-json", default="assets/sprites.json", help="Output JSON atlas")
+    parser.add_argument("--out-image", default="assets/sprites.prod.png", help="Output PNG atlas")
+    parser.add_argument("--out-json", default="assets/sprites.prod.json", help="Output JSON atlas")
+    parser.add_argument(
+        "--mark-production",
+        action="store_true",
+        help="Write art/production.json when atlas is generated",
+    )
+    parser.add_argument(
+        "--production-marker",
+        default="art/production.json",
+        help="Path to production marker JSON",
+    )
     args = parser.parse_args()
 
-    build_atlas(Path(args.input), Path(args.layout), Path(args.out_image), Path(args.out_json))
+    build_atlas(
+        Path(args.input),
+        Path(args.layout),
+        Path(args.out_image),
+        Path(args.out_json),
+        args.mark_production,
+        Path(args.production_marker),
+    )
 
 
 if __name__ == "__main__":

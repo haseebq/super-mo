@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib import request
 
 SECRETS_PATH = Path("SECRETS")
+PRODUCTION_MARKER = Path("art/production.json")
 
 
 def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
@@ -36,10 +37,10 @@ def load_api_key() -> str:
     raise EnvironmentError("OPENAI_API_KEY is not set.")
 
 
-def list_missing_sprites(layout_path: Path, atlas_path: Path | None) -> list[str]:
+def list_missing_sprites(layout_path: Path, atlas_path: Path | None, force_full: bool) -> list[str]:
     layout = load_json(layout_path)
     sprite_ids = [entry["id"] for entry in layout.get("sprites", [])]
-    if not atlas_path or not atlas_path.exists():
+    if force_full or not atlas_path or not atlas_path.exists():
         return sprite_ids
     atlas = load_json(atlas_path)
     missing = [sprite_id for sprite_id in sprite_ids if sprite_id not in atlas]
@@ -86,14 +87,25 @@ def main() -> None:
     parser.add_argument("--prompt", help="Prompt string to send")
     parser.add_argument("--prompt-file", type=Path, help="Path to prompt text")
     parser.add_argument("--layout", type=Path, default=Path("art/layout.json"), help="Layout manifest")
-    parser.add_argument("--atlas", type=Path, default=Path("assets/sprites.json"), help="Existing atlas")
+    parser.add_argument(
+        "--atlas",
+        type=Path,
+        default=Path("assets/sprites.prod.json"),
+        help="Existing production atlas",
+    )
+    parser.add_argument(
+        "--force-full",
+        action="store_true",
+        help="Generate all sprites even if they exist in the atlas",
+    )
     parser.add_argument("--model", default="gpt-image-1", help="Image model name")
     parser.add_argument("--size", default="1024x1024", help="Image size")
     parser.add_argument("--out", default="art/batch.png", help="Output PNG path")
     args = parser.parse_args()
 
     prompt = load_prompt(args.prompt, args.prompt_file)
-    missing = list_missing_sprites(args.layout, args.atlas)
+    force_full = args.force_full or not PRODUCTION_MARKER.exists()
+    missing = list_missing_sprites(args.layout, args.atlas, force_full)
     if not missing:
         print("All sprites already exist in the atlas. Nothing to generate.")
         return

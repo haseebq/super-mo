@@ -861,11 +861,13 @@ function applyDamage() {
 async function loadAssets() {
   try {
     let image: HTMLImageElement | null = null;
-    const atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.json");
+    let atlas: Record<string, AssetFrame> | null = null;
     try {
-      image = await loadImage("assets/sprites.png");
+      atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.prod.json");
+      image = await loadImage("assets/sprites.prod.png");
     } catch (error) {
-      console.warn("PNG sprites missing, falling back to SVG.", error);
+      console.warn("Production sprites missing, falling back to placeholder assets.", error);
+      atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.json");
       image = await loadImage("assets/sprites.svg");
     }
     state.assets = { image, atlas };
