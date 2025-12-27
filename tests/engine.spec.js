@@ -12,6 +12,11 @@ test("engine boots and toggles states", async ({ page }) => {
   await page.keyboard.press("Enter");
 
   await expect(startOverlay).toHaveClass(/is-hidden/);
+  const introOverlay = page.locator(".intro-overlay");
+  await expect(introOverlay).toBeVisible();
+
+  await page.keyboard.press("Enter");
+  await expect(introOverlay).toHaveClass(/is-hidden/);
 
   await page.keyboard.press("KeyP");
   const pauseOverlay = page.locator(".pause-overlay");

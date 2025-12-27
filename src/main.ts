@@ -29,7 +29,7 @@ type AssetFrame = { x: number; y: number; w: number; h: number };
 type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
 type Camera = { x: number; y: number };
 type HudState = { lives: number; score: number; coins: number; shards: number };
-type Mode = "title" | "playing" | "paused" | "complete" | "death";
+type Mode = "title" | "intro" | "playing" | "paused" | "complete" | "death";
 type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 
 type GameState = {
@@ -92,6 +92,7 @@ const audio = createAudio();
 const hud = requireElement<HTMLDivElement>(".hud");
 const startOverlay = requireElement<HTMLDivElement>(".start-overlay");
 const pauseOverlay = requireElement<HTMLDivElement>(".pause-overlay");
+const introOverlay = requireElement<HTMLDivElement>(".intro-overlay");
 const completeOverlay = requireElement<HTMLDivElement>(".complete-overlay");
 const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
 const hudTime = requireElement<HTMLSpanElement>("#hud-time");
@@ -101,6 +102,10 @@ const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 const completeBreakdown = requireElement<HTMLParagraphElement>("#complete-breakdown");
+const introTitle = requireElement<HTMLHeadingElement>("#intro-title");
+const introGoal = requireElement<HTMLParagraphElement>("#intro-goal");
+const introCollect = requireElement<HTMLParagraphElement>("#intro-collect");
+const introDifficulty = requireElement<HTMLParagraphElement>("#intro-difficulty");
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 const difficultyOptions = Array.from(
   document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
@@ -198,7 +203,7 @@ function update(dt: number) {
     if (input.consumePress("Enter")) {
       state.levelIndex = state.titleSelection;
       resetLevel();
-      setMode("playing");
+      setMode("intro");
     }
     
     setAnimation(state.player.anim, "run");
@@ -214,6 +219,13 @@ function update(dt: number) {
       if (enemy.kind === "flit") {
         updateFlit(enemy, dt);
       }
+    }
+    return;
+  }
+
+  if (state.mode === "intro") {
+    if (input.consumePress("Enter")) {
+      setMode("playing");
     }
     return;
   }
@@ -255,7 +267,7 @@ function update(dt: number) {
       if (state.levelIndex < LEVELS.length - 1) {
         state.levelIndex += 1;
         resetLevel();
-        setMode("playing");
+        setMode("intro");
       } else {
         resetRun();
         setMode("title");
@@ -829,12 +841,14 @@ function resetLevel() {
 function setMode(mode: Mode) {
   state.mode = mode;
   const isTitle = mode === "title";
+  const isIntro = mode === "intro";
   const isPaused = mode === "paused";
   const isComplete = mode === "complete";
   const isDeath = mode === "death";
 
   hud.classList.toggle("is-hidden", isTitle);
   startOverlay.classList.toggle("is-hidden", !isTitle);
+  introOverlay.classList.toggle("is-hidden", !isIntro);
   pauseOverlay.classList.toggle("is-hidden", !isPaused);
   completeOverlay.classList.toggle("is-hidden", !isComplete);
   updateHud();
@@ -849,6 +863,9 @@ function setMode(mode: Mode) {
   if (isTitle) {
     updateLevelSelect();
     updateDifficultySelect();
+  }
+  if (isIntro) {
+    updateIntroCard();
   }
   if (isPaused) {
     state.pauseSelection = 0;
@@ -944,6 +961,16 @@ function updatePauseMenu() {
   for (let i = 0; i < pauseOptions.length; i += 1) {
     pauseOptions[i].classList.toggle("is-selected", i === state.pauseSelection);
   }
+}
+
+function updateIntroCard() {
+  const levelNumber = state.levelIndex + 1;
+  const difficultyLabel = DIFFICULTY_SPEED[state.difficultyIndex] < 1 ? "Easy" :
+    DIFFICULTY_SPEED[state.difficultyIndex] > 1 ? "Hard" : "Normal";
+  introTitle.textContent = `Level ${levelNumber}`;
+  introGoal.textContent = "Reach the goal flag.";
+  introCollect.textContent = `Collect ${state.level.coins.length} coins and ${state.level.shards.length} shards.`;
+  introDifficulty.textContent = `Difficulty: ${difficultyLabel}`;
 }
 
 function updatePlatforms(platforms: MovingPlatform[], dt: number) {
