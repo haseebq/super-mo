@@ -27,3 +27,44 @@ test("capture title and playing screens", async ({ page }) => {
 
   await page.screenshot({ path: join(artifactsDir, "playing.png"), fullPage: true });
 });
+
+test("capture sprite atlas grid", async ({ page }) => {
+  ensureArtifacts();
+  await page.goto("/");
+
+  await page.evaluate(async () => {
+    const atlas = await fetch("/assets/sprites.prod.json").then((res) => res.json());
+    const image = await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.src = "/assets/sprites.prod.png";
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    });
+
+    const entries = Object.entries(atlas).sort(([a], [b]) => a.localeCompare(b));
+    const columns = 7;
+    const cell = 32;
+    const rows = Math.ceil(entries.length / columns);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = columns * cell;
+    canvas.height = rows * cell;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+
+    entries.forEach(([_, frame], index) => {
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const dx = col * cell + (cell - frame.w * 2) / 2;
+      const dy = row * cell + (cell - frame.h * 2) / 2;
+      ctx.drawImage(image, frame.x, frame.y, frame.w, frame.h, dx, dy, frame.w * 2, frame.h * 2);
+    });
+
+    document.body.style.margin = "0";
+    document.body.style.background = "#0c0c0c";
+    document.body.replaceChildren(canvas);
+  });
+
+  await page.waitForTimeout(100);
+  await page.screenshot({ path: join(artifactsDir, "atlas-grid.png"), fullPage: true });
+});
