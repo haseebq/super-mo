@@ -15,6 +15,28 @@ def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
     raise ValueError("Provide --prompt or --prompt-file.")
 
 
+def load_json(path: Path) -> dict:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def list_missing_sprites(layout_path: Path, atlas_path: Path | None) -> list[str]:
+    layout = load_json(layout_path)
+    sprite_ids = [entry["id"] for entry in layout.get("sprites", [])]
+    if not atlas_path or not atlas_path.exists():
+        return sprite_ids
+    atlas = load_json(atlas_path)
+    missing = [sprite_id for sprite_id in sprite_ids if sprite_id not in atlas]
+    return missing
+
+
+def build_prompt_from_template(template: str, sprite_ids: list[str]) -> str:
+    if "<LIST SPRITES HERE>" not in template:
+        raise ValueError("Prompt template missing <LIST SPRITES HERE> placeholder.")
+    sprite_list = ", ".join(sprite_ids)
+    return template.replace("<LIST SPRITES HERE>", sprite_list)
+
+
 def generate_image(prompt: str, model: str, size: str) -> bytes:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
@@ -49,12 +71,19 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate art with OpenAI Images API.")
     parser.add_argument("--prompt", help="Prompt string to send")
     parser.add_argument("--prompt-file", type=Path, help="Path to prompt text")
+    parser.add_argument("--layout", type=Path, default=Path("art/layout.json"), help="Layout manifest")
+    parser.add_argument("--atlas", type=Path, default=Path("assets/sprites.json"), help="Existing atlas")
     parser.add_argument("--model", default="gpt-image-1", help="Image model name")
     parser.add_argument("--size", default="1024x1024", help="Image size")
     parser.add_argument("--out", default="art/batch.png", help="Output PNG path")
     args = parser.parse_args()
 
     prompt = load_prompt(args.prompt, args.prompt_file)
+    missing = list_missing_sprites(args.layout, args.atlas)
+    if not missing:
+        print("All sprites already exist in the atlas. Nothing to generate.")
+        return
+    prompt = build_prompt_from_template(prompt, missing)
     image_bytes = generate_image(prompt, args.model, args.size)
 
     out_path = Path(args.out)
