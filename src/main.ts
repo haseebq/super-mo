@@ -38,6 +38,7 @@ type GameState = {
   mode: Mode;
   invulnerableTimer: number;
   titleScroll: number;
+  levelTimeRemaining: number;
   powerupTimer: number;
   speedTimer: number;
   shieldTimer: number;
@@ -74,11 +75,13 @@ const startOverlay = requireElement<HTMLDivElement>(".start-overlay");
 const pauseOverlay = requireElement<HTMLDivElement>(".pause-overlay");
 const completeOverlay = requireElement<HTMLDivElement>(".complete-overlay");
 const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
+const hudTime = requireElement<HTMLSpanElement>("#hud-time");
 const hudScore = requireElement<HTMLSpanElement>("#hud-score");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 
 const spawnPoint = { x: 100, y: 152 };
+const LEVEL_TIME_LIMIT = 120;
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
@@ -101,6 +104,7 @@ const state: GameState = {
   mode: "title",
   invulnerableTimer: 0,
   titleScroll: 0,
+  levelTimeRemaining: LEVEL_TIME_LIMIT,
   powerupTimer: 0,
   speedTimer: 0,
   shieldTimer: 0,
@@ -173,11 +177,22 @@ function update(dt: number) {
   if (state.powerupTimer > 0) {
     state.powerupTimer = Math.max(0, state.powerupTimer - dt);
   }
+  const previousTime = Math.ceil(state.levelTimeRemaining);
+  if (state.levelTimeRemaining > 0) {
+    state.levelTimeRemaining = Math.max(0, state.levelTimeRemaining - dt);
+    if (state.levelTimeRemaining === 0) {
+      state.invulnerableTimer = 0;
+      applyDamage();
+    }
+  }
   if (state.speedTimer > 0) {
     state.speedTimer = Math.max(0, state.speedTimer - dt);
   }
   if (state.shieldTimer > 0) {
     state.shieldTimer = Math.max(0, state.shieldTimer - dt);
+  }
+  if (Math.ceil(state.levelTimeRemaining) !== previousTime) {
+    updateHud();
   }
   const speedBoost = state.speedTimer > 0 ? 1.35 : 1;
   const events = updatePlayer(state.player, input, dt, state.level, speedBoost);
@@ -556,6 +571,7 @@ function resetLevel() {
   state.powerupTimer = 0;
   state.speedTimer = 0;
   state.shieldTimer = 0;
+  state.levelTimeRemaining = LEVEL_TIME_LIMIT;
   state.deathTimer = 0;
   state.deathVelocity = 0;
   resetPlayer();
@@ -601,6 +617,7 @@ function clamp(value: number, min: number, max: number) {
 
 function updateHud() {
   hudLives.textContent = `Lives ${state.hud.lives}`;
+  hudTime.textContent = `Time ${Math.ceil(state.levelTimeRemaining)}`;
   hudScore.textContent = `Score ${state.hud.score}`;
   hudCoins.textContent = `Coins ${state.hud.coins}`;
   hudShards.textContent = `Shards ${state.hud.shards}`;
