@@ -42,3 +42,8 @@ bd sync               # Sync with git
 
 - Commit changes as you complete and close each bd issue
 - Prefer one commit per issue with a clear message that references the issue id
+
+## Pre-Commit Checks
+
+- Run the quick test script before every commit (P0 requirement)
+- Keep the quick test fast: typecheck + smoke test where possible
