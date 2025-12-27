@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from urllib import request
 
+SECRETS_PATH = Path("SECRETS")
+
 
 def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
     if prompt:
@@ -18,6 +20,20 @@ def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
 def load_json(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def load_api_key() -> str:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if api_key:
+        return api_key
+    if SECRETS_PATH.exists():
+        for line in SECRETS_PATH.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            if key.strip() == "OPENAI_API_KEY":
+                return value.strip()
+    raise EnvironmentError("OPENAI_API_KEY is not set.")
 
 
 def list_missing_sprites(layout_path: Path, atlas_path: Path | None) -> list[str]:
@@ -38,9 +54,7 @@ def build_prompt_from_template(template: str, sprite_ids: list[str]) -> str:
 
 
 def generate_image(prompt: str, model: str, size: str) -> bytes:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise EnvironmentError("OPENAI_API_KEY is not set.")
+    api_key = load_api_key()
 
     payload = json.dumps(
         {
