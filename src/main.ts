@@ -216,7 +216,6 @@ function render() {
 
   if (state.mode === "title") {
     renderTitlePreview();
-    renderer.text("Super Mo - Engine Scaffold", 8, 16, "#2b2b2b");
     return;
   }
 
@@ -257,7 +256,6 @@ function render() {
 
   renderer.ctx.restore();
 
-  renderer.text("Super Mo - Engine Scaffold", 8, 16, "#2b2b2b");
 }
 
 function drawLevel(level: Level) {
