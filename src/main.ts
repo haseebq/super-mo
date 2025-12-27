@@ -3,6 +3,7 @@ import { createRenderer } from "./core/renderer.js";
 import { createInput } from "./core/input.js";
 import { loadImage, loadJson } from "./core/assets.js";
 import { createAudio } from "./core/audio.js";
+import { getCurrentFrame, setAnimation, updateAnimation } from "./core/animation.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
@@ -70,7 +71,7 @@ const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 
-const spawnPoint = { x: 24, y: 96 };
+const spawnPoint = { x: 100, y: 104 };
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
@@ -104,6 +105,10 @@ function update(dt: number) {
     if (input.consumePress("Enter")) {
       setMode("playing");
     }
+    
+    setAnimation(state.player.anim, "run");
+    updateAnimation(state.player.anim, dt);
+
     for (const enemy of state.enemies) {
       if (enemy.kind === "moomba") {
         updateMoomba(enemy, state.level, dt);
@@ -188,12 +193,12 @@ function render() {
 
   renderer.ctx.save();
   renderer.ctx.translate(-state.camera.x, -state.camera.y);
-  drawBackground();
+  drawBackground(state.camera.x);
   drawLevel(state.level);
   drawCollectibles();
   drawLandmark();
   if (state.assetsReady) {
-    drawSprite("player", state.player.x, state.player.y);
+    drawSprite(getCurrentFrame(state.player.anim), state.player.x, state.player.y, state.player.facing < 0);
   } else {
     renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#e04b3a");
   }
@@ -204,7 +209,7 @@ function render() {
     }
     if (state.assetsReady) {
       if (enemy.kind === "moomba") {
-        drawSprite("moomba", enemy.x, enemy.y);
+        drawSprite(getCurrentFrame(enemy.anim), enemy.x, enemy.y, enemy.vx > 0);
       }
       if (enemy.kind === "spikelet") {
         drawSprite("spikelet", enemy.x, enemy.y);
@@ -254,11 +259,9 @@ function drawLevel(level: Level) {
   }
 }
 
-function drawBackground() {
-  const canvasWidth = canvas.width;
-  const canvasHeight = canvas.height;
+function drawBackground(camX: number) {
   renderer.ctx.save();
-  renderer.ctx.translate(state.camera.x * 0.3, 0);
+  renderer.ctx.translate(camX * 0.3, 0);
 
   const { width, tileSize } = state.level;
   const horizonY = 100;
@@ -324,35 +327,63 @@ function drawLandmark() {
 function renderTitlePreview() {
   const levelWidth = state.level.width * state.level.tileSize;
   const levelHeight = state.level.height * state.level.tileSize;
-  const scale = Math.min((canvas.width - 16) / levelWidth, (canvas.height - 16) / levelHeight);
-  const offsetX = (canvas.width - levelWidth * scale) / 2;
-  const offsetY = (canvas.height - levelHeight * scale) / 2;
+  const scrollX = state.titleScroll % levelWidth;
+  const offsetY = canvas.height - levelHeight;
 
   renderer.ctx.save();
-  const maxScroll = Math.max(0, levelWidth - canvas.width / scale);
-  const scrollX = state.titleScroll % (maxScroll === 0 ? 1 : maxScroll);
-  renderer.ctx.translate(offsetX - scrollX * scale, offsetY);
-  renderer.ctx.scale(scale, scale);
-  drawBackground();
-  drawLevel(state.level);
-  drawCollectibles();
-  drawLandmark();
-  for (const enemy of state.enemies) {
-    if (!enemy.alive) {
-      continue;
-    }
+  renderer.ctx.translate(-scrollX, offsetY);
+
+  const drawScene = (camX: number) => {
+    drawBackground(camX);
+    drawLevel(state.level);
+    drawCollectibles();
+    drawLandmark();
+    
+    // Render player preview if we want it on title screen
     if (state.assetsReady) {
-      const spriteId = enemy.kind === "moomba" ? "moomba" : enemy.kind === "spikelet" ? "spikelet" : "flit";
-      drawSprite(spriteId, enemy.x, enemy.y);
-    } else {
-      const color = enemy.kind === "spikelet" ? "#4a2b3f" : enemy.kind === "flit" ? "#5dbb63" : "#7b4a6d";
-      renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, color);
+      drawSprite(getCurrentFrame(state.player.anim), state.player.x, state.player.y, state.player.facing < 0);
     }
+
+    for (const enemy of state.enemies) {
+      if (!enemy.alive) {
+        continue;
+      }
+      if (state.assetsReady) {
+        if (enemy.kind === "moomba") {
+          drawSprite(getCurrentFrame(enemy.anim), enemy.x, enemy.y, enemy.vx > 0);
+        } else {
+          const spriteId =
+            enemy.kind === "spikelet"
+              ? "spikelet"
+              : "flit";
+          drawSprite(spriteId, enemy.x, enemy.y);
+        }
+      } else {
+        const color =
+          enemy.kind === "spikelet"
+            ? "#4a2b3f"
+            : enemy.kind === "flit"
+              ? "#5dbb63"
+              : "#7b4a6d";
+        renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, color);
+      }
+    }
+  };
+
+  drawScene(scrollX);
+
+  // Seamless wrap: draw a second copy if the first one is scrolling off
+  if (scrollX > levelWidth - canvas.width) {
+    renderer.ctx.save();
+    renderer.ctx.translate(levelWidth, 0);
+    drawScene(scrollX - levelWidth);
+    renderer.ctx.restore();
   }
+
   renderer.ctx.restore();
 }
 
-function drawSprite(id: string, x: number, y: number) {
+function drawSprite(id: string, x: number, y: number, flipX = false) {
   if (!state.assets) {
     return;
   }
@@ -360,7 +391,7 @@ function drawSprite(id: string, x: number, y: number) {
   if (!frame) {
     return;
   }
-  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, x, y);
+  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, x, y, frame.w, frame.h, flipX);
 }
 
 function handleEnemyCollisions() {

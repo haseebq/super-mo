@@ -1,4 +1,6 @@
 import { isSolid } from "../level.js";
+import { createAnimationState, updateAnimation } from "../../core/animation.js";
+import type { AnimationState } from "../../core/animation.js";
 import type { Level } from "../level.js";
 
 export type MoombaEnemy = {
@@ -10,6 +12,11 @@ export type MoombaEnemy = {
   vx: number;
   alive: boolean;
   stompable: boolean;
+  anim: AnimationState;
+};
+
+const MOOMBA_ANIMATIONS = {
+  walk: { frames: ["moomba_walk1", "moomba_walk2"], frameRate: 8, loop: true },
 };
 
 export function createMoomba(x: number, y: number): MoombaEnemy {
@@ -22,6 +29,7 @@ export function createMoomba(x: number, y: number): MoombaEnemy {
     vx: -20,
     alive: true,
     stompable: true,
+    anim: createAnimationState(MOOMBA_ANIMATIONS, "walk"),
   };
 }
 
@@ -30,7 +38,10 @@ export function updateMoomba(enemy: MoombaEnemy, level: Level, dt: number) {
     return;
   }
 
+  updateAnimation(enemy.anim, dt);
+
   const tileSize = level.tileSize;
+// ...
   enemy.x += enemy.vx * dt;
 
   const direction = enemy.vx >= 0 ? 1 : -1;

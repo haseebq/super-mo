@@ -1,4 +1,6 @@
 import { isSolid } from "./level.js";
+import { createAnimationState, setAnimation, updateAnimation } from "../core/animation.js";
+import type { AnimationState } from "../core/animation.js";
 import type { Level } from "./level.js";
 import type { InputState } from "../core/input.js";
 
@@ -38,10 +40,20 @@ export type Player = {
   jumpBufferTimer: number;
   jumpHoldTime: number;
   jumpCut: boolean;
+  facing: number;
+  anim: AnimationState;
 };
 
 export type PlayerEvents = {
   jumped: boolean;
+};
+
+const PLAYER_ANIMATIONS = {
+  idle: { frames: ["player"], frameRate: 1, loop: true },
+  run: { frames: ["player_run1", "player_run2"], frameRate: 10, loop: true },
+  jump: { frames: ["player_jump"], frameRate: 1, loop: true },
+  fall: { frames: ["player_jump"], frameRate: 1, loop: true },
+  death: { frames: ["player_death"], frameRate: 1, loop: true },
 };
 
 export function createPlayer(x: number, y: number): Player {
@@ -57,6 +69,8 @@ export function createPlayer(x: number, y: number): Player {
     jumpBufferTimer: 0,
     jumpHoldTime: 0,
     jumpCut: false,
+    facing: 1,
+    anim: createAnimationState(PLAYER_ANIMATIONS, "idle"),
   };
 }
 
@@ -135,6 +149,7 @@ export function updatePlayer(
 
   if (dir !== 0) {
     player.vx = approach(player.vx, dir * speed, accel * dt);
+    player.facing = dir;
   } else {
     const decel = (player.onGround ? 1 : AIR_CONTROL) * DECEL;
     player.vx = approach(player.vx, 0, decel * dt);
@@ -180,6 +195,23 @@ export function updatePlayer(
 
   player.y += player.vy * dt;
   resolveVertical(player, level);
+
+  // Update Animation
+  if (!player.onGround) {
+    if (player.vy < 0) {
+      setAnimation(player.anim, "jump");
+    } else {
+      setAnimation(player.anim, "fall");
+    }
+  } else if (Math.abs(player.vx) > 1) {
+    setAnimation(player.anim, "run");
+    player.anim.animations.run.frameRate = wantsRun ? 15 : 10;
+  } else {
+    setAnimation(player.anim, "idle");
+  }
+
+  updateAnimation(player.anim, dt);
+
   return events;
 }
 

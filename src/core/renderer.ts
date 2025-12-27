@@ -10,7 +10,8 @@ export type Renderer = {
     dx: number,
     dy: number,
     dw?: number,
-    dh?: number
+    dh?: number,
+    flipX?: boolean
   ) => void;
   text: (text: string, x: number, y: number, color: string) => void;
   ctx: CanvasRenderingContext2D;
@@ -32,8 +33,16 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
       ctx.fillStyle = color;
       ctx.fillRect(Math.round(x), Math.round(y), w, h);
     },
-    sprite(image, sx, sy, sw, sh, dx, dy, dw = sw, dh = sh) {
-      ctx.drawImage(image, sx, sy, sw, sh, Math.round(dx), Math.round(dy), dw, dh);
+    sprite(image, sx, sy, sw, sh, dx, dy, dw = sw, dh = sh, flipX = false) {
+      if (flipX) {
+        ctx.save();
+        ctx.translate(Math.round(dx) + dw / 2, Math.round(dy) + dh / 2);
+        ctx.scale(-1, 1);
+        ctx.drawImage(image, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
+        ctx.restore();
+      } else {
+        ctx.drawImage(image, sx, sy, sw, sh, Math.round(dx), Math.round(dy), dw, dh);
+      }
     },
     text(text, x, y, color) {
       ctx.fillStyle = color;
