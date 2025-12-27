@@ -309,10 +309,14 @@ function render() {
   drawPlatforms(state.level.platforms);
   drawCollectibles();
   drawLandmark();
-  if (state.assetsReady) {
-    drawSprite(getCurrentFrame(state.player.anim), state.player.x, state.player.y, state.player.facing < 0);
-  } else {
-    renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#e04b3a");
+  const shouldDrawPlayer =
+    state.invulnerableTimer === 0 || Math.floor(state.time * 12) % 2 === 0;
+  if (shouldDrawPlayer) {
+    if (state.assetsReady) {
+      drawSprite(getCurrentFrame(state.player.anim), state.player.x, state.player.y, state.player.facing < 0);
+    } else {
+      renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#e04b3a");
+    }
   }
 
   for (const enemy of state.enemies) {
