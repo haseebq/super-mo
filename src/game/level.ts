@@ -101,6 +101,18 @@ export function createLevel1(): Level {
   coins.push(createCoin(63, 7));
   coins.push(createCoin(71, 6));
   coins.push(createCoin(75, 9));
+  for (let x = 10; x <= 16; x += 2) {
+    coins.push(createCoin(x, 9));
+  }
+  for (let x = 20; x <= 28; x += 2) {
+    coins.push(createCoin(x, 9));
+  }
+  for (let x = 34; x <= 42; x += 2) {
+    coins.push(createCoin(x, 8));
+  }
+  for (let x = 54; x <= 62; x += 2) {
+    coins.push(createCoin(x, 9));
+  }
   shards.push(createShard(50, 4));
   powerups.push(createPowerup(28, 5, "spring"));
   powerups.push(createPowerup(34, 9, "speed"));
