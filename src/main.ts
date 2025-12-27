@@ -884,7 +884,10 @@ function resetRun() {
 
 function resetLevel() {
   state.level = LEVELS[state.levelIndex]();
-  state.enemies = [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)];
+  state.enemies =
+    state.levelIndex === 0
+      ? [createMoomba(220, 160), createSpikelet(360, 160), createFlit(560, 80, 24)]
+      : [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)];
   applyDifficultyToEnemies(state.enemies, DIFFICULTY_SPEED[state.difficultyIndex]);
   state.particles = createParticles();
   state.hud.coins = 0;
