@@ -44,3 +44,6 @@ Bright, playful, and slightly whimsical. Inspired by classic 16-bit platformers 
 ## References
 - 16-bit era platformers
 - Modern indie pixel art with smooth shading
+
+## Production Pipeline
+See `docs/art-pipeline.md` for the 1024x1024 generation prompt template, scaling rules, and atlas integration workflow.
