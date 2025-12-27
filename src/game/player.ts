@@ -53,7 +53,7 @@ const PLAYER_ANIMATIONS = {
   run: { frames: ["player_run1", "player_run2"], frameRate: 10, loop: true },
   jump: { frames: ["player_jump"], frameRate: 1, loop: true },
   fall: { frames: ["player_jump"], frameRate: 1, loop: true },
-  death: { frames: ["player_death"], frameRate: 1, loop: true },
+  death: { frames: ["player_death"], frameRate: 1, loop: false },
 };
 
 export function createPlayer(x: number, y: number): Player {

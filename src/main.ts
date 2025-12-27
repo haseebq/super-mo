@@ -22,7 +22,7 @@ type AssetFrame = { x: number; y: number; w: number; h: number };
 type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
 type Camera = { x: number; y: number };
 type HudState = { lives: number; coins: number; shards: number };
-type Mode = "title" | "playing" | "paused" | "complete";
+type Mode = "title" | "playing" | "paused" | "complete" | "death";
 type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 
 type GameState = {
@@ -39,6 +39,9 @@ type GameState = {
   invulnerableTimer: number;
   titleScroll: number;
   powerupTimer: number;
+  deathTimer: number;
+  deathVelocity: number;
+  deathExitMode: Mode;
 };
 
 declare global {
@@ -94,6 +97,9 @@ const state: GameState = {
   invulnerableTimer: 0,
   titleScroll: 0,
   powerupTimer: 0,
+  deathTimer: 0,
+  deathVelocity: 0,
+  deathExitMode: "playing",
 };
 
 loadAssets();
@@ -127,6 +133,11 @@ function update(dt: number) {
     if (input.consumePress("KeyP")) {
       setMode("playing");
     }
+    return;
+  }
+
+  if (state.mode === "death") {
+    updateDeath(dt);
     return;
   }
 
@@ -471,6 +482,7 @@ function resetPlayer() {
   state.player.y = spawnPoint.y;
   state.player.vx = 0;
   state.player.vy = 0;
+  setAnimation(state.player.anim, "idle");
 }
 
 function resetRun() {
@@ -488,6 +500,8 @@ function resetLevel() {
   state.camera.y = 0;
   state.invulnerableTimer = 0;
   state.powerupTimer = 0;
+  state.deathTimer = 0;
+  state.deathVelocity = 0;
   resetPlayer();
   updateHud();
 }
@@ -497,6 +511,7 @@ function setMode(mode: Mode) {
   const isTitle = mode === "title";
   const isPaused = mode === "paused";
   const isComplete = mode === "complete";
+  const isDeath = mode === "death";
 
   hud.classList.toggle("is-hidden", isTitle);
   startOverlay.classList.toggle("is-hidden", !isTitle);
@@ -509,6 +524,10 @@ function setMode(mode: Mode) {
     audio.startMusic();
   } else {
     audio.stopMusic();
+  }
+
+  if (isDeath) {
+    input.reset();
   }
 }
 
@@ -530,17 +549,44 @@ function updateHud() {
   hudShards.textContent = `Shards ${state.hud.shards}`;
 }
 
+function startDeath(exitMode: Mode) {
+  state.deathTimer = 1.25;
+  state.deathVelocity = -220;
+  state.deathExitMode = exitMode;
+  state.player.vx = 0;
+  state.player.vy = 0;
+  setAnimation(state.player.anim, "death");
+  setMode("death");
+}
+
+function updateDeath(dt: number) {
+  state.deathTimer = Math.max(0, state.deathTimer - dt);
+  state.deathVelocity += 520 * dt;
+  state.player.y += state.deathVelocity * dt;
+  updateAnimation(state.player.anim, dt);
+
+  if (state.deathTimer === 0) {
+    if (state.deathExitMode === "title") {
+      resetRun();
+      setMode("title");
+    } else {
+      resetPlayer();
+      state.invulnerableTimer = 1;
+      setMode("playing");
+    }
+  }
+}
+
 function applyDamage() {
   if (state.invulnerableTimer > 0) {
     return;
   }
   state.hud.lives = Math.max(0, state.hud.lives - 1);
   updateHud();
-  state.invulnerableTimer = 1;
-  resetPlayer();
   if (state.hud.lives === 0) {
-    resetRun();
-    setMode("title");
+    startDeath("title");
+  } else {
+    startDeath("playing");
   }
 }
 
