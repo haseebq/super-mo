@@ -1,6 +1,5 @@
 type MusicNodes = {
-  osc: OscillatorNode;
-  gain: GainNode;
+  intervalId: number;
 };
 
 export function createAudio() {
@@ -27,7 +26,7 @@ export function createAudio() {
     }
   }
 
-  function playTone(freq: number, duration: number, type: OscillatorType) {
+  function playTone(freq: number, duration: number, type: OscillatorType, volume = 0.2) {
     if (!ctx || !master) {
       return;
     }
@@ -35,7 +34,7 @@ export function createAudio() {
     const gain = ctx.createGain();
     osc.type = type;
     osc.frequency.value = freq;
-    gain.gain.value = 0.2;
+    gain.gain.value = volume;
     osc.connect(gain).connect(master);
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
@@ -74,21 +73,25 @@ export function createAudio() {
     if (!ctx || !master || music) {
       return;
     }
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.value = 110;
-    gain.gain.value = 0.03;
-    osc.connect(gain).connect(master);
-    osc.start();
-    music = { osc, gain };
+    const melody = [220, 262, 330, 392, 330, 262];
+    let step = 0;
+    playTone(melody[step], 0.2, "triangle", 0.06);
+    step = (step + 1) % melody.length;
+    const intervalId = window.setInterval(() => {
+      if (!ctx) {
+        return;
+      }
+      playTone(melody[step], 0.2, "triangle", 0.06);
+      step = (step + 1) % melody.length;
+    }, 260);
+    music = { intervalId };
   }
 
   function stopMusic() {
     if (!music) {
       return;
     }
-    music.osc.stop();
+    window.clearInterval(music.intervalId);
     music = null;
   }
 
