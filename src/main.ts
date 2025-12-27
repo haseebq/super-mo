@@ -40,6 +40,7 @@ type GameState = {
   particles: ReturnType<typeof createParticles>;
   assets: Assets | null;
   assetsReady: boolean;
+  assetScale: number;
   camera: Camera;
   cameraLook: number;
   cameraLookY: number;
@@ -176,6 +177,7 @@ const state: GameState = {
   particles: createParticles(),
   assets: null,
   assetsReady: false,
+  assetScale: 1,
   camera: {
     x: 0,
     y: 0,
@@ -835,7 +837,9 @@ function drawSprite(id: string, x: number, y: number, flipX = false) {
   if (!frame) {
     return;
   }
-  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, x, y, frame.w, frame.h, flipX);
+  const width = frame.w * state.assetScale;
+  const height = frame.h * state.assetScale;
+  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, x, y, width, height, flipX);
 }
 
 function drawSpriteScaled(
@@ -853,10 +857,12 @@ function drawSpriteScaled(
   if (!frame) {
     return;
   }
-  const width = frame.w * scaleX;
-  const height = frame.h * scaleY;
-  const dx = x + (frame.w - width) / 2;
-  const dy = y + (frame.h - height);
+  const baseWidth = frame.w * state.assetScale;
+  const baseHeight = frame.h * state.assetScale;
+  const width = baseWidth * scaleX;
+  const height = baseHeight * scaleY;
+  const dx = x + (baseWidth - width) / 2;
+  const dy = y + (baseHeight - height);
   renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, dx, dy, width, height, flipX);
 }
 
@@ -1347,6 +1353,7 @@ async function loadAssets() {
       image = await loadImage("assets/sprites.svg");
     }
     state.assets = { image, atlas };
+    state.assetScale = image.width >= 512 ? 0.5 : 1;
     state.assetsReady = true;
   } catch (error) {
     console.error(error);
