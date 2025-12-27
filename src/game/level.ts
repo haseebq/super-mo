@@ -18,6 +18,7 @@ export type Level = {
   coins: Collectible[];
   shards: Collectible[];
   goal: Rect;
+  landmark: Rect;
 };
 
 const TILE_SIZE = 16;
@@ -29,6 +30,7 @@ export function createLevel1(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
+  const landmark: Rect = { x: 74 * TILE_SIZE, y: 7 * TILE_SIZE, width: 32, height: 48 };
 
   const setTile = (x: number, y: number, id: number) => {
     if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -88,6 +90,7 @@ export function createLevel1(): Level {
     coins,
     shards,
     goal,
+    landmark,
   };
 }
 

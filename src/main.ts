@@ -181,6 +181,7 @@ function render() {
   renderer.ctx.translate(-state.camera.x, -state.camera.y);
   drawLevel(state.level);
   drawCollectibles();
+  drawLandmark();
   if (state.assetsReady) {
     drawSprite("player", state.player.x, state.player.y);
   } else {
@@ -267,6 +268,13 @@ function drawCollectibles() {
   }
 }
 
+function drawLandmark() {
+  const { landmark } = state.level;
+  renderer.rect(landmark.x, landmark.y, landmark.width, landmark.height, "#2b2b2b");
+  renderer.rect(landmark.x + 4, landmark.y + 4, landmark.width - 8, landmark.height - 8, "#e04b3a");
+  renderer.rect(landmark.x + 12, landmark.y + 20, 8, 16, "#f6d44d");
+}
+
 function renderTitlePreview() {
   const levelWidth = state.level.width * state.level.tileSize;
   const levelHeight = state.level.height * state.level.tileSize;
@@ -281,6 +289,7 @@ function renderTitlePreview() {
   renderer.ctx.scale(scale, scale);
   drawLevel(state.level);
   drawCollectibles();
+  drawLandmark();
   for (const enemy of state.enemies) {
     if (!enemy.alive) {
       continue;
