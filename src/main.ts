@@ -5,7 +5,7 @@ import { loadImage, loadJson } from "./core/assets.js";
 import { createAudio } from "./core/audio.js";
 import { getCurrentFrame, setAnimation, updateAnimation } from "./core/animation.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
-import { createLevel1 } from "./game/level.js";
+import { createLevel1, createLevel2, createLevel3 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createFlit, updateFlit } from "./game/enemies/flit.js";
@@ -28,6 +28,7 @@ type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 type GameState = {
   player: Player;
   level: Level;
+  levelIndex: number;
   enemies: Enemy[];
   particles: ReturnType<typeof createParticles>;
   assets: Assets | null;
@@ -83,10 +84,12 @@ const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 
 const spawnPoint = { x: 100, y: 152 };
 const LEVEL_TIME_LIMIT = 120;
+const LEVELS = [createLevel1, createLevel2, createLevel3];
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
-  level: createLevel1(),
+  level: LEVELS[0](),
+  levelIndex: 0,
   enemies: [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)],
   particles: createParticles(),
   assets: null,
@@ -160,8 +163,14 @@ function update(dt: number) {
 
   if (state.mode === "complete") {
     if (input.consumePress("Enter")) {
-      resetLevel();
-      setMode("playing");
+      if (state.levelIndex < LEVELS.length - 1) {
+        state.levelIndex += 1;
+        resetLevel();
+        setMode("playing");
+      } else {
+        resetRun();
+        setMode("title");
+      }
     }
     return;
   }
@@ -557,11 +566,12 @@ function resetPlayer() {
 function resetRun() {
   state.hud.lives = 3;
   state.hud.score = 0;
+  state.levelIndex = 0;
   resetLevel();
 }
 
 function resetLevel() {
-  state.level = createLevel1();
+  state.level = LEVELS[state.levelIndex]();
   state.enemies = [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)];
   state.particles = createParticles();
   state.hud.coins = 0;
