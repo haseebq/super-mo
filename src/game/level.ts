@@ -12,7 +12,7 @@ export type Collectible = Rect & {
 
 export type Powerup = Rect & {
   collected: boolean;
-  kind: "spring";
+  kind: "spring" | "speed" | "shield";
 };
 
 export type Level = {
@@ -88,7 +88,9 @@ export function createLevel1(): Level {
   coins.push(createCoin(71, 6));
   coins.push(createCoin(75, 9));
   shards.push(createShard(50, 4));
-  powerups.push(createPowerup(28, 5));
+  powerups.push(createPowerup(28, 5, "spring"));
+  powerups.push(createPowerup(34, 9, "speed"));
+  powerups.push(createPowerup(60, 5, "shield"));
 
   return {
     width,
@@ -125,14 +127,14 @@ function createShard(x: number, y: number): Collectible {
   };
 }
 
-function createPowerup(x: number, y: number): Powerup {
+function createPowerup(x: number, y: number, kind: Powerup["kind"]): Powerup {
   return {
     x: x * TILE_SIZE,
     y: y * TILE_SIZE,
     width: 16,
     height: 16,
     collected: false,
-    kind: "spring",
+    kind,
   };
 }
 

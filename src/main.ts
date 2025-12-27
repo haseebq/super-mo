@@ -39,6 +39,8 @@ type GameState = {
   invulnerableTimer: number;
   titleScroll: number;
   powerupTimer: number;
+  speedTimer: number;
+  shieldTimer: number;
   backgroundTime: number;
   deathTimer: number;
   deathVelocity: number;
@@ -98,6 +100,8 @@ const state: GameState = {
   invulnerableTimer: 0,
   titleScroll: 0,
   powerupTimer: 0,
+  speedTimer: 0,
+  shieldTimer: 0,
   backgroundTime: 0,
   deathTimer: 0,
   deathVelocity: 0,
@@ -167,7 +171,14 @@ function update(dt: number) {
   if (state.powerupTimer > 0) {
     state.powerupTimer = Math.max(0, state.powerupTimer - dt);
   }
-  const events = updatePlayer(state.player, input, dt, state.level);
+  if (state.speedTimer > 0) {
+    state.speedTimer = Math.max(0, state.speedTimer - dt);
+  }
+  if (state.shieldTimer > 0) {
+    state.shieldTimer = Math.max(0, state.shieldTimer - dt);
+  }
+  const speedBoost = state.speedTimer > 0 ? 1.35 : 1;
+  const events = updatePlayer(state.player, input, dt, state.level, speedBoost);
   if (events.jumped) {
     audio.playJump();
   }
@@ -336,8 +347,20 @@ function drawCollectibles() {
     if (powerup.collected) {
       continue;
     }
-    renderer.rect(powerup.x + 2, powerup.y + 2, 12, 12, "#78c7f0");
-    renderer.rect(powerup.x + 5, powerup.y + 5, 6, 6, "#f6d44d");
+    const outer =
+      powerup.kind === "spring"
+        ? "#78c7f0"
+        : powerup.kind === "speed"
+          ? "#f6d44d"
+          : "#5dbb63";
+    const inner =
+      powerup.kind === "spring"
+        ? "#f6d44d"
+        : powerup.kind === "speed"
+          ? "#e04b3a"
+          : "#ffffff";
+    renderer.rect(powerup.x + 2, powerup.y + 2, 12, 12, outer);
+    renderer.rect(powerup.x + 5, powerup.y + 5, 6, 6, inner);
   }
 }
 
@@ -423,7 +446,7 @@ function handleEnemyCollisions() {
     if (!enemy.alive) {
       continue;
     }
-    if (state.invulnerableTimer > 0) {
+    if (state.invulnerableTimer > 0 || state.shieldTimer > 0) {
       continue;
     }
     if (!overlaps(state.player, enemy)) {
@@ -477,7 +500,13 @@ function handleCollectibles() {
     }
     if (overlaps(state.player, powerup)) {
       powerup.collected = true;
-      state.powerupTimer = 6;
+      if (powerup.kind === "spring") {
+        state.powerupTimer = 6;
+      } else if (powerup.kind === "speed") {
+        state.speedTimer = 6;
+      } else {
+        state.shieldTimer = 6;
+      }
       audio.playPowerup();
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
     }
@@ -516,6 +545,8 @@ function resetLevel() {
   state.camera.y = 0;
   state.invulnerableTimer = 0;
   state.powerupTimer = 0;
+  state.speedTimer = 0;
+  state.shieldTimer = 0;
   state.deathTimer = 0;
   state.deathVelocity = 0;
   resetPlayer();

@@ -137,13 +137,14 @@ export function updatePlayer(
   player: Player,
   input: InputState,
   dt: number,
-  level: Level
+  level: Level,
+  speedBoost: number
 ): PlayerEvents {
   const events: PlayerEvents = {
     jumped: false,
   };
   const wantsRun = input.isDown("KeyX");
-  const speed = wantsRun ? RUN_SPEED : WALK_SPEED;
+  const speed = (wantsRun ? RUN_SPEED : WALK_SPEED) * speedBoost;
   const dir = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
   const accel = (player.onGround ? 1 : AIR_CONTROL) * ACCEL;
 
