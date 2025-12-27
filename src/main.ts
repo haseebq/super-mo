@@ -17,7 +17,7 @@ import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createFlit, updateFlit } from "./game/enemies/flit.js";
 import { createParticles } from "./game/particles.js";
-import type { Collectible, Level, Rect } from "./game/level.js";
+import type { Collectible, Level, MovingPlatform, Rect } from "./game/level.js";
 import type { Player } from "./game/player.js";
 import type { MoombaEnemy } from "./game/enemies/moomba.js";
 import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
@@ -141,6 +141,7 @@ setMode("title");
 function update(dt: number) {
   if (state.mode !== "paused") {
     state.backgroundTime += dt;
+    updatePlatforms(state.level.platforms, dt);
   }
 
   if (state.mode === "title") {
@@ -234,6 +235,8 @@ function update(dt: number) {
     updateHud();
   }
   const speedBoost = state.speedTimer > 0 ? 1.35 : 1;
+  applyPlatformCarry(state.player, state.level.platforms);
+  const prevY = state.player.y;
   const events = updatePlayer(state.player, input, dt, state.level, speedBoost);
   if (events.jumped) {
     audio.playJump();
@@ -266,6 +269,8 @@ function update(dt: number) {
     }
   }
 
+  resolvePlatformCollisions(state.player, state.level.platforms, prevY);
+
   handleEnemyCollisions();
 }
 
@@ -281,6 +286,7 @@ function render() {
   renderer.ctx.translate(-state.camera.x, -state.camera.y);
   drawBackground(state.camera.x, state.backgroundTime);
   drawLevel(state.level);
+  drawPlatforms(state.level.platforms);
   drawCollectibles();
   drawLandmark();
   if (state.assetsReady) {
@@ -341,6 +347,13 @@ function drawLevel(level: Level) {
       }
       renderer.rect(x * tileSize, y * tileSize, tileSize, tileSize, color);
     }
+  }
+}
+
+function drawPlatforms(platforms: MovingPlatform[]) {
+  for (const platform of platforms) {
+    const color = platform.kind === "vertical" ? "#7b4a6d" : "#4a2b3f";
+    renderer.rect(platform.x, platform.y, platform.width, platform.height, color);
   }
 }
 
@@ -439,6 +452,7 @@ function renderTitlePreview() {
   const drawScene = (camX: number) => {
     drawBackground(camX, state.backgroundTime);
     drawLevel(state.level);
+    drawPlatforms(state.level.platforms);
     drawCollectibles();
     drawLandmark();
     
@@ -589,6 +603,7 @@ function resetPlayer() {
   state.player.y = spawnPoint.y;
   state.player.vx = 0;
   state.player.vy = 0;
+  state.player.platformId = null;
   setAnimation(state.player.anim, "idle");
 }
 
@@ -672,6 +687,64 @@ function updateLevelSelect() {
   const maxOptions = Math.min(levelOptions.length, LEVELS.length);
   for (let i = 0; i < levelOptions.length; i += 1) {
     levelOptions[i].classList.toggle("is-selected", i === state.titleSelection && i < maxOptions);
+  }
+}
+
+function updatePlatforms(platforms: MovingPlatform[], dt: number) {
+  const twoPi = Math.PI * 2;
+  for (const platform of platforms) {
+    const prevX = platform.x;
+    const prevY = platform.y;
+    if (platform.kind === "vertical") {
+      platform.angle += (twoPi / platform.period) * dt;
+      platform.y = platform.baseY + Math.sin(platform.angle) * platform.amplitude;
+      platform.x = platform.baseX;
+    } else {
+      platform.angle += (twoPi / platform.period) * dt;
+      platform.x = platform.baseX + Math.cos(platform.angle) * platform.radius;
+      platform.y = platform.baseY + Math.sin(platform.angle) * platform.radius;
+    }
+    platform.deltaX = platform.x - prevX;
+    platform.deltaY = platform.y - prevY;
+  }
+}
+
+function applyPlatformCarry(player: Player, platforms: MovingPlatform[]) {
+  if (player.platformId === null || !player.onGround) {
+    return;
+  }
+  const platform = platforms[player.platformId];
+  if (!platform) {
+    player.platformId = null;
+    return;
+  }
+  player.x += platform.deltaX;
+  player.y += platform.deltaY;
+}
+
+function resolvePlatformCollisions(
+  player: Player,
+  platforms: MovingPlatform[],
+  prevY: number
+) {
+  const prevBottom = prevY + player.height;
+  player.platformId = null;
+  for (let i = 0; i < platforms.length; i += 1) {
+    const platform = platforms[i];
+    if (
+      player.x + player.width > platform.x &&
+      player.x < platform.x + platform.width &&
+      player.y + player.height >= platform.y &&
+      player.y + player.height <= platform.y + platform.height
+    ) {
+      if (player.vy >= 0 && prevBottom <= platform.y + 4) {
+        player.y = platform.y - player.height;
+        player.vy = 0;
+        player.onGround = true;
+        player.platformId = i;
+        break;
+      }
+    }
   }
 }
 

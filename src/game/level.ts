@@ -15,6 +15,18 @@ export type Powerup = Rect & {
   kind: "spring" | "speed" | "shield";
 };
 
+export type MovingPlatform = Rect & {
+  kind: "vertical" | "circular";
+  baseX: number;
+  baseY: number;
+  amplitude: number;
+  period: number;
+  radius: number;
+  angle: number;
+  deltaX: number;
+  deltaY: number;
+};
+
 export type Level = {
   width: number;
   height: number;
@@ -25,6 +37,7 @@ export type Level = {
   goal: Rect;
   landmark: Rect;
   powerups: Powerup[];
+  platforms: MovingPlatform[];
 };
 
 const TILE_SIZE = 16;
@@ -36,6 +49,7 @@ export function createLevel1(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
+  const platforms: MovingPlatform[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 74 * TILE_SIZE, y: 7 * TILE_SIZE, width: 32, height: 48 };
 
@@ -91,6 +105,8 @@ export function createLevel1(): Level {
   powerups.push(createPowerup(28, 5, "spring"));
   powerups.push(createPowerup(34, 9, "speed"));
   powerups.push(createPowerup(60, 5, "shield"));
+  platforms.push(createVerticalPlatform(20, 9, 3, 3));
+  platforms.push(createCircularPlatform(40, 8, 2.5, 3.5));
 
   return {
     width,
@@ -102,6 +118,7 @@ export function createLevel1(): Level {
     goal,
     landmark,
     powerups,
+    platforms,
   };
 }
 
@@ -112,6 +129,7 @@ export function createLevel2(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
+  const platforms: MovingPlatform[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 9 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 72 * TILE_SIZE, y: 6 * TILE_SIZE, width: 48, height: 64 };
 
@@ -166,6 +184,7 @@ export function createLevel2(): Level {
   shards.push(createShard(58, 4));
   powerups.push(createPowerup(24, 6, "speed"));
   powerups.push(createPowerup(52, 5, "spring"));
+  platforms.push(createVerticalPlatform(12, 8, 2.5, 3));
 
   return {
     width,
@@ -177,6 +196,7 @@ export function createLevel2(): Level {
     goal,
     landmark,
     powerups,
+    platforms,
   };
 }
 
@@ -187,6 +207,7 @@ export function createLevel3(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
+  const platforms: MovingPlatform[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 70 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
 
@@ -241,6 +262,7 @@ export function createLevel3(): Level {
   shards.push(createShard(48, 5));
   powerups.push(createPowerup(18, 6, "shield"));
   powerups.push(createPowerup(58, 5, "speed"));
+  platforms.push(createCircularPlatform(46, 6, 2, 3));
 
   return {
     width,
@@ -252,6 +274,7 @@ export function createLevel3(): Level {
     goal,
     landmark,
     powerups,
+    platforms,
   };
 }
 
@@ -262,6 +285,7 @@ export function createLevel4(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
+  const platforms: MovingPlatform[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 9 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 71 * TILE_SIZE, y: 6 * TILE_SIZE, width: 48, height: 64 };
 
@@ -318,6 +342,7 @@ export function createLevel4(): Level {
   shards.push(createShard(60, 4));
   powerups.push(createPowerup(16, 6, "spring"));
   powerups.push(createPowerup(52, 5, "shield"));
+  platforms.push(createVerticalPlatform(34, 8, 2, 2.8));
 
   return {
     width,
@@ -329,6 +354,7 @@ export function createLevel4(): Level {
     goal,
     landmark,
     powerups,
+    platforms,
   };
 }
 
@@ -339,6 +365,7 @@ export function createLevel5(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
+  const platforms: MovingPlatform[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 69 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
 
@@ -392,6 +419,7 @@ export function createLevel5(): Level {
   shards.push(createShard(56, 4));
   powerups.push(createPowerup(12, 7, "speed"));
   powerups.push(createPowerup(58, 5, "spring"));
+  platforms.push(createCircularPlatform(36, 7, 2.5, 3));
 
   return {
     width,
@@ -403,6 +431,7 @@ export function createLevel5(): Level {
     goal,
     landmark,
     powerups,
+    platforms,
   };
 }
 
@@ -413,6 +442,7 @@ export function createLevel6(): Level {
   const coins: Collectible[] = [];
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
+  const platforms: MovingPlatform[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 68 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
 
@@ -469,6 +499,7 @@ export function createLevel6(): Level {
   shards.push(createShard(54, 4));
   powerups.push(createPowerup(14, 6, "shield"));
   powerups.push(createPowerup(48, 5, "speed"));
+  platforms.push(createVerticalPlatform(24, 8, 3, 3.2));
 
   return {
     width,
@@ -480,6 +511,7 @@ export function createLevel6(): Level {
     goal,
     landmark,
     powerups,
+    platforms,
   };
 }
 
@@ -513,6 +545,46 @@ function createPowerup(x: number, y: number, kind: Powerup["kind"]): Powerup {
     height: 16,
     collected: false,
     kind,
+  };
+}
+
+function createVerticalPlatform(x: number, y: number, amplitude: number, period: number): MovingPlatform {
+  const px = x * TILE_SIZE;
+  const py = y * TILE_SIZE;
+  return {
+    x: px,
+    y: py,
+    width: 32,
+    height: 8,
+    kind: "vertical",
+    baseX: px,
+    baseY: py,
+    amplitude: amplitude * TILE_SIZE,
+    period,
+    radius: 0,
+    angle: 0,
+    deltaX: 0,
+    deltaY: 0,
+  };
+}
+
+function createCircularPlatform(x: number, y: number, radius: number, period: number): MovingPlatform {
+  const px = x * TILE_SIZE;
+  const py = y * TILE_SIZE;
+  return {
+    x: px,
+    y: py,
+    width: 32,
+    height: 8,
+    kind: "circular",
+    baseX: px,
+    baseY: py,
+    amplitude: 0,
+    period,
+    radius: radius * TILE_SIZE,
+    angle: 0,
+    deltaX: 0,
+    deltaY: 0,
   };
 }
 

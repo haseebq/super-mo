@@ -42,6 +42,7 @@ export type Player = {
   jumpCut: boolean;
   facing: number;
   anim: AnimationState;
+  platformId: number | null;
 };
 
 export type PlayerEvents = {
@@ -71,6 +72,7 @@ export function createPlayer(x: number, y: number): Player {
     jumpCut: false,
     facing: 1,
     anim: createAnimationState(PLAYER_ANIMATIONS, "idle"),
+    platformId: null,
   };
 }
 
