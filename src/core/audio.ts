@@ -6,12 +6,13 @@ export function createAudio() {
   let ctx: AudioContext | null = null;
   let master: GainNode | null = null;
   let music: MusicNodes | null = null;
+  let muted = false;
 
   function ensureContext() {
     if (!ctx) {
       ctx = new AudioContext();
       master = ctx.createGain();
-      master.gain.value = 0.2;
+      master.gain.value = muted ? 0 : 0.2;
       master.connect(ctx.destination);
     }
   }
@@ -95,6 +96,13 @@ export function createAudio() {
     music = null;
   }
 
+  function setMuted(value: boolean) {
+    muted = value;
+    if (master) {
+      master.gain.value = muted ? 0 : 0.2;
+    }
+  }
+
   return {
     unlock,
     playJump,
@@ -106,5 +114,6 @@ export function createAudio() {
     playGoal,
     startMusic,
     stopMusic,
+    setMuted,
   };
 }

@@ -67,6 +67,7 @@ type GameState = {
   knockbackVelocity: number;
   cameraShakeTimer: number;
   cameraShakeStrength: number;
+  audioMuted: boolean;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -105,6 +106,7 @@ const hudScore = requireElement<HTMLSpanElement>("#hud-score");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
+const hudAudio = requireElement<HTMLSpanElement>("#hud-audio");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 const completeBreakdown = requireElement<HTMLParagraphElement>("#complete-breakdown");
 const introTitle = requireElement<HTMLHeadingElement>("#intro-title");
@@ -172,6 +174,7 @@ const state: GameState = {
   knockbackVelocity: 0,
   cameraShakeTimer: 0,
   cameraShakeStrength: 0,
+  audioMuted: false,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -295,6 +298,11 @@ function update(dt: number) {
   if (input.consumePress("KeyP")) {
     setMode("paused");
     return;
+  }
+  if (input.consumePress("KeyM")) {
+    state.audioMuted = !state.audioMuted;
+    audio.setMuted(state.audioMuted);
+    updateHud();
   }
 
   state.time += dt;
@@ -1000,6 +1008,7 @@ function updateHud() {
     buffs.push(`Shield ${Math.ceil(state.shieldTimer)}s`);
   }
   hudBuffs.textContent = `Buffs ${buffs.length ? buffs.join(" / ") : "--"}`;
+  hudAudio.textContent = `Audio ${state.audioMuted ? "Off" : "On"}`;
   completeScore.textContent = `Score ${state.hud.score}`;
   updateCompleteSummary();
 }
