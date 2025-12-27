@@ -6,7 +6,9 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "test:quick": "node scripts/quick-test.js",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2"
