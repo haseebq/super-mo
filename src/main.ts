@@ -62,6 +62,9 @@ type GameState = {
   completeCoinScore: number;
   completeShardScore: number;
   tutorialSeen: boolean;
+  hitFlashTimer: number;
+  knockbackTimer: number;
+  knockbackVelocity: number;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -162,9 +165,18 @@ const state: GameState = {
   completeCoinScore: 0,
   completeShardScore: 0,
   tutorialSeen: false,
+  hitFlashTimer: 0,
+  knockbackTimer: 0,
+  knockbackVelocity: 0,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
+};
+
+const neutralInput: InputState = {
+  isDown: () => false,
+  consumePress: () => false,
+  reset: () => {},
 };
 
 loadAssets();
@@ -283,6 +295,12 @@ function update(dt: number) {
 
   state.time += dt;
   state.playerSquash = approach(state.playerSquash, 0, dt * 6);
+  if (state.hitFlashTimer > 0) {
+    state.hitFlashTimer = Math.max(0, state.hitFlashTimer - dt);
+  }
+  if (state.knockbackTimer > 0) {
+    state.knockbackTimer = Math.max(0, state.knockbackTimer - dt);
+  }
   if (state.invulnerableTimer > 0) {
     state.invulnerableTimer = Math.max(0, state.invulnerableTimer - dt);
   }
@@ -319,7 +337,11 @@ function update(dt: number) {
   const prevVy = state.player.vy;
   applyPlatformCarry(state.player, state.level.platforms);
   const prevY = state.player.y;
-  const events = updatePlayer(state.player, input, dt, state.level, speedBoost);
+  if (state.knockbackTimer > 0) {
+    state.player.vx = state.knockbackVelocity;
+  }
+  const controlInput = state.knockbackTimer > 0 ? neutralInput : input;
+  const events = updatePlayer(state.player, controlInput, dt, state.level, speedBoost);
   if (events.jumped) {
     audio.playJump();
     state.playerSquash = -0.12;
@@ -404,6 +426,12 @@ function render() {
         scaleY,
         state.player.facing < 0
       );
+      if (state.hitFlashTimer > 0) {
+        renderer.ctx.save();
+        renderer.ctx.globalAlpha = 0.4;
+        renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#ff5b4a");
+        renderer.ctx.restore();
+      }
     } else {
       renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#e04b3a");
     }
@@ -830,6 +858,9 @@ function resetLevel() {
   state.completeGoalBonus = 0;
   state.completeCoinScore = 0;
   state.completeShardScore = 0;
+  state.hitFlashTimer = 0;
+  state.knockbackTimer = 0;
+  state.knockbackVelocity = 0;
   state.levelTimeRemaining = LEVEL_TIME_LIMITS[state.difficultyIndex];
   state.deathTimer = 0;
   state.deathVelocity = 0;
@@ -1079,7 +1110,11 @@ function applyDamage() {
   if (state.hud.lives === 0) {
     startDeath("title");
   } else {
-    startDeath("playing");
+    state.invulnerableTimer = 1;
+    state.hitFlashTimer = 0.35;
+    state.knockbackTimer = 0.2;
+    state.knockbackVelocity = -state.player.facing * 140;
+    state.player.vy = -180;
   }
 }
 
