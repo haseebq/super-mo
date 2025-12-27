@@ -192,6 +192,12 @@ async function loadAssets() {
   }
 }
 
+window.__SUPER_MO__ = {
+  state,
+  setMode,
+  resetPlayer,
+};
+
 const loop = createLoop({ update, render });
 loop.start();
 
