@@ -1,5 +1,26 @@
-export function createRenderer(canvas) {
+export type Renderer = {
+  clear: (color: string) => void;
+  rect: (x: number, y: number, w: number, h: number, color: string) => void;
+  sprite: (
+    image: HTMLImageElement,
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    dx: number,
+    dy: number,
+    dw?: number,
+    dh?: number
+  ) => void;
+  text: (text: string, x: number, y: number, color: string) => void;
+  ctx: CanvasRenderingContext2D;
+};
+
+export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas 2D context not available.");
+  }
   ctx.imageSmoothingEnabled = false;
 
   return {

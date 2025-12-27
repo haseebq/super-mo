@@ -1,13 +1,24 @@
+import type { Renderer } from "../core/renderer.js";
+
+type Particle = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  color: string;
+};
+
 export function createParticles() {
-  const particles = [];
+  const particles: Particle[] = [];
   let seed = 123456789;
 
-  function random() {
+  function random(): number {
     seed = (seed * 1664525 + 1013904223) >>> 0;
     return seed / 0x100000000;
   }
 
-  function spawn(x, y, count, color) {
+  function spawn(x: number, y: number, count: number, color: string) {
     for (let i = 0; i < count; i += 1) {
       particles.push({
         x,
@@ -20,7 +31,7 @@ export function createParticles() {
     }
   }
 
-  function update(dt) {
+  function update(dt: number) {
     for (let i = particles.length - 1; i >= 0; i -= 1) {
       const p = particles[i];
       p.life -= dt;
@@ -33,7 +44,7 @@ export function createParticles() {
     }
   }
 
-  function draw(renderer) {
+  function draw(renderer: Renderer) {
     for (const p of particles) {
       renderer.rect(p.x, p.y, 2, 2, p.color);
     }

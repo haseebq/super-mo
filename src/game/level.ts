@@ -1,14 +1,36 @@
+export type Rect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type Collectible = Rect & {
+  collected: boolean;
+  type: "coin" | "shard";
+};
+
+export type Level = {
+  width: number;
+  height: number;
+  tileSize: number;
+  tiles: number[];
+  coins: Collectible[];
+  shards: Collectible[];
+  goal: Rect;
+};
+
 const TILE_SIZE = 16;
 
-export function createLevel1() {
+export function createLevel1(): Level {
   const width = 20;
   const height = 12;
-  const tiles = new Array(width * height).fill(0);
-  const coins = [];
-  const shards = [];
-  const goal = { x: 18 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
+  const tiles = new Array<number>(width * height).fill(0);
+  const coins: Collectible[] = [];
+  const shards: Collectible[] = [];
+  const goal: Rect = { x: 18 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
 
-  const setTile = (x, y, id) => {
+  const setTile = (x: number, y: number, id: number) => {
     if (x < 0 || x >= width || y < 0 || y >= height) {
       return;
     }
@@ -47,7 +69,7 @@ export function createLevel1() {
   };
 }
 
-function createCoin(x, y) {
+function createCoin(x: number, y: number): Collectible {
   return {
     x: x * TILE_SIZE,
     y: y * TILE_SIZE,
@@ -58,7 +80,7 @@ function createCoin(x, y) {
   };
 }
 
-function createShard(x, y) {
+function createShard(x: number, y: number): Collectible {
   return {
     x: x * TILE_SIZE,
     y: y * TILE_SIZE,
@@ -69,6 +91,6 @@ function createShard(x, y) {
   };
 }
 
-export function isSolid(id) {
+export function isSolid(id: number): boolean {
   return id === 1 || id === 2;
 }

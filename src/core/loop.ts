@@ -1,10 +1,15 @@
-export function createLoop({ update, render }) {
+type LoopHandlers = {
+  update: (dt: number) => void;
+  render: () => void;
+};
+
+export function createLoop({ update, render }: LoopHandlers) {
   const step = 1 / 60;
   let last = performance.now();
   let accumulator = 0;
   let running = false;
 
-  function frame(now) {
+  function frame(now: number) {
     if (!running) {
       return;
     }

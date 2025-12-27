@@ -1,17 +1,31 @@
 import { isSolid } from "../level.js";
+import type { Level } from "../level.js";
 
-export function createMoomba(x, y) {
+export type SpikeletEnemy = {
+  kind: "spikelet";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vx: number;
+  alive: boolean;
+  stompable: boolean;
+};
+
+export function createSpikelet(x: number, y: number): SpikeletEnemy {
   return {
+    kind: "spikelet",
     x,
     y,
     width: 16,
     height: 16,
-    vx: -20,
+    vx: -16,
     alive: true,
+    stompable: false,
   };
 }
 
-export function updateMoomba(enemy, level, dt) {
+export function updateSpikelet(enemy: SpikeletEnemy, level: Level, dt: number) {
   if (!enemy.alive) {
     return;
   }

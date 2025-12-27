@@ -7,22 +7,66 @@ import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createParticles } from "./game/particles.js";
+import type { Collectible, Level, Rect } from "./game/level.js";
+import type { Player } from "./game/player.js";
+import type { MoombaEnemy } from "./game/enemies/moomba.js";
+import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
+import type { Renderer } from "./core/renderer.js";
+import type { InputState } from "./core/input.js";
 
-const canvas = document.querySelector("#game");
+type AssetFrame = { x: number; y: number; w: number; h: number };
+type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
+type Camera = { x: number; y: number };
+type HudState = { lives: number; coins: number; shards: number };
+type Mode = "title" | "playing" | "paused" | "complete";
+type Enemy = MoombaEnemy | SpikeletEnemy;
+
+type GameState = {
+  player: Player;
+  level: Level;
+  enemies: Enemy[];
+  particles: ReturnType<typeof createParticles>;
+  assets: Assets | null;
+  assetsReady: boolean;
+  camera: Camera;
+  hud: HudState;
+  time: number;
+  mode: Mode;
+};
+
+declare global {
+  interface Window {
+    __SUPER_MO__?: {
+      state: GameState;
+      setMode: (mode: Mode) => void;
+      resetPlayer: () => void;
+    };
+  }
+}
+
+function requireElement<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector);
+  if (!element) {
+    throw new Error(`Element not found: ${selector}`);
+  }
+  return element;
+}
+
+const canvas = requireElement<HTMLCanvasElement>("#game");
 const renderer = createRenderer(canvas);
-const input = createInput();
+const input: InputState = createInput();
 const audio = createAudio();
-const hud = document.querySelector(".hud");
-const startOverlay = document.querySelector(".start-overlay");
-const pauseOverlay = document.querySelector(".pause-overlay");
-const completeOverlay = document.querySelector(".complete-overlay");
-const hudLives = document.querySelector("#hud-lives");
-const hudCoins = document.querySelector("#hud-coins");
-const hudShards = document.querySelector("#hud-shards");
+const hud = requireElement<HTMLDivElement>(".hud");
+const startOverlay = requireElement<HTMLDivElement>(".start-overlay");
+const pauseOverlay = requireElement<HTMLDivElement>(".pause-overlay");
+const completeOverlay = requireElement<HTMLDivElement>(".complete-overlay");
+const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
+const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
+const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 
 const spawnPoint = { x: 24, y: 96 };
 
-const state = {
+const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
   level: createLevel1(),
   enemies: [createMoomba(160, 160)],
@@ -45,7 +89,7 @@ const state = {
 loadAssets();
 setMode("title");
 
-function update(dt) {
+function update(dt: number) {
   if (state.mode === "title") {
     if (input.consumePress("Enter")) {
       setMode("playing");
@@ -88,7 +132,9 @@ function update(dt) {
   }
 
   for (const enemy of state.enemies) {
-    updateMoomba(enemy, state.level, dt);
+    if (enemy.kind === "moomba") {
+      updateMoomba(enemy, state.level, dt);
+    }
   }
 
   handleEnemyCollisions();
@@ -124,7 +170,7 @@ function render() {
   renderer.text("Super Mo - Engine Scaffold", 8, 16, "#2b2b2b");
 }
 
-function drawLevel(level) {
+function drawLevel(level: Level) {
   const { width, height, tileSize, tiles } = level;
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -176,7 +222,10 @@ function drawCollectibles() {
   }
 }
 
-function drawSprite(id, x, y) {
+function drawSprite(id: string, x: number, y: number) {
+  if (!state.assets) {
+    return;
+  }
   const frame = state.assets.atlas[id];
   if (!frame) {
     return;
@@ -194,7 +243,7 @@ function handleEnemyCollisions() {
     }
 
     const stompThreshold = state.player.y + state.player.height - enemy.y;
-    if (state.player.vy > 0 && stompThreshold <= 8) {
+    if (state.player.vy > 0 && stompThreshold <= 8 && enemy.stompable) {
       enemy.alive = false;
       bouncePlayer(state.player);
       audio.playStomp();
@@ -233,7 +282,7 @@ function handleCollectibles() {
   }
 }
 
-function overlaps(a, b) {
+function overlaps(a: Rect, b: Rect) {
   return (
     a.x < b.x + b.width &&
     a.x + a.width > b.x &&
@@ -261,7 +310,7 @@ function resetLevel() {
   updateHud();
 }
 
-function setMode(mode) {
+function setMode(mode: Mode) {
   state.mode = mode;
   const isTitle = mode === "title";
   const isPaused = mode === "paused";
@@ -289,7 +338,7 @@ function updateCamera() {
   state.camera.x = clamp(targetX, 0, maxX);
 }
 
-function clamp(value, min, max) {
+function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
@@ -303,7 +352,7 @@ async function loadAssets() {
   try {
     const [image, atlas] = await Promise.all([
       loadImage("assets/sprites.svg"),
-      loadJson("assets/sprites.json"),
+      loadJson<Record<string, AssetFrame>>("assets/sprites.json"),
     ]);
     state.assets = { image, atlas };
     state.assetsReady = true;

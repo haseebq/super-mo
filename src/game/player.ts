@@ -1,4 +1,6 @@
 import { isSolid } from "./level.js";
+import type { Level } from "./level.js";
+import type { InputState } from "../core/input.js";
 
 const TILE_SIZE = 16;
 const WALK_SPEED = 1.6 * TILE_SIZE;
@@ -14,7 +16,7 @@ const SHORT_HOP_WINDOW = 0.12;
 const SHORT_HOP_FACTOR = 0.45;
 const STOMP_BOUNCE = 0.7 * JUMP_IMPULSE;
 
-function approach(current, target, delta) {
+function approach(current: number, target: number, delta: number): number {
   if (current < target) {
     return Math.min(current + delta, target);
   }
@@ -24,7 +26,25 @@ function approach(current, target, delta) {
   return current;
 }
 
-export function createPlayer(x, y) {
+export type Player = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vx: number;
+  vy: number;
+  onGround: boolean;
+  coyoteTimer: number;
+  jumpBufferTimer: number;
+  jumpHoldTime: number;
+  jumpCut: boolean;
+};
+
+export type PlayerEvents = {
+  jumped: boolean;
+};
+
+export function createPlayer(x: number, y: number): Player {
   return {
     x,
     y,
@@ -40,7 +60,7 @@ export function createPlayer(x, y) {
   };
 }
 
-function resolveHorizontal(player, level) {
+function resolveHorizontal(player: Player, level: Level) {
   if (player.vx === 0) {
     return;
   }
@@ -67,7 +87,7 @@ function resolveHorizontal(player, level) {
   }
 }
 
-function resolveVertical(player, level) {
+function resolveVertical(player: Player, level: Level) {
   if (player.vy === 0) {
     player.onGround = false;
     return;
@@ -99,8 +119,13 @@ function resolveVertical(player, level) {
   player.onGround = false;
 }
 
-export function updatePlayer(player, input, dt, level) {
-  const events = {
+export function updatePlayer(
+  player: Player,
+  input: InputState,
+  dt: number,
+  level: Level
+): PlayerEvents {
+  const events: PlayerEvents = {
     jumped: false,
   };
   const wantsRun = input.isDown("KeyX");
@@ -158,7 +183,7 @@ export function updatePlayer(player, input, dt, level) {
   return events;
 }
 
-export function bouncePlayer(player) {
+export function bouncePlayer(player: Player): void {
   player.vy = -STOMP_BOUNCE;
   player.onGround = false;
   player.jumpHoldTime = 0;

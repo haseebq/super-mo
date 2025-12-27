@@ -1,4 +1,4 @@
-export function loadImage(src) {
+export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
@@ -7,10 +7,10 @@ export function loadImage(src) {
   });
 }
 
-export async function loadJson(src) {
+export async function loadJson<T = unknown>(src: string): Promise<T> {
   const response = await fetch(src);
   if (!response.ok) {
     throw new Error(`Failed to load json: ${src}`);
   }
-  return response.json();
+  return response.json() as Promise<T>;
 }

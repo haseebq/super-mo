@@ -1,7 +1,12 @@
+type MusicNodes = {
+  osc: OscillatorNode;
+  gain: GainNode;
+};
+
 export function createAudio() {
-  let ctx = null;
-  let master = null;
-  let music = null;
+  let ctx: AudioContext | null = null;
+  let master: GainNode | null = null;
+  let music: MusicNodes | null = null;
 
   function ensureContext() {
     if (!ctx) {
@@ -14,13 +19,16 @@ export function createAudio() {
 
   function unlock() {
     ensureContext();
+    if (!ctx) {
+      return;
+    }
     if (ctx.state === "suspended") {
       ctx.resume();
     }
   }
 
-  function playTone(freq, duration, type) {
-    if (!ctx) {
+  function playTone(freq: number, duration: number, type: OscillatorType) {
+    if (!ctx || !master) {
       return;
     }
     const osc = ctx.createOscillator();
@@ -43,7 +51,7 @@ export function createAudio() {
   }
 
   function startMusic() {
-    if (!ctx || music) {
+    if (!ctx || !master || music) {
       return;
     }
     const osc = ctx.createOscillator();

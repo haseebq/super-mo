@@ -1,7 +1,13 @@
-export function createInput() {
-  const down = new Set();
-  const pressed = new Set();
-  const blocked = new Set([
+export type InputState = {
+  isDown: (code: string) => boolean;
+  consumePress: (code: string) => boolean;
+  reset: () => void;
+};
+
+export function createInput(): InputState {
+  const down = new Set<string>();
+  const pressed = new Set<string>();
+  const blocked = new Set<string>([
     "ArrowUp",
     "ArrowDown",
     "ArrowLeft",
@@ -11,7 +17,7 @@ export function createInput() {
     "KeyX",
   ]);
 
-  function handleKeyDown(event) {
+  function handleKeyDown(event: KeyboardEvent) {
     if (blocked.has(event.code)) {
       event.preventDefault();
     }
@@ -21,7 +27,7 @@ export function createInput() {
     down.add(event.code);
   }
 
-  function handleKeyUp(event) {
+  function handleKeyUp(event: KeyboardEvent) {
     if (blocked.has(event.code)) {
       event.preventDefault();
     }
@@ -32,10 +38,10 @@ export function createInput() {
   window.addEventListener("keyup", handleKeyUp);
 
   return {
-    isDown(code) {
+    isDown(code: string) {
       return down.has(code);
     },
-    consumePress(code) {
+    consumePress(code: string) {
       if (pressed.has(code)) {
         pressed.delete(code);
         return true;
