@@ -255,6 +255,234 @@ export function createLevel3(): Level {
   };
 }
 
+export function createLevel4(): Level {
+  const width = 80;
+  const height = 12;
+  const tiles = new Array<number>(width * height).fill(0);
+  const coins: Collectible[] = [];
+  const shards: Collectible[] = [];
+  const powerups: Powerup[] = [];
+  const goal: Rect = { x: 76 * TILE_SIZE, y: 9 * TILE_SIZE, width: 16, height: 16 };
+  const landmark: Rect = { x: 71 * TILE_SIZE, y: 6 * TILE_SIZE, width: 48, height: 64 };
+
+  const setTile = (x: number, y: number, id: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+      return;
+    }
+    tiles[y * width + x] = id;
+  };
+  const placePlatform = (startX: number, endX: number, y: number) => {
+    for (let x = startX; x <= endX; x += 1) {
+      setTile(x, y, 2);
+    }
+  };
+
+  const gaps = [
+    { start: 8, end: 10 },
+    { start: 18, end: 20 },
+    { start: 34, end: 36 },
+    { start: 52, end: 54 },
+    { start: 66, end: 68 },
+  ];
+
+  for (let x = 0; x < width; x += 1) {
+    const isGap = gaps.some((gap) => x >= gap.start && x <= gap.end);
+    if (!isGap) {
+      setTile(x, height - 1, 1);
+    }
+  }
+
+  placePlatform(4, 6, 7);
+  placePlatform(12, 15, 6);
+  placePlatform(22, 25, 8);
+  placePlatform(30, 33, 5);
+  placePlatform(38, 41, 7);
+  placePlatform(46, 49, 6);
+  placePlatform(56, 59, 8);
+  placePlatform(62, 64, 6);
+  placePlatform(70, 73, 7);
+
+  setTile(76, 9, 3);
+
+  coins.push(createCoin(2, 9));
+  coins.push(createCoin(5, 6));
+  coins.push(createCoin(13, 5));
+  coins.push(createCoin(23, 7));
+  coins.push(createCoin(31, 4));
+  coins.push(createCoin(39, 6));
+  coins.push(createCoin(47, 5));
+  coins.push(createCoin(57, 7));
+  coins.push(createCoin(63, 5));
+  coins.push(createCoin(71, 6));
+  shards.push(createShard(26, 4));
+  shards.push(createShard(60, 4));
+  powerups.push(createPowerup(16, 6, "spring"));
+  powerups.push(createPowerup(52, 5, "shield"));
+
+  return {
+    width,
+    height,
+    tileSize: TILE_SIZE,
+    tiles,
+    coins,
+    shards,
+    goal,
+    landmark,
+    powerups,
+  };
+}
+
+export function createLevel5(): Level {
+  const width = 80;
+  const height = 12;
+  const tiles = new Array<number>(width * height).fill(0);
+  const coins: Collectible[] = [];
+  const shards: Collectible[] = [];
+  const powerups: Powerup[] = [];
+  const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
+  const landmark: Rect = { x: 69 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
+
+  const setTile = (x: number, y: number, id: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+      return;
+    }
+    tiles[y * width + x] = id;
+  };
+  const placePlatform = (startX: number, endX: number, y: number) => {
+    for (let x = startX; x <= endX; x += 1) {
+      setTile(x, y, 2);
+    }
+  };
+
+  const gaps = [
+    { start: 14, end: 16 },
+    { start: 24, end: 26 },
+    { start: 36, end: 38 },
+    { start: 48, end: 50 },
+    { start: 58, end: 60 },
+  ];
+
+  for (let x = 0; x < width; x += 1) {
+    const isGap = gaps.some((gap) => x >= gap.start && x <= gap.end);
+    if (!isGap) {
+      setTile(x, height - 1, 1);
+    }
+  }
+
+  placePlatform(6, 9, 8);
+  placePlatform(18, 21, 6);
+  placePlatform(28, 31, 7);
+  placePlatform(40, 43, 5);
+  placePlatform(46, 47, 7);
+  placePlatform(52, 55, 6);
+  placePlatform(62, 65, 8);
+  placePlatform(70, 72, 6);
+
+  setTile(76, 8, 3);
+
+  coins.push(createCoin(3, 9));
+  coins.push(createCoin(7, 7));
+  coins.push(createCoin(19, 5));
+  coins.push(createCoin(29, 6));
+  coins.push(createCoin(41, 4));
+  coins.push(createCoin(53, 5));
+  coins.push(createCoin(63, 7));
+  coins.push(createCoin(71, 5));
+  shards.push(createShard(24, 4));
+  shards.push(createShard(56, 4));
+  powerups.push(createPowerup(12, 7, "speed"));
+  powerups.push(createPowerup(58, 5, "spring"));
+
+  return {
+    width,
+    height,
+    tileSize: TILE_SIZE,
+    tiles,
+    coins,
+    shards,
+    goal,
+    landmark,
+    powerups,
+  };
+}
+
+export function createLevel6(): Level {
+  const width = 80;
+  const height = 12;
+  const tiles = new Array<number>(width * height).fill(0);
+  const coins: Collectible[] = [];
+  const shards: Collectible[] = [];
+  const powerups: Powerup[] = [];
+  const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
+  const landmark: Rect = { x: 68 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
+
+  const setTile = (x: number, y: number, id: number) => {
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+      return;
+    }
+    tiles[y * width + x] = id;
+  };
+  const placePlatform = (startX: number, endX: number, y: number) => {
+    for (let x = startX; x <= endX; x += 1) {
+      setTile(x, y, 2);
+    }
+  };
+
+  const gaps = [
+    { start: 6, end: 8 },
+    { start: 20, end: 22 },
+    { start: 32, end: 34 },
+    { start: 46, end: 48 },
+    { start: 56, end: 58 },
+    { start: 66, end: 68 },
+  ];
+
+  for (let x = 0; x < width; x += 1) {
+    const isGap = gaps.some((gap) => x >= gap.start && x <= gap.end);
+    if (!isGap) {
+      setTile(x, height - 1, 1);
+    }
+  }
+
+  placePlatform(4, 5, 8);
+  placePlatform(10, 12, 6);
+  placePlatform(16, 18, 7);
+  placePlatform(24, 27, 5);
+  placePlatform(36, 39, 7);
+  placePlatform(42, 44, 6);
+  placePlatform(50, 53, 8);
+  placePlatform(60, 62, 6);
+  placePlatform(70, 73, 7);
+
+  setTile(76, 8, 3);
+
+  coins.push(createCoin(2, 9));
+  coins.push(createCoin(11, 5));
+  coins.push(createCoin(17, 6));
+  coins.push(createCoin(25, 4));
+  coins.push(createCoin(37, 6));
+  coins.push(createCoin(43, 5));
+  coins.push(createCoin(51, 7));
+  coins.push(createCoin(61, 5));
+  coins.push(createCoin(71, 6));
+  shards.push(createShard(28, 4));
+  shards.push(createShard(54, 4));
+  powerups.push(createPowerup(14, 6, "shield"));
+  powerups.push(createPowerup(48, 5, "speed"));
+
+  return {
+    width,
+    height,
+    tileSize: TILE_SIZE,
+    tiles,
+    coins,
+    shards,
+    goal,
+    landmark,
+    powerups,
+  };
+}
+
 function createCoin(x: number, y: number): Collectible {
   return {
     x: x * TILE_SIZE,

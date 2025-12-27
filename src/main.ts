@@ -5,7 +5,14 @@ import { loadImage, loadJson } from "./core/assets.js";
 import { createAudio } from "./core/audio.js";
 import { getCurrentFrame, setAnimation, updateAnimation } from "./core/animation.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
-import { createLevel1, createLevel2, createLevel3 } from "./game/level.js";
+import {
+  createLevel1,
+  createLevel2,
+  createLevel3,
+  createLevel4,
+  createLevel5,
+  createLevel6,
+} from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createFlit, updateFlit } from "./game/enemies/flit.js";
@@ -84,7 +91,14 @@ const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 
 const spawnPoint = { x: 100, y: 152 };
 const LEVEL_TIME_LIMIT = 120;
-const LEVELS = [createLevel1, createLevel2, createLevel3];
+const LEVELS = [
+  createLevel1,
+  createLevel2,
+  createLevel3,
+  createLevel4,
+  createLevel5,
+  createLevel6,
+];
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
