@@ -78,6 +78,8 @@ type GameState = {
   storyCharCount: number;
   storyTimer: number;
   storySeen: boolean;
+  debugTiles: boolean;
+  debugLabels: boolean;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -89,6 +91,7 @@ declare global {
       state: GameState;
       setMode: (mode: Mode) => void;
       resetPlayer: () => void;
+      setDebug: (flags: { tiles?: boolean; labels?: boolean }) => void;
     };
   }
 }
@@ -152,6 +155,7 @@ const STORY_LINES = [
   { speaker: "Guide", text: "Use your jump and run boosts to cross the gaps." },
   { speaker: "Guide", text: "Each checkpoint will hold your progress." },
 ];
+const DEBUG_FLAGS = new URLSearchParams(window.location.search);
 
 function loadControls() {
   try {
@@ -220,6 +224,8 @@ const state: GameState = {
   storyCharCount: 0,
   storyTimer: 0,
   storySeen: false,
+  debugTiles: DEBUG_FLAGS.has("debugTiles"),
+  debugLabels: DEBUG_FLAGS.has("debugLabels"),
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -500,6 +506,9 @@ function render() {
   renderer.ctx.translate(-state.camera.x + shakeX, -state.camera.y + shakeY);
   drawBackground(state.camera.x, state.backgroundTime);
   drawLevel(state.level);
+  if (state.debugTiles) {
+    drawTileDebug(state.level);
+  }
   drawPlatforms(state.level.platforms);
   drawCollectibles();
   drawCheckpoints();
@@ -561,6 +570,10 @@ function render() {
     }
   }
 
+  if (state.debugLabels) {
+    drawSpriteLabels();
+  }
+
   state.particles.draw(renderer);
 
   renderer.ctx.restore();
@@ -592,6 +605,35 @@ function drawLevel(level: Level) {
       }
       renderer.rect(x * tileSize, y * tileSize, tileSize, tileSize, color);
     }
+  }
+}
+
+function drawTileDebug(level: Level) {
+  const { width, height, tileSize, tiles } = level;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const id = tiles[y * width + x];
+      if (id === 0) {
+        continue;
+      }
+      renderer.text(String(id), x * tileSize + 4, y * tileSize + 12, "#2b2b2b");
+    }
+  }
+}
+
+function drawSpriteLabels() {
+  renderer.text(getCurrentFrame(state.player.anim), state.player.x, state.player.y - 6, "#2b2b2b");
+  for (const enemy of state.enemies) {
+    if (!enemy.alive && (!("stompedTimer" in enemy) || enemy.stompedTimer === 0)) {
+      continue;
+    }
+    const label =
+      enemy.kind === "moomba"
+        ? getCurrentFrame(enemy.anim)
+        : enemy.kind === "spikelet"
+          ? "spikelet"
+          : "flit";
+    renderer.text(label, enemy.x, enemy.y - 6, "#2b2b2b");
   }
 }
 
@@ -1364,6 +1406,14 @@ window.__SUPER_MO__ = {
   state,
   setMode,
   resetPlayer,
+  setDebug(flags: { tiles?: boolean; labels?: boolean }) {
+    if (typeof flags.tiles === "boolean") {
+      state.debugTiles = flags.tiles;
+    }
+    if (typeof flags.labels === "boolean") {
+      state.debugLabels = flags.labels;
+    }
+  },
 };
 
 const loop = createLoop({ update, render });

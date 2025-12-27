@@ -68,3 +68,32 @@ test("capture sprite atlas grid", async ({ page }) => {
   await page.waitForTimeout(100);
   await page.screenshot({ path: join(artifactsDir, "atlas-grid.png"), fullPage: true });
 });
+
+test("capture debug overlays", async ({ page }) => {
+  ensureArtifacts();
+  await page.goto("/?debugTiles=1&debugLabels=1");
+
+  await page.evaluate(() => {
+    const game = window.__SUPER_MO__;
+    if (!game) return;
+    game.state.storySeen = true;
+    game.setMode("playing");
+    game.setMode("paused");
+    game.state.camera.x = 0;
+    game.state.camera.y = 0;
+    game.state.player.x = 120;
+    game.state.player.y = 136;
+  });
+
+  await page.screenshot({ path: join(artifactsDir, "debug-tiles-labels.png"), fullPage: true });
+
+  await page.evaluate(() => {
+    window.__SUPER_MO__?.setDebug({ tiles: false, labels: true });
+  });
+  await page.screenshot({ path: join(artifactsDir, "debug-labels.png"), fullPage: true });
+
+  await page.evaluate(() => {
+    window.__SUPER_MO__?.setDebug({ tiles: true, labels: false });
+  });
+  await page.screenshot({ path: join(artifactsDir, "debug-tiles.png"), fullPage: true });
+});
