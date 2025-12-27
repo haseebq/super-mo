@@ -386,6 +386,49 @@ function drawPlatforms(platforms: MovingPlatform[]) {
   }
 }
 
+function drawCloud(x: number, y: number, scale: number, tone: string) {
+  const ctx = renderer.ctx;
+  ctx.fillStyle = tone;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 18 * scale, 10 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 18 * scale, y - 4 * scale, 16 * scale, 12 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 36 * scale, y, 20 * scale, 12 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 20 * scale, y + 6 * scale, 22 * scale, 10 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawHill(x: number, baseY: number, width: number, height: number, fill: string, shadow: string) {
+  const ctx = renderer.ctx;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.moveTo(x, baseY);
+  ctx.quadraticCurveTo(x + width * 0.5, baseY - height, x + width, baseY);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = shadow;
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.15, baseY);
+  ctx.quadraticCurveTo(x + width * 0.45, baseY - height * 0.75, x + width * 0.7, baseY);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawWaterfall(x: number, y: number, height: number) {
+  const ctx = renderer.ctx;
+  const gradient = ctx.createLinearGradient(x, y, x, y + height);
+  gradient.addColorStop(0, "#b9ecff");
+  gradient.addColorStop(0.5, "#78c7f0");
+  gradient.addColorStop(1, "#4aa0d0");
+
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, 18, height);
+
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillRect(x + 3, y + 6, 4, height - 12);
+  ctx.fillRect(x + 10, y + 10, 3, height - 20);
+}
+
 function drawBackground(camX: number, time: number) {
   renderer.ctx.save();
   renderer.ctx.translate(camX * 0.3, 0);
@@ -398,21 +441,21 @@ function drawBackground(camX: number, time: number) {
 
   for (let x = -180; x < totalWidth + 180; x += 180) {
     const drift = x + cloudOffset;
-    renderer.rect(drift + 20, 24, 60, 22, "#ffffff");
-    renderer.rect(drift + 60, 16, 80, 28, "#ffffff");
+    drawCloud(drift + 20, 26, 0.9, "#ffffff");
+    drawCloud(drift + 70, 20, 1.1, "#f3f6ff");
   }
 
   for (let x = -220; x < totalWidth + 220; x += 220) {
     const drift = x + farOffset;
-    renderer.rect(drift + 10, horizonY, 140, 80, "#b7d9ff");
-    renderer.rect(drift + 40, horizonY - 20, 180, 100, "#9bc7ff");
+    drawHill(drift, horizonY + 70, 200, 90, "#b7d9ff", "#9bc7ff");
+    drawHill(drift + 50, horizonY + 80, 230, 110, "#9bc7ff", "#7fb2f0");
   }
 
   for (let x = 0; x < totalWidth; x += 260) {
     const sway = Math.sin(time * 1.4 + x * 0.01) * 4;
     const baseX = x + 40;
-    renderer.rect(baseX, 70, 16, 80, "#78c7f0");
-    renderer.rect(baseX + sway - 16, 40, 48, 40, "#4aa0d0");
+    drawWaterfall(baseX + sway, 70, 80);
+    drawHill(baseX - 30, 80, 90, 60, "#78c7f0", "#4aa0d0");
   }
 
   renderer.ctx.restore();
