@@ -6,6 +6,7 @@ export function createLevel1() {
   const tiles = new Array(width * height).fill(0);
   const coins = [];
   const shards = [];
+  const goal = { x: 18 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
 
   const setTile = (x, y, id) => {
     if (x < 0 || x >= width || y < 0 || y >= height) {
@@ -42,6 +43,7 @@ export function createLevel1() {
     tiles,
     coins,
     shards,
+    goal,
   };
 }
 

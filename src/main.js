@@ -14,6 +14,7 @@ const audio = createAudio();
 const hud = document.querySelector(".hud");
 const startOverlay = document.querySelector(".start-overlay");
 const pauseOverlay = document.querySelector(".pause-overlay");
+const completeOverlay = document.querySelector(".complete-overlay");
 const hudLives = document.querySelector("#hud-lives");
 const hudCoins = document.querySelector("#hud-coins");
 const hudShards = document.querySelector("#hud-shards");
@@ -53,6 +54,14 @@ function update(dt) {
     return;
   }
 
+  if (state.mode === "complete") {
+    if (input.consumePress("Enter")) {
+      resetLevel();
+      setMode("playing");
+    }
+    return;
+  }
+
   if (input.consumePress("KeyP")) {
     setMode("paused");
     return;
@@ -65,6 +74,10 @@ function update(dt) {
   }
 
   handleCollectibles();
+  if (overlaps(state.player, state.level.goal)) {
+    setMode("complete");
+    return;
+  }
 
   for (const enemy of state.enemies) {
     updateMoomba(enemy, state.level, dt);
@@ -219,14 +232,25 @@ function resetPlayer() {
   state.player.vy = 0;
 }
 
+function resetLevel() {
+  state.level = createLevel1();
+  state.enemies = [createMoomba(160, 160)];
+  state.hud.coins = 0;
+  state.hud.shards = 0;
+  resetPlayer();
+  updateHud();
+}
+
 function setMode(mode) {
   state.mode = mode;
   const isTitle = mode === "title";
   const isPaused = mode === "paused";
+  const isComplete = mode === "complete";
 
   hud.classList.toggle("is-hidden", isTitle);
   startOverlay.classList.toggle("is-hidden", !isTitle);
   pauseOverlay.classList.toggle("is-hidden", !isPaused);
+  completeOverlay.classList.toggle("is-hidden", !isComplete);
   updateHud();
 
   if (mode === "playing") {
