@@ -6,6 +6,7 @@ import { createAudio } from "./core/audio.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
+import { createParticles } from "./game/particles.js";
 
 const canvas = document.querySelector("#game");
 const renderer = createRenderer(canvas);
@@ -25,6 +26,7 @@ const state = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
   level: createLevel1(),
   enemies: [createMoomba(160, 160)],
+  particles: createParticles(),
   assets: null,
   assetsReady: false,
   camera: {
@@ -79,6 +81,7 @@ function update(dt) {
 
   handleCollectibles();
   updateCamera();
+  state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
     setMode("complete");
     return;
@@ -113,6 +116,8 @@ function render() {
       renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, "#7b4a6d");
     }
   }
+
+  state.particles.draw(renderer);
 
   renderer.ctx.restore();
 
@@ -193,6 +198,7 @@ function handleEnemyCollisions() {
       enemy.alive = false;
       bouncePlayer(state.player);
       audio.playStomp();
+      state.particles.spawn(enemy.x + 8, enemy.y + 8, 8, "#7b4a6d");
       continue;
     }
 
@@ -210,6 +216,7 @@ function handleCollectibles() {
       coin.collected = true;
       state.hud.coins += 1;
       updateHud();
+      state.particles.spawn(coin.x + 8, coin.y + 8, 6, "#f6d44d");
     }
   }
 
@@ -221,6 +228,7 @@ function handleCollectibles() {
       shard.collected = true;
       state.hud.shards += 1;
       updateHud();
+      state.particles.spawn(shard.x + 8, shard.y + 8, 10, "#78c7f0");
     }
   }
 }
@@ -244,6 +252,7 @@ function resetPlayer() {
 function resetLevel() {
   state.level = createLevel1();
   state.enemies = [createMoomba(160, 160)];
+  state.particles = createParticles();
   state.hud.coins = 0;
   state.hud.shards = 0;
   state.camera.x = 0;
