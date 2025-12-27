@@ -27,6 +27,10 @@ const state = {
   enemies: [createMoomba(160, 160)],
   assets: null,
   assetsReady: false,
+  camera: {
+    x: 0,
+    y: 0,
+  },
   hud: {
     lives: 3,
     coins: 0,
@@ -74,6 +78,7 @@ function update(dt) {
   }
 
   handleCollectibles();
+  updateCamera();
   if (overlaps(state.player, state.level.goal)) {
     setMode("complete");
     return;
@@ -88,6 +93,8 @@ function update(dt) {
 
 function render() {
   renderer.clear("#78c7f0");
+  renderer.ctx.save();
+  renderer.ctx.translate(-state.camera.x, -state.camera.y);
   drawLevel(state.level);
   drawCollectibles();
   if (state.assetsReady) {
@@ -106,6 +113,8 @@ function render() {
       renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, "#7b4a6d");
     }
   }
+
+  renderer.ctx.restore();
 
   renderer.text("Super Mo - Engine Scaffold", 8, 16, "#2b2b2b");
 }
@@ -237,6 +246,8 @@ function resetLevel() {
   state.enemies = [createMoomba(160, 160)];
   state.hud.coins = 0;
   state.hud.shards = 0;
+  state.camera.x = 0;
+  state.camera.y = 0;
   resetPlayer();
   updateHud();
 }
@@ -259,6 +270,18 @@ function setMode(mode) {
   } else {
     audio.stopMusic();
   }
+}
+
+function updateCamera() {
+  const levelWidth = state.level.width * state.level.tileSize;
+  const maxX = Math.max(0, levelWidth - canvas.width);
+  const lookAhead = Math.sign(state.player.vx) * 24;
+  const targetX = state.player.x + state.player.width / 2 - canvas.width / 2 + lookAhead;
+  state.camera.x = clamp(targetX, 0, maxX);
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function updateHud() {
