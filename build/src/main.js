@@ -45,6 +45,7 @@ const state = {
     },
     time: 0,
     mode: "title",
+    invulnerableTimer: 0,
 };
 loadAssets();
 setMode("title");
@@ -73,6 +74,9 @@ function update(dt) {
         return;
     }
     state.time += dt;
+    if (state.invulnerableTimer > 0) {
+        state.invulnerableTimer = Math.max(0, state.invulnerableTimer - dt);
+    }
     const events = updatePlayer(state.player, input, dt, state.level);
     if (events.jumped) {
         audio.playJump();
@@ -193,6 +197,9 @@ function handleEnemyCollisions() {
         if (!enemy.alive) {
             continue;
         }
+        if (state.invulnerableTimer > 0) {
+            continue;
+        }
         if (!overlaps(state.player, enemy)) {
             continue;
         }
@@ -204,7 +211,7 @@ function handleEnemyCollisions() {
             state.particles.spawn(enemy.x + 8, enemy.y + 8, 8, "#7b4a6d");
             continue;
         }
-        resetPlayer();
+        applyDamage();
         return;
     }
 }
@@ -244,6 +251,10 @@ function resetPlayer() {
     state.player.vx = 0;
     state.player.vy = 0;
 }
+function resetRun() {
+    state.hud.lives = 3;
+    resetLevel();
+}
 function resetLevel() {
     state.level = createLevel1();
     state.enemies = [createMoomba(160, 160), createSpikelet(240, 160)];
@@ -252,6 +263,7 @@ function resetLevel() {
     state.hud.shards = 0;
     state.camera.x = 0;
     state.camera.y = 0;
+    state.invulnerableTimer = 0;
     resetPlayer();
     updateHud();
 }
@@ -287,6 +299,19 @@ function updateHud() {
     hudLives.textContent = `Lives ${state.hud.lives}`;
     hudCoins.textContent = `Coins ${state.hud.coins}`;
     hudShards.textContent = `Shards ${state.hud.shards}`;
+}
+function applyDamage() {
+    if (state.invulnerableTimer > 0) {
+        return;
+    }
+    state.hud.lives = Math.max(0, state.hud.lives - 1);
+    updateHud();
+    state.invulnerableTimer = 1;
+    resetPlayer();
+    if (state.hud.lives === 0) {
+        resetRun();
+        setMode("title");
+    }
 }
 async function loadAssets() {
     try {
