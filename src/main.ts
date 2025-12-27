@@ -57,6 +57,10 @@ type GameState = {
   shieldTimer: number;
   backgroundTime: number;
   playerSquash: number;
+  completeTimeBonus: number;
+  completeGoalBonus: number;
+  completeCoinScore: number;
+  completeShardScore: number;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -95,6 +99,7 @@ const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
+const completeBreakdown = requireElement<HTMLParagraphElement>("#complete-breakdown");
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 const difficultyOptions = Array.from(
   document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
@@ -146,6 +151,10 @@ const state: GameState = {
   shieldTimer: 0,
   backgroundTime: 0,
   playerSquash: 0,
+  completeTimeBonus: 0,
+  completeGoalBonus: 0,
+  completeCoinScore: 0,
+  completeShardScore: 0,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -317,8 +326,14 @@ function update(dt: number) {
   updateCamera(dt);
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
-    state.hud.score += 500;
+    const timeBonus = Math.ceil(state.levelTimeRemaining) * 10;
+    state.completeTimeBonus = timeBonus;
+    state.completeGoalBonus = 500;
+    state.completeCoinScore = state.hud.coins * 10;
+    state.completeShardScore = state.hud.shards * 50;
+    state.hud.score += state.completeGoalBonus + state.completeTimeBonus;
     updateHud();
+    updateCompleteSummary();
     audio.playGoal();
     setMode("complete");
     return;
@@ -777,6 +792,10 @@ function resetLevel() {
   state.powerupTimer = 0;
   state.speedTimer = 0;
   state.shieldTimer = 0;
+  state.completeTimeBonus = 0;
+  state.completeGoalBonus = 0;
+  state.completeCoinScore = 0;
+  state.completeShardScore = 0;
   state.levelTimeRemaining = LEVEL_TIME_LIMITS[state.difficultyIndex];
   state.deathTimer = 0;
   state.deathVelocity = 0;
@@ -879,6 +898,11 @@ function updateHud() {
   }
   hudBuffs.textContent = `Buffs ${buffs.length ? buffs.join(" / ") : "--"}`;
   completeScore.textContent = `Score ${state.hud.score}`;
+  updateCompleteSummary();
+}
+
+function updateCompleteSummary() {
+  completeBreakdown.textContent = `Time Bonus ${state.completeTimeBonus} · Goal ${state.completeGoalBonus} · Coins ${state.completeCoinScore} · Shards ${state.completeShardScore}`;
 }
 
 function updateLevelSelect() {
