@@ -29,7 +29,7 @@ type AssetFrame = { x: number; y: number; w: number; h: number };
 type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
 type Camera = { x: number; y: number };
 type HudState = { lives: number; score: number; coins: number; shards: number };
-type Mode = "title" | "intro" | "playing" | "paused" | "complete" | "death";
+type Mode = "title" | "story" | "intro" | "playing" | "paused" | "complete" | "death";
 type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 
 type GameState = {
@@ -73,6 +73,10 @@ type GameState = {
     jump: string;
     run: string;
   };
+  storyIndex: number;
+  storyCharCount: number;
+  storyTimer: number;
+  storySeen: boolean;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -104,6 +108,7 @@ const hud = requireElement<HTMLDivElement>(".hud");
 const startOverlay = requireElement<HTMLDivElement>(".start-overlay");
 const pauseOverlay = requireElement<HTMLDivElement>(".pause-overlay");
 const introOverlay = requireElement<HTMLDivElement>(".intro-overlay");
+const storyOverlay = requireElement<HTMLDivElement>(".story-overlay");
 const completeOverlay = requireElement<HTMLDivElement>(".complete-overlay");
 const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
 const hudTime = requireElement<HTMLSpanElement>("#hud-time");
@@ -119,6 +124,8 @@ const introTitle = requireElement<HTMLHeadingElement>("#intro-title");
 const introGoal = requireElement<HTMLParagraphElement>("#intro-goal");
 const introCollect = requireElement<HTMLParagraphElement>("#intro-collect");
 const introDifficulty = requireElement<HTMLParagraphElement>("#intro-difficulty");
+const storySpeaker = requireElement<HTMLParagraphElement>("#story-speaker");
+const storyText = requireElement<HTMLParagraphElement>("#story-text");
 const controlHints = Array.from(document.querySelectorAll<HTMLParagraphElement>(".controls"));
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 const difficultyOptions = Array.from(
@@ -138,6 +145,12 @@ const LEVELS = [
 ];
 const DIFFICULTY_SPEED = [0.85, 1, 1.2];
 const DEFAULT_CONTROLS = { jump: "KeyZ", run: "KeyX" };
+const STORY_LINES = [
+  { speaker: "Guide", text: "Welcome, runner. The valley is waking up." },
+  { speaker: "Guide", text: "Reach the goal flag and gather coins and shards." },
+  { speaker: "Guide", text: "Use your jump and run boosts to cross the gaps." },
+  { speaker: "Guide", text: "Each checkpoint will hold your progress." },
+];
 
 function loadControls() {
   try {
@@ -201,6 +214,10 @@ const state: GameState = {
   audioMuted: false,
   activeCheckpoint: null,
   controls: loadControls(),
+  storyIndex: 0,
+  storyCharCount: 0,
+  storyTimer: 0,
+  storySeen: false,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -258,7 +275,11 @@ function update(dt: number) {
     if (input.consumePress("Enter")) {
       state.levelIndex = state.titleSelection;
       resetLevel();
-      setMode("intro");
+      if (state.levelIndex === 0 && !state.storySeen) {
+        setMode("story");
+      } else {
+        setMode("intro");
+      }
     }
     
     setAnimation(state.player.anim, "run");
@@ -275,6 +296,11 @@ function update(dt: number) {
         updateFlit(enemy, dt);
       }
     }
+    return;
+  }
+
+  if (state.mode === "story") {
+    updateStory(dt);
     return;
   }
 
@@ -944,6 +970,7 @@ function resetRun() {
   state.hud.score = 0;
   state.levelIndex = 0;
   state.titleSelection = 0;
+  state.storySeen = false;
   resetLevel();
 }
 
@@ -985,6 +1012,7 @@ function resetLevel() {
 function setMode(mode: Mode) {
   state.mode = mode;
   const isTitle = mode === "title";
+  const isStory = mode === "story";
   const isIntro = mode === "intro";
   const isPaused = mode === "paused";
   const isComplete = mode === "complete";
@@ -992,6 +1020,7 @@ function setMode(mode: Mode) {
 
   hud.classList.toggle("is-hidden", isTitle);
   startOverlay.classList.toggle("is-hidden", !isTitle);
+  storyOverlay.classList.toggle("is-hidden", !isStory);
   introOverlay.classList.toggle("is-hidden", !isIntro);
   pauseOverlay.classList.toggle("is-hidden", !isPaused);
   completeOverlay.classList.toggle("is-hidden", !isComplete);
@@ -1008,6 +1037,10 @@ function setMode(mode: Mode) {
     updateLevelSelect();
     updateDifficultySelect();
     updateControlHints();
+  }
+  if (isStory) {
+    resetStory();
+    updateStoryText();
   }
   if (isIntro) {
     updateIntroCard();
@@ -1124,6 +1157,52 @@ function updateControlHints() {
   const jumpLabel = formatKeyLabel(state.controls.jump);
   const runLabel = formatKeyLabel(state.controls.run);
   controlHints[0].textContent = `Arrows + ${jumpLabel} (jump) + ${runLabel} (run)`;
+}
+
+function resetStory() {
+  state.storyIndex = 0;
+  state.storyCharCount = 0;
+  state.storyTimer = 0;
+}
+
+function updateStoryText() {
+  const entry = STORY_LINES[state.storyIndex];
+  if (!entry) {
+    return;
+  }
+  storySpeaker.textContent = entry.speaker;
+  storyText.textContent = entry.text.slice(0, state.storyCharCount);
+}
+
+function updateStory(dt: number) {
+  const entry = STORY_LINES[state.storyIndex];
+  if (!entry) {
+    state.storySeen = true;
+    setMode("intro");
+    return;
+  }
+  state.storyTimer += dt;
+  const targetChars = Math.min(entry.text.length, Math.floor(state.storyTimer * 30));
+  if (targetChars !== state.storyCharCount) {
+    state.storyCharCount = targetChars;
+    updateStoryText();
+  }
+  if (input.consumePress("Enter")) {
+    if (state.storyCharCount < entry.text.length) {
+      state.storyCharCount = entry.text.length;
+      updateStoryText();
+      return;
+    }
+    state.storyIndex += 1;
+    state.storyCharCount = 0;
+    state.storyTimer = 0;
+    if (state.storyIndex >= STORY_LINES.length) {
+      state.storySeen = true;
+      setMode("intro");
+      return;
+    }
+    updateStoryText();
+  }
 }
 
 function updateIntroCard() {
