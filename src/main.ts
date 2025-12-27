@@ -39,6 +39,7 @@ type GameState = {
   invulnerableTimer: number;
   titleScroll: number;
   powerupTimer: number;
+  backgroundTime: number;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -97,6 +98,7 @@ const state: GameState = {
   invulnerableTimer: 0,
   titleScroll: 0,
   powerupTimer: 0,
+  backgroundTime: 0,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -106,6 +108,10 @@ loadAssets();
 setMode("title");
 
 function update(dt: number) {
+  if (state.mode !== "paused") {
+    state.backgroundTime += dt;
+  }
+
   if (state.mode === "title") {
     state.titleScroll = (state.titleScroll + dt * 30) % (state.level.width * state.level.tileSize);
     if (input.consumePress("Enter")) {
@@ -204,7 +210,7 @@ function render() {
 
   renderer.ctx.save();
   renderer.ctx.translate(-state.camera.x, -state.camera.y);
-  drawBackground(state.camera.x);
+  drawBackground(state.camera.x, state.backgroundTime);
   drawLevel(state.level);
   drawCollectibles();
   drawLandmark();
@@ -270,27 +276,33 @@ function drawLevel(level: Level) {
   }
 }
 
-function drawBackground(camX: number) {
+function drawBackground(camX: number, time: number) {
   renderer.ctx.save();
   renderer.ctx.translate(camX * 0.3, 0);
 
   const { width, tileSize } = state.level;
   const horizonY = 100;
   const totalWidth = width * tileSize;
+  const cloudOffset = (time * 12) % 180;
+  const farOffset = (time * 6) % 220;
 
-  for (let x = 0; x < totalWidth; x += 180) {
-    renderer.rect(x + 20, 24, 60, 22, "#ffffff");
-    renderer.rect(x + 60, 16, 80, 28, "#ffffff");
+  for (let x = -180; x < totalWidth + 180; x += 180) {
+    const drift = x + cloudOffset;
+    renderer.rect(drift + 20, 24, 60, 22, "#ffffff");
+    renderer.rect(drift + 60, 16, 80, 28, "#ffffff");
   }
 
-  for (let x = 0; x < totalWidth; x += 220) {
-    renderer.rect(x + 10, horizonY, 140, 80, "#b7d9ff");
-    renderer.rect(x + 40, horizonY - 20, 180, 100, "#9bc7ff");
+  for (let x = -220; x < totalWidth + 220; x += 220) {
+    const drift = x + farOffset;
+    renderer.rect(drift + 10, horizonY, 140, 80, "#b7d9ff");
+    renderer.rect(drift + 40, horizonY - 20, 180, 100, "#9bc7ff");
   }
 
-  for (let x = 0; x < totalWidth; x += 320) {
-    renderer.rect(x + 220, 40, 16, 90, "#78c7f0");
-    renderer.rect(x + 220, 120, 16, 20, "#4aa0d0");
+  for (let x = 0; x < totalWidth; x += 260) {
+    const sway = Math.sin(time * 1.4 + x * 0.01) * 4;
+    const baseX = x + 40;
+    renderer.rect(baseX, 70, 16, 80, "#78c7f0");
+    renderer.rect(baseX + sway - 16, 40, 48, 40, "#4aa0d0");
   }
 
   renderer.ctx.restore();
@@ -345,7 +357,7 @@ function renderTitlePreview() {
   renderer.ctx.translate(-scrollX, offsetY);
 
   const drawScene = (camX: number) => {
-    drawBackground(camX);
+    drawBackground(camX, state.backgroundTime);
     drawLevel(state.level);
     drawCollectibles();
     drawLandmark();
