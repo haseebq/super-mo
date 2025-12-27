@@ -47,6 +47,10 @@ Notes:
 - The reference script uses Pillow (`pip install pillow`).
 - Runtime prefers `assets/sprites.prod.png` + `assets/sprites.prod.json` when present, and falls back to placeholder `assets/sprites.svg` + `assets/sprites.json`.
 - If `art/production.json` is missing or has `"production": false`, the generator will produce a full set of tiles by default.
+
+## Notes
+- Per-sprite prompt overrides live in `scripts/generate_art.py` for sprites that need extra specificity.
+- Use the debug-painted overlay (`?debugPaint=1&debugTiles=1&debugLabels=1`) to verify atlas cell mapping quickly.
 - The generator script reads `OPENAI_API_KEY` from the environment or from a local `SECRETS` file (gitignored). Example:
   ```
   OPENAI_API_KEY=your_key_here
