@@ -423,10 +423,11 @@ function drawCollectibles() {
     if (coin.collected) {
       continue;
     }
+    const bob = Math.sin(state.time * 4 + coin.x * 0.05) * 1.5;
     if (state.assetsReady) {
-      drawSprite("coin", coin.x, coin.y);
+      drawSprite("coin", coin.x, coin.y + bob);
     } else {
-      renderer.rect(coin.x + 4, coin.y + 4, 8, 8, "#f6d44d");
+      renderer.rect(coin.x + 4, coin.y + 4 + bob, 8, 8, "#f6d44d");
     }
   }
 
@@ -434,10 +435,11 @@ function drawCollectibles() {
     if (shard.collected) {
       continue;
     }
+    const bob = Math.sin(state.time * 4 + shard.x * 0.05) * 1.5;
     if (state.assetsReady) {
-      drawSprite("shard", shard.x, shard.y);
+      drawSprite("shard", shard.x, shard.y + bob);
     } else {
-      renderer.rect(shard.x + 4, shard.y + 4, 8, 8, "#78c7f0");
+      renderer.rect(shard.x + 4, shard.y + 4 + bob, 8, 8, "#78c7f0");
     }
   }
 
@@ -445,6 +447,7 @@ function drawCollectibles() {
     if (powerup.collected) {
       continue;
     }
+    const bob = Math.sin(state.time * 4 + powerup.x * 0.05) * 1.5;
     const outer =
       powerup.kind === "spring"
         ? "#78c7f0"
@@ -457,8 +460,8 @@ function drawCollectibles() {
         : powerup.kind === "speed"
           ? "#e04b3a"
           : "#ffffff";
-    renderer.rect(powerup.x + 2, powerup.y + 2, 12, 12, outer);
-    renderer.rect(powerup.x + 5, powerup.y + 5, 6, 6, inner);
+    renderer.rect(powerup.x + 2, powerup.y + 2 + bob, 12, 12, outer);
+    renderer.rect(powerup.x + 5, powerup.y + 5 + bob, 6, 6, inner);
   }
 }
 
