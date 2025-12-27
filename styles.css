@@ -113,6 +113,33 @@ body {
   color: var(--accent);
 }
 
+.level-select {
+  margin: 8px 0 4px;
+  display: grid;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.level-options {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.level-option {
+  border: 2px solid var(--text);
+  padding: 4px 8px;
+  background: #ffffff;
+}
+
+.level-option.is-selected {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
 .controls {
   font-size: 12px;
   opacity: 0.8;

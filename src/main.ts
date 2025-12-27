@@ -46,6 +46,7 @@ type GameState = {
   mode: Mode;
   invulnerableTimer: number;
   titleScroll: number;
+  titleSelection: number;
   levelTimeRemaining: number;
   powerupTimer: number;
   speedTimer: number;
@@ -88,6 +89,7 @@ const hudScore = requireElement<HTMLSpanElement>("#hud-score");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
+const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 
 const spawnPoint = { x: 100, y: 152 };
 const LEVEL_TIME_LIMIT = 120;
@@ -122,6 +124,7 @@ const state: GameState = {
   mode: "title",
   invulnerableTimer: 0,
   titleScroll: 0,
+  titleSelection: 0,
   levelTimeRemaining: LEVEL_TIME_LIMIT,
   powerupTimer: 0,
   speedTimer: 0,
@@ -142,7 +145,19 @@ function update(dt: number) {
 
   if (state.mode === "title") {
     state.titleScroll = (state.titleScroll + dt * 30) % (state.level.width * state.level.tileSize);
+    if (input.consumePress("ArrowRight") || input.consumePress("ArrowDown")) {
+      const maxOptions = Math.min(levelOptions.length, LEVELS.length);
+      state.titleSelection = (state.titleSelection + 1) % maxOptions;
+      updateLevelSelect();
+    }
+    if (input.consumePress("ArrowLeft") || input.consumePress("ArrowUp")) {
+      const maxOptions = Math.min(levelOptions.length, LEVELS.length);
+      state.titleSelection = (state.titleSelection - 1 + maxOptions) % maxOptions;
+      updateLevelSelect();
+    }
     if (input.consumePress("Enter")) {
+      state.levelIndex = state.titleSelection;
+      resetLevel();
       setMode("playing");
     }
     
@@ -581,6 +596,7 @@ function resetRun() {
   state.hud.lives = 3;
   state.hud.score = 0;
   state.levelIndex = 0;
+  state.titleSelection = 0;
   resetLevel();
 }
 
@@ -623,6 +639,9 @@ function setMode(mode: Mode) {
     audio.stopMusic();
   }
 
+  if (isTitle) {
+    updateLevelSelect();
+  }
   if (isDeath) {
     input.reset();
   }
@@ -647,6 +666,13 @@ function updateHud() {
   hudCoins.textContent = `Coins ${state.hud.coins}`;
   hudShards.textContent = `Shards ${state.hud.shards}`;
   completeScore.textContent = `Score ${state.hud.score}`;
+}
+
+function updateLevelSelect() {
+  const maxOptions = Math.min(levelOptions.length, LEVELS.length);
+  for (let i = 0; i < levelOptions.length; i += 1) {
+    levelOptions[i].classList.toggle("is-selected", i === state.titleSelection && i < maxOptions);
+  }
 }
 
 function startDeath(exitMode: Mode) {
