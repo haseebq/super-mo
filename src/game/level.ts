@@ -27,6 +27,10 @@ export type MovingPlatform = Rect & {
   deltaY: number;
 };
 
+export type Checkpoint = Rect & {
+  activated: boolean;
+};
+
 export type Level = {
   width: number;
   height: number;
@@ -38,6 +42,7 @@ export type Level = {
   landmark: Rect;
   powerups: Powerup[];
   platforms: MovingPlatform[];
+  checkpoints: Checkpoint[];
 };
 
 const TILE_SIZE = 16;
@@ -50,6 +55,7 @@ export function createLevel1(): Level {
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
   const platforms: MovingPlatform[] = [];
+  const checkpoints: Checkpoint[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 10 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 74 * TILE_SIZE, y: 7 * TILE_SIZE, width: 32, height: 48 };
 
@@ -119,6 +125,7 @@ export function createLevel1(): Level {
   powerups.push(createPowerup(60, 5, "shield"));
   platforms.push(createVerticalPlatform(20, 9, 3, 3));
   platforms.push(createCircularPlatform(40, 8, 2.5, 3.5));
+  checkpoints.push(createCheckpoint(40, 9));
 
   return {
     width,
@@ -131,6 +138,7 @@ export function createLevel1(): Level {
     landmark,
     powerups,
     platforms,
+    checkpoints,
   };
 }
 
@@ -142,6 +150,7 @@ export function createLevel2(): Level {
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
   const platforms: MovingPlatform[] = [];
+  const checkpoints: Checkpoint[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 9 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 72 * TILE_SIZE, y: 6 * TILE_SIZE, width: 48, height: 64 };
 
@@ -197,6 +206,7 @@ export function createLevel2(): Level {
   powerups.push(createPowerup(24, 6, "speed"));
   powerups.push(createPowerup(52, 5, "spring"));
   platforms.push(createVerticalPlatform(12, 8, 2.5, 3));
+  checkpoints.push(createCheckpoint(44, 9));
 
   return {
     width,
@@ -209,6 +219,7 @@ export function createLevel2(): Level {
     landmark,
     powerups,
     platforms,
+    checkpoints,
   };
 }
 
@@ -220,6 +231,7 @@ export function createLevel3(): Level {
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
   const platforms: MovingPlatform[] = [];
+  const checkpoints: Checkpoint[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 70 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
 
@@ -274,6 +286,7 @@ export function createLevel3(): Level {
   shards.push(createShard(48, 5));
   powerups.push(createPowerup(18, 6, "shield"));
   powerups.push(createPowerup(58, 5, "speed"));
+  checkpoints.push(createCheckpoint(40, 9));
   platforms.push(createCircularPlatform(46, 6, 2, 3));
 
   return {
@@ -287,6 +300,7 @@ export function createLevel3(): Level {
     landmark,
     powerups,
     platforms,
+    checkpoints,
   };
 }
 
@@ -298,6 +312,7 @@ export function createLevel4(): Level {
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
   const platforms: MovingPlatform[] = [];
+  const checkpoints: Checkpoint[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 9 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 71 * TILE_SIZE, y: 6 * TILE_SIZE, width: 48, height: 64 };
 
@@ -355,6 +370,7 @@ export function createLevel4(): Level {
   powerups.push(createPowerup(16, 6, "spring"));
   powerups.push(createPowerup(52, 5, "shield"));
   platforms.push(createVerticalPlatform(34, 8, 2, 2.8));
+  checkpoints.push(createCheckpoint(36, 9));
 
   return {
     width,
@@ -367,6 +383,7 @@ export function createLevel4(): Level {
     landmark,
     powerups,
     platforms,
+    checkpoints,
   };
 }
 
@@ -378,6 +395,7 @@ export function createLevel5(): Level {
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
   const platforms: MovingPlatform[] = [];
+  const checkpoints: Checkpoint[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 69 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
 
@@ -431,6 +449,7 @@ export function createLevel5(): Level {
   shards.push(createShard(56, 4));
   powerups.push(createPowerup(12, 7, "speed"));
   powerups.push(createPowerup(58, 5, "spring"));
+  checkpoints.push(createCheckpoint(40, 9));
   platforms.push(createCircularPlatform(36, 7, 2.5, 3));
 
   return {
@@ -444,6 +463,7 @@ export function createLevel5(): Level {
     landmark,
     powerups,
     platforms,
+    checkpoints,
   };
 }
 
@@ -455,6 +475,7 @@ export function createLevel6(): Level {
   const shards: Collectible[] = [];
   const powerups: Powerup[] = [];
   const platforms: MovingPlatform[] = [];
+  const checkpoints: Checkpoint[] = [];
   const goal: Rect = { x: 76 * TILE_SIZE, y: 8 * TILE_SIZE, width: 16, height: 16 };
   const landmark: Rect = { x: 68 * TILE_SIZE, y: 5 * TILE_SIZE, width: 56, height: 72 };
 
@@ -512,6 +533,7 @@ export function createLevel6(): Level {
   powerups.push(createPowerup(14, 6, "shield"));
   powerups.push(createPowerup(48, 5, "speed"));
   platforms.push(createVerticalPlatform(24, 8, 3, 3.2));
+  checkpoints.push(createCheckpoint(32, 9));
 
   return {
     width,
@@ -524,6 +546,7 @@ export function createLevel6(): Level {
     landmark,
     powerups,
     platforms,
+    checkpoints,
   };
 }
 
@@ -557,6 +580,16 @@ function createPowerup(x: number, y: number, kind: Powerup["kind"]): Powerup {
     height: 16,
     collected: false,
     kind,
+  };
+}
+
+function createCheckpoint(x: number, y: number): Checkpoint {
+  return {
+    x: x * TILE_SIZE,
+    y: y * TILE_SIZE,
+    width: 16,
+    height: 16,
+    activated: false,
   };
 }
 

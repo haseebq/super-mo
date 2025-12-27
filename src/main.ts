@@ -17,7 +17,7 @@ import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createFlit, updateFlit } from "./game/enemies/flit.js";
 import { createParticles } from "./game/particles.js";
-import type { Collectible, Level, MovingPlatform, Rect } from "./game/level.js";
+import type { Checkpoint, Collectible, Level, MovingPlatform, Rect } from "./game/level.js";
 import type { Player } from "./game/player.js";
 import type { MoombaEnemy } from "./game/enemies/moomba.js";
 import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
@@ -68,6 +68,7 @@ type GameState = {
   cameraShakeTimer: number;
   cameraShakeStrength: number;
   audioMuted: boolean;
+  activeCheckpoint: Checkpoint | null;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -107,6 +108,7 @@ const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
 const hudAudio = requireElement<HTMLSpanElement>("#hud-audio");
+const hudCheckpoint = requireElement<HTMLSpanElement>("#hud-checkpoint");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 const completeBreakdown = requireElement<HTMLParagraphElement>("#complete-breakdown");
 const introTitle = requireElement<HTMLHeadingElement>("#intro-title");
@@ -175,6 +177,7 @@ const state: GameState = {
   cameraShakeTimer: 0,
   cameraShakeStrength: 0,
   audioMuted: false,
+  activeCheckpoint: null,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -377,6 +380,7 @@ function update(dt: number) {
   }
 
   handleCollectibles();
+  handleCheckpoints();
   updateCamera(dt);
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
@@ -437,6 +441,7 @@ function render() {
   drawLevel(state.level);
   drawPlatforms(state.level.platforms);
   drawCollectibles();
+  drawCheckpoints();
   drawPrompts();
   drawLandmark();
   const shouldDrawPlayer =
@@ -658,6 +663,28 @@ function drawCollectibles() {
   }
 }
 
+function drawCheckpoints() {
+  for (const checkpoint of state.level.checkpoints) {
+    const poleColor = checkpoint.activated ? "#4aa0d0" : "#2b2b2b";
+    const flagColor = checkpoint.activated ? "#f6d44d" : "#ffffff";
+    renderer.rect(checkpoint.x + 6, checkpoint.y - 12, 3, 20, poleColor);
+    renderer.rect(checkpoint.x + 6, checkpoint.y - 12, 12, 6, flagColor);
+  }
+}
+
+function handleCheckpoints() {
+  for (const checkpoint of state.level.checkpoints) {
+    if (checkpoint.activated) {
+      continue;
+    }
+    if (overlaps(state.player, checkpoint)) {
+      checkpoint.activated = true;
+      state.activeCheckpoint = checkpoint;
+      updateHud();
+    }
+  }
+}
+
 function drawPrompts() {
   if (state.tutorialSeen || state.levelIndex !== 0) {
     return;
@@ -866,8 +893,13 @@ function overlaps(a: Rect, b: Rect) {
 }
 
 function resetPlayer() {
-  state.player.x = spawnPoint.x;
-  state.player.y = spawnPoint.y;
+  if (state.activeCheckpoint) {
+    state.player.x = state.activeCheckpoint.x;
+    state.player.y = state.activeCheckpoint.y - state.player.height;
+  } else {
+    state.player.x = spawnPoint.x;
+    state.player.y = spawnPoint.y;
+  }
   state.player.vx = 0;
   state.player.vy = 0;
   state.player.platformId = null;
@@ -905,6 +937,10 @@ function resetLevel() {
   state.hitFlashTimer = 0;
   state.knockbackTimer = 0;
   state.knockbackVelocity = 0;
+  state.activeCheckpoint = null;
+  for (const checkpoint of state.level.checkpoints) {
+    checkpoint.activated = false;
+  }
   state.levelTimeRemaining = LEVEL_TIME_LIMITS[state.difficultyIndex];
   state.deathTimer = 0;
   state.deathVelocity = 0;
@@ -1012,6 +1048,7 @@ function updateHud() {
   }
   hudBuffs.textContent = `Buffs ${buffs.length ? buffs.join(" / ") : "--"}`;
   hudAudio.textContent = `Audio ${state.audioMuted ? "Off" : "On"}`;
+  hudCheckpoint.textContent = `Checkpoint ${state.activeCheckpoint ? "On" : "--"}`;
   completeScore.textContent = `Score ${state.hud.score}`;
   updateCompleteSummary();
 }
