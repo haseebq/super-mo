@@ -42,6 +42,7 @@ type GameState = {
   assetsReady: boolean;
   camera: Camera;
   cameraLook: number;
+  cameraLookY: number;
   hud: HudState;
   time: number;
   mode: Mode;
@@ -122,6 +123,7 @@ const state: GameState = {
     y: 0,
   },
   cameraLook: 0,
+  cameraLookY: 0,
   hud: {
     lives: 3,
     score: 0,
@@ -782,9 +784,14 @@ function setMode(mode: Mode) {
 
 function updateCamera(dt: number) {
   const levelWidth = state.level.width * state.level.tileSize;
+  const levelHeight = state.level.height * state.level.tileSize;
   const maxX = Math.max(0, levelWidth - canvas.width);
+  const maxY = Math.max(0, levelHeight - canvas.height);
   const targetLook = Math.sign(state.player.vx) * 24;
   state.cameraLook = approach(state.cameraLook, targetLook, 180 * dt);
+  const targetLookY =
+    state.player.vy < -40 ? -18 : state.player.vy > 40 ? 22 : 0;
+  state.cameraLookY = approach(state.cameraLookY, targetLookY, 140 * dt);
   const targetX = state.player.x + state.player.width / 2 - canvas.width / 2 + state.cameraLook;
   const offset = targetX - state.camera.x;
   const deadZone = 6;
@@ -793,6 +800,15 @@ function updateCamera(dt: number) {
     state.camera.x += offset * smoothing;
   }
   state.camera.x = clamp(state.camera.x, 0, maxX);
+
+  const targetY = state.player.y + state.player.height / 2 - canvas.height / 2 + state.cameraLookY;
+  const offsetY = targetY - state.camera.y;
+  const deadZoneY = 4;
+  if (Math.abs(offsetY) > deadZoneY) {
+    const smoothingY = Math.min(1, 6 * dt);
+    state.camera.y += offsetY * smoothingY;
+  }
+  state.camera.y = clamp(state.camera.y, 0, maxY);
 }
 
 function clamp(value: number, min: number, max: number) {
