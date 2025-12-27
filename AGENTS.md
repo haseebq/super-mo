@@ -47,3 +47,10 @@ bd sync               # Sync with git
 
 - Run the quick test script before every commit (P0 requirement)
 - Keep the quick test fast: typecheck + smoke test where possible
+
+## Handoff Notes
+
+- Run the game via `npm run serve` (esbuild transpiles TS on the fly). `build/` is removed and no longer used.
+- Playwright runs against `scripts/serve.js`; if port 4173 is busy, tests fail—kill existing server first.
+- Title screen currently renders a zoomed-out scrolling preview; user wants full-scale scrolling camera (issue `mario-0mi`).
+- P1/P2 backlog includes animation system, animated backgrounds, level select + 3 levels, placeholder music/SFX, and expanded powerups.
