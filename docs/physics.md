@@ -13,8 +13,8 @@
 - **Air control:** 70% of ground control
 
 ## Jumping
-- **Jump impulse:** 4.2 tiles/sec
-- **Gravity:** 12 tiles/sec^2
+- **Jump impulse:** 5.2 tiles/sec
+- **Gravity:** 11 tiles/sec^2
 - **Short hop:** release jump within 120ms to cut velocity by 55%
 - **Coyote time:** 120ms grace after leaving ground
 - **Jump buffer:** 120ms buffer before landing
@@ -25,7 +25,7 @@
 - One-way platforms (if added) block from above only
 
 ## Stomp
-- Landing on enemy top: bounce with 70% of jump impulse
+- Landing on enemy top: bounce with 75% of jump impulse
 - Side collision: damage or knockback (Phase 1: reset to last checkpoint)
 
 ## Damage/Health

@@ -8,13 +8,13 @@ const RUN_SPEED = 2.6 * TILE_SIZE;
 const ACCEL = 10 * TILE_SIZE;
 const DECEL = 12 * TILE_SIZE;
 const AIR_CONTROL = 0.7;
-const JUMP_IMPULSE = 4.2 * TILE_SIZE;
-const GRAVITY = 12 * TILE_SIZE;
+const JUMP_IMPULSE = 5.2 * TILE_SIZE;
+const GRAVITY = 11 * TILE_SIZE;
 const COYOTE_TIME = 0.12;
 const JUMP_BUFFER = 0.12;
 const SHORT_HOP_WINDOW = 0.12;
 const SHORT_HOP_FACTOR = 0.45;
-const STOMP_BOUNCE = 0.7 * JUMP_IMPULSE;
+const STOMP_BOUNCE = 0.75 * JUMP_IMPULSE;
 
 function approach(current: number, target: number, delta: number): number {
   if (current < target) {
