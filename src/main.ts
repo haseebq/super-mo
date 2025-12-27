@@ -41,6 +41,7 @@ type GameState = {
   assets: Assets | null;
   assetsReady: boolean;
   camera: Camera;
+  cameraLook: number;
   hud: HudState;
   time: number;
   mode: Mode;
@@ -114,6 +115,7 @@ const state: GameState = {
     x: 0,
     y: 0,
   },
+  cameraLook: 0,
   hud: {
     lives: 3,
     score: 0,
@@ -247,7 +249,7 @@ function update(dt: number) {
   }
 
   handleCollectibles();
-  updateCamera();
+  updateCamera(dt);
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
     state.hud.score += 500;
@@ -662,16 +664,33 @@ function setMode(mode: Mode) {
   }
 }
 
-function updateCamera() {
+function updateCamera(dt: number) {
   const levelWidth = state.level.width * state.level.tileSize;
   const maxX = Math.max(0, levelWidth - canvas.width);
-  const lookAhead = Math.sign(state.player.vx) * 24;
-  const targetX = state.player.x + state.player.width / 2 - canvas.width / 2 + lookAhead;
-  state.camera.x = clamp(targetX, 0, maxX);
+  const targetLook = Math.sign(state.player.vx) * 24;
+  state.cameraLook = approach(state.cameraLook, targetLook, 180 * dt);
+  const targetX = state.player.x + state.player.width / 2 - canvas.width / 2 + state.cameraLook;
+  const offset = targetX - state.camera.x;
+  const deadZone = 6;
+  if (Math.abs(offset) > deadZone) {
+    const smoothing = Math.min(1, 8 * dt);
+    state.camera.x += offset * smoothing;
+  }
+  state.camera.x = clamp(state.camera.x, 0, maxX);
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
+}
+
+function approach(current: number, target: number, delta: number) {
+  if (current < target) {
+    return Math.min(current + delta, target);
+  }
+  if (current > target) {
+    return Math.max(current - delta, target);
+  }
+  return current;
 }
 
 function updateHud() {
