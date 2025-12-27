@@ -131,6 +131,7 @@ const introDifficulty = requireElement<HTMLParagraphElement>("#intro-difficulty"
 const storySpeaker = requireElement<HTMLParagraphElement>("#story-speaker");
 const storyText = requireElement<HTMLParagraphElement>("#story-text");
 const controlHints = Array.from(document.querySelectorAll<HTMLParagraphElement>(".controls"));
+const debugToggle = document.querySelector<HTMLInputElement>("#debug-toggle");
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
 const difficultyOptions = Array.from(
   document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
@@ -156,6 +157,34 @@ const STORY_LINES = [
   { speaker: "Guide", text: "Each checkpoint will hold your progress." },
 ];
 const DEBUG_FLAGS = new URLSearchParams(window.location.search);
+
+function syncDebugToggle() {
+  if (!debugToggle) {
+    return;
+  }
+  debugToggle.checked = state.debugTiles || state.debugLabels;
+}
+
+function setDebugState(tiles: boolean, labels: boolean, updateUrl = true) {
+  state.debugTiles = tiles;
+  state.debugLabels = labels;
+  syncDebugToggle();
+  if (!updateUrl) {
+    return;
+  }
+  const url = new URL(window.location.href);
+  if (tiles) {
+    url.searchParams.set("debugTiles", "1");
+  } else {
+    url.searchParams.delete("debugTiles");
+  }
+  if (labels) {
+    url.searchParams.set("debugLabels", "1");
+  } else {
+    url.searchParams.delete("debugLabels");
+  }
+  window.history.replaceState(null, "", url.toString());
+}
 
 function loadControls() {
   try {
@@ -239,6 +268,11 @@ const neutralInput: InputState = {
 
 loadAssets();
 setMode("title");
+syncDebugToggle();
+debugToggle?.addEventListener("change", () => {
+  const enabled = Boolean(debugToggle?.checked);
+  setDebugState(enabled, enabled);
+});
 
 function update(dt: number) {
   if (state.mode !== "paused") {
@@ -1407,12 +1441,9 @@ window.__SUPER_MO__ = {
   setMode,
   resetPlayer,
   setDebug(flags: { tiles?: boolean; labels?: boolean }) {
-    if (typeof flags.tiles === "boolean") {
-      state.debugTiles = flags.tiles;
-    }
-    if (typeof flags.labels === "boolean") {
-      state.debugLabels = flags.labels;
-    }
+    const tiles = typeof flags.tiles === "boolean" ? flags.tiles : state.debugTiles;
+    const labels = typeof flags.labels === "boolean" ? flags.labels : state.debugLabels;
+    setDebugState(tiles, labels, false);
   },
 };
 

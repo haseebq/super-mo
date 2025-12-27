@@ -181,6 +181,19 @@ body {
   flex-wrap: wrap;
 }
 
+.debug-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.debug-toggle input {
+  margin: 0;
+}
+
 .pause-options {
   display: grid;
   gap: 8px;
