@@ -42,6 +42,7 @@ Create a small script to:
 Notes:
 - Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below; avoid placing other sprites in the rows beneath them.
 - The reference script uses Pillow (`pip install pillow`).
+- Runtime prefers `assets/sprites.png` when present, and falls back to `assets/sprites.svg`.
 
 ## QA Checklist
 - No anti-aliasing or gradients inside sprites.

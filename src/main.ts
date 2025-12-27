@@ -811,10 +811,14 @@ function applyDamage() {
 
 async function loadAssets() {
   try {
-    const [image, atlas] = await Promise.all([
-      loadImage("assets/sprites.svg"),
-      loadJson<Record<string, AssetFrame>>("assets/sprites.json"),
-    ]);
+    let image: HTMLImageElement | null = null;
+    const atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.json");
+    try {
+      image = await loadImage("assets/sprites.png");
+    } catch (error) {
+      console.warn("PNG sprites missing, falling back to SVG.", error);
+      image = await loadImage("assets/sprites.svg");
+    }
     state.assets = { image, atlas };
     state.assetsReady = true;
   } catch (error) {
