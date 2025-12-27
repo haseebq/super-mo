@@ -48,6 +48,7 @@ type GameState = {
   invulnerableTimer: number;
   titleScroll: number;
   titleSelection: number;
+  difficultyIndex: number;
   levelTimeRemaining: number;
   powerupTimer: number;
   speedTimer: number;
@@ -91,9 +92,12 @@ const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
+const difficultyOptions = Array.from(
+  document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
+);
 
 const spawnPoint = { x: 100, y: 152 };
-const LEVEL_TIME_LIMIT = 120;
+const LEVEL_TIME_LIMITS = [140, 120, 100];
 const LEVELS = [
   createLevel1,
   createLevel2,
@@ -102,6 +106,7 @@ const LEVELS = [
   createLevel5,
   createLevel6,
 ];
+const DIFFICULTY_SPEED = [0.85, 1, 1.2];
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
@@ -127,7 +132,8 @@ const state: GameState = {
   invulnerableTimer: 0,
   titleScroll: 0,
   titleSelection: 0,
-  levelTimeRemaining: LEVEL_TIME_LIMIT,
+  difficultyIndex: 1,
+  levelTimeRemaining: LEVEL_TIME_LIMITS[1],
   powerupTimer: 0,
   speedTimer: 0,
   shieldTimer: 0,
@@ -157,6 +163,18 @@ function update(dt: number) {
       const maxOptions = Math.min(levelOptions.length, LEVELS.length);
       state.titleSelection = (state.titleSelection - 1 + maxOptions) % maxOptions;
       updateLevelSelect();
+    }
+    if (input.consumePress("Digit1")) {
+      state.difficultyIndex = 0;
+      updateDifficultySelect();
+    }
+    if (input.consumePress("Digit2")) {
+      state.difficultyIndex = 1;
+      updateDifficultySelect();
+    }
+    if (input.consumePress("Digit3")) {
+      state.difficultyIndex = 2;
+      updateDifficultySelect();
     }
     if (input.consumePress("Enter")) {
       state.levelIndex = state.titleSelection;
@@ -620,6 +638,7 @@ function resetRun() {
 function resetLevel() {
   state.level = LEVELS[state.levelIndex]();
   state.enemies = [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)];
+  applyDifficultyToEnemies(state.enemies, DIFFICULTY_SPEED[state.difficultyIndex]);
   state.particles = createParticles();
   state.hud.coins = 0;
   state.hud.shards = 0;
@@ -629,11 +648,12 @@ function resetLevel() {
   state.powerupTimer = 0;
   state.speedTimer = 0;
   state.shieldTimer = 0;
-  state.levelTimeRemaining = LEVEL_TIME_LIMIT;
+  state.levelTimeRemaining = LEVEL_TIME_LIMITS[state.difficultyIndex];
   state.deathTimer = 0;
   state.deathVelocity = 0;
   resetPlayer();
   updateHud();
+  updateDifficultySelect();
 }
 
 function setMode(mode: Mode) {
@@ -658,6 +678,7 @@ function setMode(mode: Mode) {
 
   if (isTitle) {
     updateLevelSelect();
+    updateDifficultySelect();
   }
   if (isDeath) {
     input.reset();
@@ -706,6 +727,12 @@ function updateLevelSelect() {
   const maxOptions = Math.min(levelOptions.length, LEVELS.length);
   for (let i = 0; i < levelOptions.length; i += 1) {
     levelOptions[i].classList.toggle("is-selected", i === state.titleSelection && i < maxOptions);
+  }
+}
+
+function updateDifficultySelect() {
+  for (let i = 0; i < difficultyOptions.length; i += 1) {
+    difficultyOptions[i].classList.toggle("is-selected", i === state.difficultyIndex);
   }
 }
 
@@ -764,6 +791,16 @@ function resolvePlatformCollisions(
         break;
       }
     }
+  }
+}
+
+function applyDifficultyToEnemies(enemies: Enemy[], multiplier: number) {
+  for (const enemy of enemies) {
+    if (enemy.kind === "flit") {
+      enemy.vy *= multiplier;
+      continue;
+    }
+    enemy.vx *= multiplier;
   }
 }
 

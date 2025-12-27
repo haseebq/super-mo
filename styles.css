@@ -128,16 +128,33 @@ body {
   flex-wrap: wrap;
 }
 
-.level-option {
+.level-option,
+.difficulty-option {
   border: 2px solid var(--text);
   padding: 4px 8px;
   background: #ffffff;
 }
 
-.level-option.is-selected {
+.level-option.is-selected,
+.difficulty-option.is-selected {
   background: var(--accent);
   color: #ffffff;
   border-color: var(--accent);
+}
+
+.difficulty-select {
+  margin: 8px 0 4px;
+  display: grid;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.difficulty-options {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .controls {
