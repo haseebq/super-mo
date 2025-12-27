@@ -156,6 +156,13 @@ function update(dt: number) {
 
 function render() {
   renderer.clear("#78c7f0");
+
+  if (state.mode === "title") {
+    renderTitlePreview();
+    renderer.text("Super Mo - Engine Scaffold", 8, 16, "#2b2b2b");
+    return;
+  }
+
   renderer.ctx.save();
   renderer.ctx.translate(-state.camera.x, -state.camera.y);
   drawLevel(state.level);
@@ -244,6 +251,33 @@ function drawCollectibles() {
       renderer.rect(shard.x + 4, shard.y + 4, 8, 8, "#78c7f0");
     }
   }
+}
+
+function renderTitlePreview() {
+  const levelWidth = state.level.width * state.level.tileSize;
+  const levelHeight = state.level.height * state.level.tileSize;
+  const scale = Math.min((canvas.width - 16) / levelWidth, (canvas.height - 16) / levelHeight);
+  const offsetX = (canvas.width - levelWidth * scale) / 2;
+  const offsetY = (canvas.height - levelHeight * scale) / 2;
+
+  renderer.ctx.save();
+  renderer.ctx.translate(offsetX, offsetY);
+  renderer.ctx.scale(scale, scale);
+  drawLevel(state.level);
+  drawCollectibles();
+  for (const enemy of state.enemies) {
+    if (!enemy.alive) {
+      continue;
+    }
+    if (state.assetsReady) {
+      const spriteId = enemy.kind === "moomba" ? "moomba" : enemy.kind === "spikelet" ? "spikelet" : "flit";
+      drawSprite(spriteId, enemy.x, enemy.y);
+    } else {
+      const color = enemy.kind === "spikelet" ? "#4a2b3f" : enemy.kind === "flit" ? "#5dbb63" : "#7b4a6d";
+      renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, color);
+    }
+  }
+  renderer.ctx.restore();
 }
 
 function drawSprite(id: string, x: number, y: number) {
