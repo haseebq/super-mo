@@ -13,6 +13,9 @@ from PIL import Image
 
 SECRETS_PATH = Path("SECRETS")
 PRODUCTION_MARKER = Path("art/production.json")
+SPRITE_PROMPT_OVERRIDES = {
+    "block": "A single 16x16 ground tile with grassy top and dirt sides, clean pixel-art edges.",
+}
 
 
 def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
@@ -67,7 +70,11 @@ def list_missing_tiles(layout_path: Path, tiles_dir: Path, force_full: bool) -> 
 def build_prompt_from_sprite_template(template: str, sprite_id: str) -> str:
     if "<SPRITE_ID>" not in template:
         raise ValueError("Prompt template missing <SPRITE_ID> placeholder.")
-    return template.replace("<SPRITE_ID>", sprite_id)
+    prompt = template.replace("<SPRITE_ID>", sprite_id)
+    extra = SPRITE_PROMPT_OVERRIDES.get(sprite_id)
+    if extra:
+        prompt = f"{prompt}\nDetails: {extra}"
+    return prompt
 
 
 def generate_image(prompt: str, model: str, size: str) -> bytes:
@@ -206,7 +213,7 @@ def generate_image_invokeai(prompt: str, out_path: Path) -> None:
     graph = workflow_to_graph(
         workflow,
         prompt,
-        "photograph, realistic, 3d, blurry",
+        "photograph, realistic, 3d, blurry, text, letters, words, logo, watermark, signature",
         1024,
         1024,
         model,
