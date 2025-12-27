@@ -4,6 +4,11 @@ test("deterministic input replay moves player forward", async ({ page }) => {
   await page.goto("/");
   await page.keyboard.press("Enter");
 
+  const start = await page.evaluate(() => {
+    const { x, y } = window.__SUPER_MO__.state.player;
+    return { x, y };
+  });
+
   await page.waitForTimeout(100);
   await page.keyboard.down("ArrowRight");
   await page.waitForTimeout(400);
@@ -17,6 +22,6 @@ test("deterministic input replay moves player forward", async ({ page }) => {
     return { x, y };
   });
 
-  expect(position.x).toBeGreaterThan(38);
-  expect(position.y).toBeLessThan(140);
+  expect(position.x).toBeGreaterThan(start.x + 6);
+  expect(position.y).toBeLessThan(start.y - 2);
 });

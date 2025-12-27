@@ -75,7 +75,7 @@ const hudLives = requireElement<HTMLSpanElement>("#hud-lives");
 const hudCoins = requireElement<HTMLSpanElement>("#hud-coins");
 const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 
-const spawnPoint = { x: 100, y: 104 };
+const spawnPoint = { x: 100, y: 152 };
 
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
