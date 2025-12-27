@@ -261,7 +261,7 @@ def main() -> None:
     parser.add_argument("--model", default="gpt-image-1", help="Image model name")
     parser.add_argument(
         "--sprite-size",
-        default="256x256",
+        default="1024x1024",
         help="Generation size for each sprite before downscaling",
     )
     parser.add_argument(
