@@ -49,6 +49,7 @@ type GameState = {
   invulnerableTimer: number;
   titleScroll: number;
   titleSelection: number;
+  pauseSelection: number;
   difficultyIndex: number;
   levelTimeRemaining: number;
   powerupTimer: number;
@@ -98,6 +99,7 @@ const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".lev
 const difficultyOptions = Array.from(
   document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
 );
+const pauseOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".pause-option"));
 
 const spawnPoint = { x: 100, y: 152 };
 const LEVEL_TIME_LIMITS = [140, 120, 100];
@@ -136,6 +138,7 @@ const state: GameState = {
   invulnerableTimer: 0,
   titleScroll: 0,
   titleSelection: 0,
+  pauseSelection: 0,
   difficultyIndex: 1,
   levelTimeRemaining: LEVEL_TIME_LIMITS[1],
   powerupTimer: 0,
@@ -207,6 +210,26 @@ function update(dt: number) {
   if (state.mode === "paused") {
     if (input.consumePress("KeyP")) {
       setMode("playing");
+    }
+    if (input.consumePress("ArrowDown")) {
+      state.pauseSelection = (state.pauseSelection + 1) % pauseOptions.length;
+      updatePauseMenu();
+    }
+    if (input.consumePress("ArrowUp")) {
+      state.pauseSelection = (state.pauseSelection - 1 + pauseOptions.length) % pauseOptions.length;
+      updatePauseMenu();
+    }
+    if (input.consumePress("Enter")) {
+      const action = pauseOptions[state.pauseSelection]?.dataset.action;
+      if (action === "restart") {
+        resetLevel();
+        setMode("playing");
+      } else if (action === "quit") {
+        resetRun();
+        setMode("title");
+      } else {
+        setMode("playing");
+      }
     }
     return;
   }
@@ -786,6 +809,10 @@ function setMode(mode: Mode) {
     updateLevelSelect();
     updateDifficultySelect();
   }
+  if (isPaused) {
+    state.pauseSelection = 0;
+    updatePauseMenu();
+  }
   if (isDeath) {
     input.reset();
   }
@@ -864,6 +891,12 @@ function updateLevelSelect() {
 function updateDifficultySelect() {
   for (let i = 0; i < difficultyOptions.length; i += 1) {
     difficultyOptions[i].classList.toggle("is-selected", i === state.difficultyIndex);
+  }
+}
+
+function updatePauseMenu() {
+  for (let i = 0; i < pauseOptions.length; i += 1) {
+    pauseOptions[i].classList.toggle("is-selected", i === state.pauseSelection);
   }
 }
 
