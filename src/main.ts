@@ -65,6 +65,8 @@ type GameState = {
   hitFlashTimer: number;
   knockbackTimer: number;
   knockbackVelocity: number;
+  cameraShakeTimer: number;
+  cameraShakeStrength: number;
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
@@ -168,6 +170,8 @@ const state: GameState = {
   hitFlashTimer: 0,
   knockbackTimer: 0,
   knockbackVelocity: 0,
+  cameraShakeTimer: 0,
+  cameraShakeStrength: 0,
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -301,6 +305,12 @@ function update(dt: number) {
   if (state.knockbackTimer > 0) {
     state.knockbackTimer = Math.max(0, state.knockbackTimer - dt);
   }
+  if (state.cameraShakeTimer > 0) {
+    state.cameraShakeTimer = Math.max(0, state.cameraShakeTimer - dt);
+    if (state.cameraShakeTimer === 0) {
+      state.cameraShakeStrength = 0;
+    }
+  }
   if (state.invulnerableTimer > 0) {
     state.invulnerableTimer = Math.max(0, state.invulnerableTimer - dt);
   }
@@ -374,6 +384,7 @@ function update(dt: number) {
     updateHud();
     updateCompleteSummary();
     audio.playGoal();
+    triggerCameraShake(0.25, 6);
     setMode("complete");
     return;
   }
@@ -410,7 +421,10 @@ function render() {
   }
 
   renderer.ctx.save();
-  renderer.ctx.translate(-state.camera.x, -state.camera.y);
+  const shakeMagnitude = state.cameraShakeTimer > 0 ? state.cameraShakeStrength : 0;
+  const shakeX = shakeMagnitude ? (Math.random() - 0.5) * shakeMagnitude : 0;
+  const shakeY = shakeMagnitude ? (Math.random() - 0.5) * shakeMagnitude : 0;
+  renderer.ctx.translate(-state.camera.x + shakeX, -state.camera.y + shakeY);
   drawBackground(state.camera.x, state.backgroundTime);
   drawLevel(state.level);
   drawPlatforms(state.level.platforms);
@@ -772,6 +786,7 @@ function handleEnemyCollisions() {
       }
       bouncePlayer(state.player);
       audio.playStomp();
+      triggerCameraShake(0.12, 4);
       state.hud.score += 100;
       updateHud();
       state.particles.spawn(enemy.x + 8, enemy.y + 8, 8, "#7b4a6d");
@@ -1134,6 +1149,11 @@ function applyDamage() {
     state.knockbackVelocity = -state.player.facing * 140;
     state.player.vy = -180;
   }
+}
+
+function triggerCameraShake(duration: number, strength: number) {
+  state.cameraShakeTimer = Math.max(state.cameraShakeTimer, duration);
+  state.cameraShakeStrength = Math.max(state.cameraShakeStrength, strength);
 }
 
 async function loadAssets() {
