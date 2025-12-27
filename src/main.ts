@@ -7,11 +7,13 @@ import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
+import { createFlit, updateFlit } from "./game/enemies/flit.js";
 import { createParticles } from "./game/particles.js";
 import type { Collectible, Level, Rect } from "./game/level.js";
 import type { Player } from "./game/player.js";
 import type { MoombaEnemy } from "./game/enemies/moomba.js";
 import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
+import type { FlitEnemy } from "./game/enemies/flit.js";
 import type { Renderer } from "./core/renderer.js";
 import type { InputState } from "./core/input.js";
 
@@ -20,7 +22,7 @@ type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
 type Camera = { x: number; y: number };
 type HudState = { lives: number; coins: number; shards: number };
 type Mode = "title" | "playing" | "paused" | "complete";
-type Enemy = MoombaEnemy | SpikeletEnemy;
+type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 
 type GameState = {
   player: Player;
@@ -71,7 +73,7 @@ const spawnPoint = { x: 24, y: 96 };
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
   level: createLevel1(),
-  enemies: [createMoomba(160, 160), createSpikelet(240, 160)],
+  enemies: [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)],
   particles: createParticles(),
   assets: null,
   assetsReady: false,
@@ -144,6 +146,9 @@ function update(dt: number) {
     if (enemy.kind === "spikelet") {
       updateSpikelet(enemy, state.level, dt);
     }
+    if (enemy.kind === "flit") {
+      updateFlit(enemy, dt);
+    }
   }
 
   handleEnemyCollisions();
@@ -172,9 +177,13 @@ function render() {
       if (enemy.kind === "spikelet") {
         drawSprite("spikelet", enemy.x, enemy.y);
       }
+      if (enemy.kind === "flit") {
+        drawSprite("flit", enemy.x, enemy.y);
+      }
     } else {
       const color = enemy.kind === "spikelet" ? "#4a2b3f" : "#7b4a6d";
-      renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, color);
+      const tint = enemy.kind === "flit" ? "#5dbb63" : color;
+      renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, tint);
     }
   }
 
@@ -323,7 +332,7 @@ function resetRun() {
 
 function resetLevel() {
   state.level = createLevel1();
-  state.enemies = [createMoomba(160, 160), createSpikelet(240, 160)];
+  state.enemies = [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)];
   state.particles = createParticles();
   state.hud.coins = 0;
   state.hud.shards = 0;
