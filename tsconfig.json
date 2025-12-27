@@ -4,7 +4,7 @@
     "module": "ES2020",
     "moduleResolution": "Node",
     "strict": true,
-    "outDir": "build/src",
+    "noEmit": true,
     "rootDir": "src",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
