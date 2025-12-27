@@ -100,6 +100,9 @@ function resolveVertical(player, level) {
 }
 
 export function updatePlayer(player, input, dt, level) {
+  const events = {
+    jumped: false,
+  };
   const wantsRun = input.isDown("KeyX");
   const speed = wantsRun ? RUN_SPEED : WALK_SPEED;
   const dir = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
@@ -134,6 +137,7 @@ export function updatePlayer(player, input, dt, level) {
     player.jumpBufferTimer = 0;
     player.jumpHoldTime = 0;
     player.jumpCut = false;
+    events.jumped = true;
   }
 
   if (!player.onGround && player.vy < 0) {
@@ -151,6 +155,7 @@ export function updatePlayer(player, input, dt, level) {
 
   player.y += player.vy * dt;
   resolveVertical(player, level);
+  return events;
 }
 
 export function bouncePlayer(player) {

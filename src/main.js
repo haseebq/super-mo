@@ -2,6 +2,7 @@ import { createLoop } from "./core/loop.js";
 import { createRenderer } from "./core/renderer.js";
 import { createInput } from "./core/input.js";
 import { loadImage, loadJson } from "./core/assets.js";
+import { createAudio } from "./core/audio.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
@@ -9,6 +10,7 @@ import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 const canvas = document.querySelector("#game");
 const renderer = createRenderer(canvas);
 const input = createInput();
+const audio = createAudio();
 const hud = document.querySelector(".hud");
 const startOverlay = document.querySelector(".start-overlay");
 const pauseOverlay = document.querySelector(".pause-overlay");
@@ -57,7 +59,10 @@ function update(dt) {
   }
 
   state.time += dt;
-  updatePlayer(state.player, input, dt, state.level);
+  const events = updatePlayer(state.player, input, dt, state.level);
+  if (events.jumped) {
+    audio.playJump();
+  }
 
   for (const enemy of state.enemies) {
     updateMoomba(enemy, state.level, dt);
@@ -138,6 +143,7 @@ function handleEnemyCollisions() {
     if (state.player.vy > 0 && stompThreshold <= 8) {
       enemy.alive = false;
       bouncePlayer(state.player);
+      audio.playStomp();
       continue;
     }
 
@@ -171,6 +177,13 @@ function setMode(mode) {
   startOverlay.classList.toggle("is-hidden", !isTitle);
   pauseOverlay.classList.toggle("is-hidden", !isPaused);
   updateHud();
+
+  if (mode === "playing") {
+    audio.unlock();
+    audio.startMusic();
+  } else {
+    audio.stopMusic();
+  }
 }
 
 function updateHud() {
