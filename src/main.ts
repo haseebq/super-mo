@@ -6,6 +6,7 @@ import { createAudio } from "./core/audio.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import { createLevel1 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
+import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createParticles } from "./game/particles.js";
 import type { Collectible, Level, Rect } from "./game/level.js";
 import type { Player } from "./game/player.js";
@@ -69,7 +70,7 @@ const spawnPoint = { x: 24, y: 96 };
 const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
   level: createLevel1(),
-  enemies: [createMoomba(160, 160)],
+  enemies: [createMoomba(160, 160), createSpikelet(240, 160)],
   particles: createParticles(),
   assets: null,
   assetsReady: false,
@@ -135,6 +136,9 @@ function update(dt: number) {
     if (enemy.kind === "moomba") {
       updateMoomba(enemy, state.level, dt);
     }
+    if (enemy.kind === "spikelet") {
+      updateSpikelet(enemy, state.level, dt);
+    }
   }
 
   handleEnemyCollisions();
@@ -157,9 +161,15 @@ function render() {
       continue;
     }
     if (state.assetsReady) {
-      drawSprite("moomba", enemy.x, enemy.y);
+      if (enemy.kind === "moomba") {
+        drawSprite("moomba", enemy.x, enemy.y);
+      }
+      if (enemy.kind === "spikelet") {
+        drawSprite("spikelet", enemy.x, enemy.y);
+      }
     } else {
-      renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, "#7b4a6d");
+      const color = enemy.kind === "spikelet" ? "#4a2b3f" : "#7b4a6d";
+      renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, color);
     }
   }
 
@@ -300,7 +310,7 @@ function resetPlayer() {
 
 function resetLevel() {
   state.level = createLevel1();
-  state.enemies = [createMoomba(160, 160)];
+  state.enemies = [createMoomba(160, 160), createSpikelet(240, 160)];
   state.particles = createParticles();
   state.hud.coins = 0;
   state.hud.shards = 0;
