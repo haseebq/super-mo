@@ -179,6 +179,7 @@ function render() {
 
   renderer.ctx.save();
   renderer.ctx.translate(-state.camera.x, -state.camera.y);
+  drawBackground();
   drawLevel(state.level);
   drawCollectibles();
   drawLandmark();
@@ -244,6 +245,34 @@ function drawLevel(level: Level) {
   }
 }
 
+function drawBackground() {
+  const canvasWidth = canvas.width;
+  const canvasHeight = canvas.height;
+  renderer.ctx.save();
+  renderer.ctx.translate(state.camera.x * 0.3, 0);
+
+  const { width, tileSize } = state.level;
+  const horizonY = 100;
+  const totalWidth = width * tileSize;
+
+  for (let x = 0; x < totalWidth; x += 180) {
+    renderer.rect(x + 20, 24, 60, 22, "#ffffff");
+    renderer.rect(x + 60, 16, 80, 28, "#ffffff");
+  }
+
+  for (let x = 0; x < totalWidth; x += 220) {
+    renderer.rect(x + 10, horizonY, 140, 80, "#b7d9ff");
+    renderer.rect(x + 40, horizonY - 20, 180, 100, "#9bc7ff");
+  }
+
+  for (let x = 0; x < totalWidth; x += 320) {
+    renderer.rect(x + 220, 40, 16, 90, "#78c7f0");
+    renderer.rect(x + 220, 120, 16, 20, "#4aa0d0");
+  }
+
+  renderer.ctx.restore();
+}
+
 function drawCollectibles() {
   for (const coin of state.level.coins) {
     if (coin.collected) {
@@ -287,6 +316,7 @@ function renderTitlePreview() {
   const scrollX = state.titleScroll % (maxScroll === 0 ? 1 : maxScroll);
   renderer.ctx.translate(offsetX - scrollX * scale, offsetY);
   renderer.ctx.scale(scale, scale);
+  drawBackground();
   drawLevel(state.level);
   drawCollectibles();
   drawLandmark();
