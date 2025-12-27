@@ -49,6 +49,7 @@ Notes:
 - Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below; avoid placing other sprites in the rows beneath them.
 - The reference script uses Pillow (`pip install pillow`).
 - Runtime prefers `assets/sprites.prod.png` + `assets/sprites.prod.json` when present, and falls back to placeholder `assets/sprites.svg` + `assets/sprites.json`.
+- If `art/production.json` is missing or has `"production": false`, the generator will produce a full sheet by default.
 - The generator script reads `OPENAI_API_KEY` from the environment or from a local `SECRETS` file (gitignored). Example:
   ```
   OPENAI_API_KEY=your_key_here

@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 from urllib import request
+from urllib.error import HTTPError
 
 SECRETS_PATH = Path("SECRETS")
 PRODUCTION_MARKER = Path("art/production.json")
@@ -37,6 +38,16 @@ def load_api_key() -> str:
     raise EnvironmentError("OPENAI_API_KEY is not set.")
 
 
+def is_production_ready(marker_path: Path) -> bool:
+    if not marker_path.exists():
+        return False
+    try:
+        payload = load_json(marker_path)
+    except json.JSONDecodeError:
+        return False
+    return bool(payload.get("production"))
+
+
 def list_missing_sprites(layout_path: Path, atlas_path: Path | None, force_full: bool) -> list[str]:
     layout = load_json(layout_path)
     sprite_ids = [entry["id"] for entry in layout.get("sprites", [])]
@@ -62,12 +73,11 @@ def generate_image(prompt: str, model: str, size: str) -> bytes:
             "model": model,
             "prompt": prompt,
             "size": size,
-            "response_format": "b64_json",
         }
     ).encode("utf-8")
 
     req = request.Request(
-        "https://api.openai.com/v1/images",
+        "https://api.openai.com/v1/images/generations",
         data=payload,
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -76,10 +86,19 @@ def generate_image(prompt: str, model: str, size: str) -> bytes:
         method="POST",
     )
 
-    with request.urlopen(req) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    b64_data = data["data"][0]["b64_json"]
-    return base64.b64decode(b64_data)
+    try:
+        with request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except HTTPError as error:
+        details = error.read().decode("utf-8")
+        raise RuntimeError(f"OpenAI API error {error.code}: {details}") from error
+    image_data = data["data"][0]
+    if "b64_json" in image_data:
+        return base64.b64decode(image_data["b64_json"])
+    if "url" in image_data:
+        with request.urlopen(image_data["url"]) as resp:
+            return resp.read()
+    raise RuntimeError("OpenAI API response missing image data.")
 
 
 def main() -> None:
@@ -104,7 +123,7 @@ def main() -> None:
     args = parser.parse_args()
 
     prompt = load_prompt(args.prompt, args.prompt_file)
-    force_full = args.force_full or not PRODUCTION_MARKER.exists()
+    force_full = args.force_full or not is_production_ready(PRODUCTION_MARKER)
     missing = list_missing_sprites(args.layout, args.atlas, force_full)
     if not missing:
         print("All sprites already exist in the atlas. Nothing to generate.")
