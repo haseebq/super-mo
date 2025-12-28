@@ -308,6 +308,9 @@ body {
   .prompt-mobile {
     display: block;
   }
+  .touch-btn-dash {
+    display: none;
+  }
 }
 
 /* Touch Controls */
