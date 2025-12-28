@@ -95,6 +95,11 @@ export function createLevel1(): Level {
 
   setTile(76, 10, 3);
 
+  // Spike hazards
+  setTile(18, 10, 4);
+  setTile(38, 10, 4);
+  setTile(58, 10, 4);
+
   coins.push(createCoin(2, 9));
   coins.push(createCoin(3, 9));
   coins.push(createCoin(4, 9));
@@ -635,4 +640,8 @@ function createCircularPlatform(x: number, y: number, radius: number, period: nu
 
 export function isSolid(id: number): boolean {
   return id === 1 || id === 2;
+}
+
+export function isSpike(id: number): boolean {
+  return id === 4;
 }

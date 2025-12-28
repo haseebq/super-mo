@@ -12,6 +12,7 @@ import {
   createLevel4,
   createLevel5,
   createLevel6,
+  isSpike,
 } from "./game/level.js";
 import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
@@ -511,6 +512,33 @@ function update(dt: number) {
   if (state.player.y > levelHeight + 32) {
     applyDamage();
   }
+
+  // Check for spike tile collision
+  handleSpikeCollisions();
+}
+
+function handleSpikeCollisions() {
+  if (state.invulnerableTimer > 0 || state.shieldTimer > 0) {
+    return;
+  }
+  const { tileSize, tiles, width } = state.level;
+  const player = state.player;
+  // Check corners of player bounding box
+  const corners = [
+    { x: player.x + 2, y: player.y + 2 },
+    { x: player.x + player.width - 2, y: player.y + 2 },
+    { x: player.x + 2, y: player.y + player.height - 2 },
+    { x: player.x + player.width - 2, y: player.y + player.height - 2 },
+  ];
+  for (const corner of corners) {
+    const tx = Math.floor(corner.x / tileSize);
+    const ty = Math.floor(corner.y / tileSize);
+    const id = tiles[ty * width + tx] ?? 0;
+    if (isSpike(id)) {
+      applyDamage();
+      return;
+    }
+  }
 }
 
 function render() {
@@ -618,12 +646,19 @@ function drawLevel(level: Level) {
         drawSprite("goal", x * tileSize, y * tileSize);
         continue;
       }
+      if (state.assetsReady && id === 4) {
+        drawSprite("spikelet", x * tileSize, y * tileSize);
+        continue;
+      }
       let color = "#d4a86a";
       if (id === 2) {
         color = "#f6d44d";
       }
       if (id === 3) {
         color = "#5dbb63";
+      }
+      if (id === 4) {
+        color = "#e04b3a"; // Red for spikes
       }
       renderer.rect(x * tileSize, y * tileSize, tileSize, tileSize, color);
     }
