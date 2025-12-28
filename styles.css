@@ -259,13 +259,19 @@ body {
   display: none;
 }
 
+.prompt-mobile {
+  display: none;
+}
+
 @media (pointer: coarse) {
   .start-prompt,
-  .controls-keyboard {
+  .controls-keyboard,
+  .prompt-keyboard {
     display: none;
   }
   .start-prompt-mobile,
-  .controls-mobile {
+  .controls-mobile,
+  .prompt-mobile {
     display: block;
   }
 }
@@ -370,19 +376,23 @@ body {
   body {
     min-height: 100dvh;
     padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
 
   .game-shell {
     padding: 8px;
     border-width: 3px;
     box-shadow: 5px 5px 0 #00000020;
+    width: 100%;
     max-width: 100%;
   }
 
   #game {
     width: 100%;
     height: auto;
-    max-height: 50dvh;
+    aspect-ratio: 16 / 9;
   }
 
   .hud {
@@ -429,10 +439,6 @@ body {
     border-width: 2px;
   }
 
-  #game {
-    max-height: 40dvh;
-  }
-
   .hud {
     font-size: 10px;
     padding: 4px 8px;
@@ -460,12 +466,17 @@ body {
 
 /* Landscape mobile optimization */
 @media (max-height: 500px) and (orientation: landscape) {
-  .game-shell {
+  body {
     padding: 4px;
   }
 
+  .game-shell {
+    padding: 4px;
+    max-width: calc(100vw - 8px);
+  }
+
   #game {
-    max-height: 70dvh;
+    max-height: 65dvh;
   }
 
   .hud {
