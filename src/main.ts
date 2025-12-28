@@ -133,10 +133,6 @@ const storySpeaker = requireElement<HTMLParagraphElement>("#story-speaker");
 const storyText = requireElement<HTMLParagraphElement>("#story-text");
 const controlHints = Array.from(document.querySelectorAll<HTMLParagraphElement>(".controls"));
 const debugToggle = document.querySelector<HTMLInputElement>("#debug-toggle");
-const levelOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".level-option"));
-const difficultyOptions = Array.from(
-  document.querySelectorAll<HTMLSpanElement>(".difficulty-option")
-);
 const pauseOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".pause-option"));
 
 const spawnPoint = { x: 100, y: 152 };
@@ -290,28 +286,6 @@ function update(dt: number) {
 
   if (state.mode === "title") {
     state.titleScroll = (state.titleScroll + dt * 30) % (state.level.width * state.level.tileSize);
-    if (input.consumePress("ArrowRight") || input.consumePress("ArrowDown")) {
-      const maxOptions = Math.min(levelOptions.length, LEVELS.length);
-      state.titleSelection = (state.titleSelection + 1) % maxOptions;
-      updateLevelSelect();
-    }
-    if (input.consumePress("ArrowLeft") || input.consumePress("ArrowUp")) {
-      const maxOptions = Math.min(levelOptions.length, LEVELS.length);
-      state.titleSelection = (state.titleSelection - 1 + maxOptions) % maxOptions;
-      updateLevelSelect();
-    }
-    if (input.consumePress("Digit1")) {
-      state.difficultyIndex = 0;
-      updateDifficultySelect();
-    }
-    if (input.consumePress("Digit2")) {
-      state.difficultyIndex = 1;
-      updateDifficultySelect();
-    }
-    if (input.consumePress("Digit3")) {
-      state.difficultyIndex = 2;
-      updateDifficultySelect();
-    }
     if (input.consumePress("KeyJ")) {
       state.controls.jump = state.controls.jump === "KeyZ" ? "Space" : "KeyZ";
       localStorage.setItem("supermo-controls", JSON.stringify(state.controls));
@@ -323,9 +297,9 @@ function update(dt: number) {
       updateControlHints();
     }
     if (input.consumePress("Enter")) {
-      state.levelIndex = state.titleSelection;
+      state.levelIndex = 0;
       resetLevel();
-      if (state.levelIndex === 0 && !state.storySeen) {
+      if (!state.storySeen) {
         setMode("story");
       } else {
         setMode("intro");
@@ -1096,7 +1070,6 @@ function resetLevel() {
   state.deathVelocity = 0;
   resetPlayer();
   updateHud();
-  updateDifficultySelect();
 }
 
 function setMode(mode: Mode) {
@@ -1124,8 +1097,6 @@ function setMode(mode: Mode) {
   }
 
   if (isTitle) {
-    updateLevelSelect();
-    updateDifficultySelect();
     updateControlHints();
   }
   if (isStory) {
@@ -1212,19 +1183,6 @@ function updateHud() {
 
 function updateCompleteSummary() {
   completeBreakdown.textContent = `Time Bonus ${state.completeTimeBonus} · Goal ${state.completeGoalBonus} · Coins ${state.completeCoinScore} · Shards ${state.completeShardScore}`;
-}
-
-function updateLevelSelect() {
-  const maxOptions = Math.min(levelOptions.length, LEVELS.length);
-  for (let i = 0; i < levelOptions.length; i += 1) {
-    levelOptions[i].classList.toggle("is-selected", i === state.titleSelection && i < maxOptions);
-  }
-}
-
-function updateDifficultySelect() {
-  for (let i = 0; i < difficultyOptions.length; i += 1) {
-    difficultyOptions[i].classList.toggle("is-selected", i === state.difficultyIndex);
-  }
 }
 
 function updatePauseMenu() {
