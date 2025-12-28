@@ -1159,24 +1159,24 @@ function approach(current: number, target: number, delta: number) {
 }
 
 function updateHud() {
-  hudLives.textContent = `Lives ${state.hud.lives}`;
-  hudTime.textContent = `Time ${Math.ceil(state.levelTimeRemaining)}`;
-  hudScore.textContent = `Score ${state.hud.score}`;
-  hudCoins.textContent = `Coins ${state.hud.coins}`;
-  hudShards.textContent = `Shards ${state.hud.shards}`;
+  hudLives.textContent = String(state.hud.lives);
+  hudTime.textContent = String(Math.ceil(state.levelTimeRemaining));
+  hudScore.textContent = String(state.hud.score);
+  hudCoins.textContent = String(state.hud.coins);
+  hudShards.textContent = String(state.hud.shards);
   const buffs: string[] = [];
   if (state.powerupTimer > 0) {
-    buffs.push(`Spring ${Math.ceil(state.powerupTimer)}s`);
+    buffs.push(`⬆${Math.ceil(state.powerupTimer)}`);
   }
   if (state.speedTimer > 0) {
-    buffs.push(`Speed ${Math.ceil(state.speedTimer)}s`);
+    buffs.push(`⚡${Math.ceil(state.speedTimer)}`);
   }
   if (state.shieldTimer > 0) {
-    buffs.push(`Shield ${Math.ceil(state.shieldTimer)}s`);
+    buffs.push(`🛡${Math.ceil(state.shieldTimer)}`);
   }
-  hudBuffs.textContent = `Buffs ${buffs.length ? buffs.join(" / ") : "--"}`;
-  hudAudio.textContent = `Audio ${state.audioMuted ? "Off" : "On"}`;
-  hudCheckpoint.textContent = `Checkpoint ${state.activeCheckpoint ? "On" : "--"}`;
+  hudBuffs.textContent = buffs.length ? buffs.join(" ") : "--";
+  hudAudio.textContent = state.audioMuted ? "OFF" : "ON";
+  hudCheckpoint.textContent = state.activeCheckpoint ? "✓" : "--";
   completeScore.textContent = `Score ${state.hud.score}`;
   updateCompleteSummary();
 }

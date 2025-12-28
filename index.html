@@ -10,18 +10,20 @@
     <main class="game-shell">
       <canvas id="game" width="320" height="180" aria-label="Super Mo game"></canvas>
       <div class="hud" aria-hidden="true">
-        <span id="hud-lives">Lives 3</span>
-        <span id="hud-time">Time 120</span>
-        <span id="hud-score">Score 0</span>
-        <span id="hud-coins">Coins 0</span>
-        <span id="hud-shards">Shards 0</span>
-        <span id="hud-buffs">Buffs --</span>
-        <span id="hud-audio">Audio On</span>
-        <span id="hud-checkpoint">Checkpoint --</span>
-        <label class="debug-toggle">
-          <input id="debug-toggle" type="checkbox" />
-          Debug overlays
-        </label>
+        <div class="hud-group hud-primary">
+          <span id="hud-lives">3</span>
+          <span id="hud-coins">0</span>
+          <span id="hud-shards">0</span>
+        </div>
+        <div class="hud-group hud-center">
+          <span id="hud-time">120</span>
+          <span id="hud-score">0</span>
+        </div>
+        <div class="hud-group hud-secondary">
+          <span id="hud-buffs">--</span>
+          <span id="hud-checkpoint">--</span>
+          <span id="hud-audio">ON</span>
+        </div>
       </div>
       <div class="start-overlay" aria-hidden="true">
         <h1>Super Mo</h1>

@@ -38,14 +38,44 @@ body {
 .hud {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
-  margin-top: 8px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 8px 16px;
+  margin-top: 4px;
+  background: linear-gradient(180deg, #2b2b2b 0%, #1a1a1a 100%);
+  border-radius: 4px;
+  color: #f5f5f5;
   text-transform: uppercase;
   letter-spacing: 1px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .hud.is-hidden {
   visibility: hidden;
+}
+
+.hud-group {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.hud-primary #hud-lives::before { content: "❤ "; color: #e04b3a; }
+.hud-primary #hud-coins::before { content: "● "; color: #f6d44d; }
+.hud-primary #hud-shards::before { content: "◆ "; color: #78c7f0; }
+
+.hud-center {
+  text-align: center;
+}
+
+.hud-center #hud-time::before { content: "⏱ "; }
+.hud-center #hud-score::before { content: "★ "; color: #f6d44d; }
+
+.hud-secondary {
+  font-size: 11px;
+  opacity: 0.7;
+  gap: 12px;
 }
 
 .start-overlay {
