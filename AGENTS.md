@@ -36,7 +36,7 @@ bd sync               # Sync with git
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. This repo is local-only, so do not push.
+**When ending a work session**, you MUST complete ALL steps below.
 
 **MANDATORY WORKFLOW:**
 
@@ -52,11 +52,11 @@ bd sync               # Sync with git
 7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
-- This repo is local-only; do not configure or use a remote
+- This repo uses a remote; push your commits when work is complete
 
 ## Commits Per Issue
 
-- Commit changes as you complete and close each bd issue
+- Commit changes as you complete and close each bd issue, then push
 - Prefer one commit per issue with a clear message that references the issue id
 
 ## Pre-Commit Checks

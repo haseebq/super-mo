@@ -1,14 +1,17 @@
 # Super Mo - Artwork Pipeline
 
 ## Goal
+
 Define a repeatable pipeline for producing polished, consistent art by generating per-sprite PNGs, then stitching them into pixel-accurate sprite sheets and JSON atlases used by the game.
 
 ## Inputs
+
 - Asset list (frames + sizes) from `docs/sprite-sheet.md`
 - Style rules + palette from `docs/art-direction.md`
 - Output target: `assets/sprites.prod.png` + `assets/sprites.prod.json`
 
 ## Prompt Template (per sprite)
+
 Use the same structure for every sprite to keep style consistent.
 
 ```
@@ -20,35 +23,41 @@ Canvas: transparent background, sprite centered with minimal padding, no text, n
 ```
 
 ## Workflow
-1. **Define sprites**: Use the sprite list in `docs/sprite-sheet.md`.
-2. **Generate per-sprite PNGs**: Use the prompt template above or `art/prompt.txt`.
+
+1. **Define sprites**: Use the sprite list in `docs/sprite-sheet.md` and `art/layout.json`.
+2. **Identify work**:
    ```bash
-   python3 scripts/generate_art.py --prompt-file art/prompt.txt --tiles-dir assets/sprites-src
+   python3 scripts/generate_art.py
    ```
-   InvokeAI local generation:
+   This will list missing sprites and provide their prompts.
+3. **Generate Art (Agent)**:
+   - The Agent will use the `generate_image` tool to create a raw, high-resolution 1:1 image for each sprite.
+   - Save these as `assets/sprites-src/<id>.raw.png`.
+4. **Process Art**:
    ```bash
-   python3 scripts/generate_art.py --provider invokeai --prompt-file art/prompt.txt --tiles-dir assets/sprites-src
+   python3 scripts/generate_art.py --process
    ```
-3. **Stitch atlas**: Compose `assets/sprites.prod.png` using `art/layout.json`.
+   This converts `*.raw.png` to pixel-perfect `*.png` (crops, removes bg, downscales).
+5. **Stitch atlas**: Compose `assets/sprites.prod.png` using `art/layout.json`.
    ```bash
    python3 scripts/build_atlas.py --tiles-dir assets/sprites-src --layout art/layout.json --mark-production
    ```
-4. **QA pass**:
+6. **QA pass**:
    - Pixel alignment: no blurry edges (nearest-neighbor only).
    - Consistent palette and outline weight.
-   - Frame-to-frame consistency for animations.
-5. **Integrate**: Verify in-game.
+7. **Integrate**: Verify in-game.
 
 ## Automation
+
 The `scripts/build_atlas.py` step stitches per-sprite tiles into the atlas deterministically.
 
 Notes:
-- Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below; avoid placing other sprites in the rows beneath them.
-- The reference script uses Pillow (`pip install pillow`).
-- Runtime prefers `assets/sprites.prod.png` + `assets/sprites.prod.json` when present, and falls back to placeholder `assets/sprites.svg` + `assets/sprites.json`.
-- If `art/production.json` is missing or has `"production": false`, the generator will produce a full set of tiles by default.
+
+- Layout uses 16x16 cells at 1x. Taller sprites (16x24) should occupy empty space below.
+- Runtime prefers `assets/sprites.prod.png` + `assets/sprites.prod.json`.
 
 ## Notes
+
 - Per-sprite prompt overrides live in `scripts/generate_art.py` for sprites that need extra specificity.
 - Use the debug-painted overlay (`?debugPaint=1&debugTiles=1&debugLabels=1`) to verify atlas cell mapping quickly.
 - The generator script reads `OPENAI_API_KEY` from the environment or from a local `SECRETS` file (gitignored). Example:
@@ -57,6 +66,7 @@ Notes:
   ```
 
 ## QA Checklist
+
 - No anti-aliasing or gradients inside sprites.
 - Same light direction across all sprites.
 - No new colors beyond the palette (unless explicitly approved).
