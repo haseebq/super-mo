@@ -151,8 +151,8 @@ export function updatePlayer(
   const events: PlayerEvents = {
     jumped: false,
   };
-  const wantsRun = input.isDown(controls.run);
-  const speed = (wantsRun ? RUN_SPEED : WALK_SPEED) * speedBoost;
+  // Always run at full speed
+  const speed = RUN_SPEED * speedBoost;
   const dir = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
   const accel = (player.onGround ? 1 : AIR_CONTROL) * ACCEL;
 
@@ -164,7 +164,8 @@ export function updatePlayer(
     player.vx = approach(player.vx, 0, decel * dt);
   }
 
-  if (input.consumePress(controls.jump)) {
+  // Accept both configured jump key and Space
+  if (input.consumePress(controls.jump) || input.consumePress("Space")) {
     player.jumpBufferTimer = JUMP_BUFFER;
   }
 
@@ -191,7 +192,8 @@ export function updatePlayer(
 
   if (!player.onGround && player.vy < 0) {
     player.jumpHoldTime += dt;
-    if (!input.isDown(controls.jump) && !player.jumpCut && player.jumpHoldTime <= SHORT_HOP_WINDOW) {
+    const holdingJump = input.isDown(controls.jump) || input.isDown("Space");
+    if (!holdingJump && !player.jumpCut && player.jumpHoldTime <= SHORT_HOP_WINDOW) {
       player.vy *= SHORT_HOP_FACTOR;
       player.jumpCut = true;
     }
@@ -214,7 +216,7 @@ export function updatePlayer(
     }
   } else if (Math.abs(player.vx) > 1) {
     setAnimation(player.anim, "run");
-    player.anim.animations.run.frameRate = wantsRun ? 15 : 10;
+    player.anim.animations.run.frameRate = 15;
   } else {
     setAnimation(player.anim, "idle");
   }
