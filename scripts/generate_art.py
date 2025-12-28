@@ -165,7 +165,7 @@ def resize_image(image_bytes: bytes, target_size: tuple[int, int], sprite_id: st
         # Center crop to extract single sprite from potential grid (skip for tiles)
         if center_crop and sprite_id not in TILE_SPRITES:
             w, h = img.size
-            crop_size = min(w, h) // 3  # Take center 33% to isolate single sprite
+            crop_size = int(min(w, h) * 0.45)  # Take center 45% to isolate single sprite
             left = (w - crop_size) // 2
             top = (h - crop_size) // 2
             img = img.crop((left, top, left + crop_size, top + crop_size))
