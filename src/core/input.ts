@@ -1,6 +1,7 @@
 export type InputState = {
   isDown: (code: string) => boolean;
   consumePress: (code: string) => boolean;
+  press: (code: string) => void;
   reset: () => void;
 };
 
@@ -91,6 +92,9 @@ export function createInput(): InputState {
         return true;
       }
       return false;
+    },
+    press(code: string) {
+      pressed.add(code);
     },
     reset() {
       down.clear();

@@ -268,6 +268,7 @@ const state: GameState = {
 const neutralInput: InputState = {
   isDown: () => false,
   consumePress: () => false,
+  press: () => {},
   reset: () => {},
 };
 
@@ -1520,8 +1521,7 @@ window.addEventListener("blur", () => {
 
 // Touch/click handlers for overlays
 function simulateEnter() {
-  const event = new KeyboardEvent("keydown", { code: "Enter" });
-  window.dispatchEvent(event);
+  input.press("Enter");
 }
 
 function addOverlayTapHandler(
