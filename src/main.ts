@@ -505,6 +505,12 @@ function update(dt: number) {
   resolvePlatformCollisions(state.player, state.level.platforms, prevY);
 
   handleEnemyCollisions();
+
+  // Check for pit death (falling below level)
+  const levelHeight = state.level.height * state.level.tileSize;
+  if (state.player.y > levelHeight + 32) {
+    applyDamage();
+  }
 }
 
 function render() {
