@@ -383,6 +383,9 @@ body {
 
 .touch-btn-jump {
   background: rgba(120, 199, 240, 0.8);
+  width: 72px;
+  height: 72px;
+  font-size: 15px;
 }
 
 .touch-btn-dash {
@@ -526,6 +529,11 @@ body {
     height: 56px;
   }
 
+  .touch-btn-jump {
+    width: 68px;
+    height: 68px;
+  }
+
   .touch-btn-dash {
     width: 44px;
     height: 44px;
@@ -577,6 +585,11 @@ body {
   .touch-btn-action {
     width: 44px;
     height: 44px;
+  }
+
+  .touch-btn-jump {
+    width: 56px;
+    height: 56px;
   }
 
   .touch-btn-dash {
