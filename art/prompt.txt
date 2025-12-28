@@ -1,5 +1,13 @@
-You are generating a single pixel-art sprite for a 16-bit platformer.
-Sprite ID: <SPRITE_ID>.
-Style: bright, playful 16-bit platformer; clean silhouettes; subtle outlines; soft 1-2 tone shading; light source from top-left.
-Palette: #78C7F0 sky, #D4A86A ground, #5DBB63 grass, #A0703D dirt, #E04B3A player, #F6D44D accent, #7B4A6D enemy, #2B2B2B UI.
-Canvas: transparent background, sprite centered with minimal padding, no text, no letters, no words, no symbols, no logos, no watermarks, no signatures, no labels, no drop shadows.
+EXACTLY ONE pixel-art sprite. ONE object only. Do NOT generate multiple copies, grids, variations, or sprite sheets.
+
+Sprite: <SPRITE_ID>
+Style: 16-bit platformer pixel art, clean hard edges, 1-pixel outlines, 1-2 tone shading, top-left light.
+Colors: red #E04B3A, yellow #F6D44D, green #5DBB63, brown #A0703D #D4A86A, purple #7B4A6D, dark #2B2B2B.
+
+REQUIREMENTS:
+- ONE single sprite, centered, filling 70-90% of canvas
+- Solid bright magenta #FF00FF background (for chroma key removal)
+- Hard pixel edges only - NO anti-aliasing, NO blur, NO gradients
+- NO multiples, NO variations, NO grid, NO sprite sheet, NO copies
+- NO text, NO labels, NO watermarks
+- NO scenes, NO ground, NO sky

@@ -14,8 +14,29 @@ from PIL import Image
 SECRETS_PATH = Path("SECRETS")
 PRODUCTION_MARKER = Path("art/production.json")
 SPRITE_PROMPT_OVERRIDES = {
-    "block": "A single 16x16 ground tile with grassy top and dirt sides, clean pixel-art edges.",
+    "block": "A single ground/floor tile - grassy green top edge, brown dirt below. Square tile that can repeat horizontally.",
+    "player": "A small humanoid platformer hero character standing idle, red shirt, facing right.",
+    "player_run1": "A small humanoid platformer hero mid-run frame 1, red shirt, legs apart, facing right.",
+    "player_run2": "A small humanoid platformer hero mid-run frame 2, red shirt, opposite leg forward, facing right.",
+    "player_jump": "A small humanoid platformer hero jumping pose, red shirt, arms up, facing right.",
+    "player_death": "A small humanoid platformer hero hurt/death pose, red shirt, falling backward.",
+    "moomba": "A small round enemy creature, purple/brown, simple angry face, idle pose.",
+    "moomba_walk1": "A small round enemy creature walking frame 1, purple/brown, one foot forward.",
+    "moomba_walk2": "A small round enemy creature walking frame 2, purple/brown, other foot forward.",
+    "coin": "A single shiny gold coin, simple circle with shine highlight, collectible item.",
+    "shard": "A single crystal shard, angular gem shape, yellow/gold color, collectible item.",
+    "goal": "A flag or flagpole end-of-level marker, simple victory flag design.",
+    "spikelet": "A small spiky hazard enemy, triangular/pointed shape, dangerous looking.",
+    "flit": "A small flying enemy creature, simple wings, hovering pose.",
 }
+
+NEGATIVE_PROMPT = (
+    "photograph, realistic, 3d render, blurry, soft edges, anti-aliasing, gradient, "
+    "text, letters, words, logo, watermark, signature, label, "
+    "scene, landscape, environment, background, ground, floor, sky, clouds, trees, "
+    "multiple, duplicates, copies, grid, tilemap, sprite sheet, variations, rows, columns, "
+    "game screenshot, level, buildings, repeating pattern"
+)
 
 
 def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
@@ -113,9 +134,44 @@ def generate_image(prompt: str, model: str, size: str) -> bytes:
     raise RuntimeError("OpenAI API response missing image data.")
 
 
-def resize_image(image_bytes: bytes, target_size: tuple[int, int]) -> bytes:
+def remove_background(img: Image.Image, tolerance: int = 30) -> Image.Image:
+    """Remove background by detecting corner color and making it transparent."""
+    img = img.convert("RGBA")
+    pixels = img.load()
+    w, h = img.size
+    # Sample corners to find background color
+    corners = [pixels[0, 0], pixels[w-1, 0], pixels[0, h-1], pixels[w-1, h-1]]
+    # Use most common corner color as background
+    bg_color = max(set(corners), key=corners.count)[:3]
+
+    # Make matching pixels transparent
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = pixels[x, y]
+            if (abs(r - bg_color[0]) < tolerance and
+                abs(g - bg_color[1]) < tolerance and
+                abs(b - bg_color[2]) < tolerance):
+                pixels[x, y] = (0, 0, 0, 0)
+    return img
+
+
+# Sprites that should fill their tile completely (no background removal)
+TILE_SPRITES = {"block"}
+
+
+def resize_image(image_bytes: bytes, target_size: tuple[int, int], sprite_id: str = "", center_crop: bool = True) -> bytes:
     with Image.open(BytesIO(image_bytes)) as img:
         img = img.convert("RGBA")
+        # Center crop to extract single sprite from potential grid (skip for tiles)
+        if center_crop and sprite_id not in TILE_SPRITES:
+            w, h = img.size
+            crop_size = min(w, h) // 3  # Take center 33% to isolate single sprite
+            left = (w - crop_size) // 2
+            top = (h - crop_size) // 2
+            img = img.crop((left, top, left + crop_size, top + crop_size))
+        # Remove background before resizing for cleaner edges (skip for tiles)
+        if sprite_id not in TILE_SPRITES:
+            img = remove_background(img)
         resized = img.resize(target_size, Image.NEAREST)
         out = BytesIO()
         resized.save(out, format="PNG")
@@ -213,7 +269,7 @@ def generate_image_invokeai(prompt: str, out_path: Path) -> None:
     graph = workflow_to_graph(
         workflow,
         prompt,
-        "photograph, realistic, 3d, blurry, text, letters, words, logo, watermark, signature",
+        NEGATIVE_PROMPT,
         1024,
         1024,
         model,
@@ -304,7 +360,7 @@ def main() -> None:
         target_size = sprite_sizes.get(sprite_id)
         if not target_size:
             raise ValueError(f"Missing layout entry for sprite: {sprite_id}")
-        resized_bytes = resize_image(raw_bytes, target_size)
+        resized_bytes = resize_image(raw_bytes, target_size, sprite_id=sprite_id)
         out_path.write_bytes(resized_bytes)
         print(f"Wrote {out_path}")
 
