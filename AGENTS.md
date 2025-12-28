@@ -51,6 +51,69 @@ bd sync               # Sync with git
 - Run the quick test script before every commit (P0 requirement)
 - Keep the quick test fast: typecheck + smoke test where possible
 
+## Post-Commit Testing
+
+After each commit, verify the game works on both desktop and mobile:
+
+### Desktop Testing
+
+```bash
+# Run automated tests
+npm run test:quick
+
+# Manual verification (if UI changed)
+npm run serve
+# Open http://localhost:4173 in browser
+# Verify: title screen loads, game starts on Enter, controls work
+```
+
+### Mobile Testing
+
+Mobile testing requires manual verification or device emulation:
+
+1. **Browser DevTools (Quick Check)**
+   - Open http://localhost:4173 in Chrome/Firefox
+   - Open DevTools (F12) → Toggle Device Toolbar (Ctrl+Shift+M)
+   - Select a mobile device preset (iPhone, Pixel, etc.)
+   - Verify:
+     - Touch controls appear (D-pad on left, Jump/Dash on right)
+     - "Tap to Start" text shows instead of "Press Enter"
+     - Layout fits screen without horizontal scroll
+     - Tap on overlays advances game state
+
+2. **Touch Control Checklist**
+   - [ ] D-pad left/right moves player
+   - [ ] Jump button makes player jump
+   - [ ] Dash button triggers dash
+   - [ ] Pause button (top-right) pauses game
+   - [ ] Tapping overlays (start, story, intro, complete) works
+
+3. **Responsive Layout Checklist**
+   - [ ] Portrait mode: game canvas scales, HUD readable
+   - [ ] Landscape mode: game uses available width
+   - [ ] No content cut off or overlapping
+
+### When to Test
+
+- **Always run `npm run test:quick`** before committing
+- **Manual desktop test** if: UI/overlay changes, input changes, rendering changes
+- **Mobile test** if: CSS changes, touch controls modified, new UI elements added
+
+### Playwright Mobile Emulation (Optional)
+
+For automated mobile testing, add to test files:
+
+```typescript
+import { devices } from '@playwright/test';
+
+test.use({ ...devices['iPhone 13'] });
+
+test('mobile touch controls visible', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#touch-controls')).toBeVisible();
+});
+```
+
 ## Handoff Notes
 
 - Run the game via `npm run serve` (esbuild transpiles TS on the fly). `build/` is removed and no longer used.
