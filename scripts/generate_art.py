@@ -53,7 +53,7 @@ def build_prompt_from_sprite_template(template: str, sprite_id: str) -> str:
     return prompt
 
 
-def remove_background(img: Image.Image, tolerance: int = 30) -> Image.Image:
+def remove_background(img: Image.Image, tolerance: int = 60) -> Image.Image:
     """Remove background by detecting corner color and making it transparent."""
     img = img.convert("RGBA")
     pixels = img.load()
