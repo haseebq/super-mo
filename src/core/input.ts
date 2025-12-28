@@ -4,6 +4,10 @@ export type InputState = {
   reset: () => void;
 };
 
+function isTouchDevice(): boolean {
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
 export function createInput(): InputState {
   const down = new Set<string>();
   const pressed = new Set<string>();
@@ -38,6 +42,44 @@ export function createInput(): InputState {
 
   window.addEventListener("keydown", handleKeyDown);
   window.addEventListener("keyup", handleKeyUp);
+
+  // Touch controls support
+  if (isTouchDevice()) {
+    const touchControls = document.getElementById("touch-controls");
+    if (touchControls) {
+      touchControls.classList.add("is-visible");
+
+      const buttons = touchControls.querySelectorAll<HTMLButtonElement>("[data-key]");
+      buttons.forEach((btn) => {
+        const key = btn.dataset.key;
+        if (!key) return;
+
+        const handleStart = (e: Event) => {
+          e.preventDefault();
+          if (!down.has(key)) {
+            pressed.add(key);
+          }
+          down.add(key);
+          btn.classList.add("is-pressed");
+        };
+
+        const handleEnd = (e: Event) => {
+          e.preventDefault();
+          down.delete(key);
+          btn.classList.remove("is-pressed");
+        };
+
+        btn.addEventListener("touchstart", handleStart, { passive: false });
+        btn.addEventListener("touchend", handleEnd, { passive: false });
+        btn.addEventListener("touchcancel", handleEnd, { passive: false });
+
+        // Also support mouse for testing on desktop
+        btn.addEventListener("mousedown", handleStart);
+        btn.addEventListener("mouseup", handleEnd);
+        btn.addEventListener("mouseleave", handleEnd);
+      });
+    }
+  }
 
   return {
     isDown(code: string) {

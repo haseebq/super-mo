@@ -1517,3 +1517,52 @@ loop.start();
 window.addEventListener("blur", () => {
   input.reset();
 });
+
+// Touch/click handlers for overlays
+function simulateEnter() {
+  const event = new KeyboardEvent("keydown", { code: "Enter" });
+  window.dispatchEvent(event);
+}
+
+startOverlay.addEventListener("click", () => {
+  if (state.mode === "title") {
+    audio.unlock();
+    simulateEnter();
+  }
+});
+
+storyOverlay.addEventListener("click", () => {
+  if (state.mode === "story") {
+    simulateEnter();
+  }
+});
+
+introOverlay.addEventListener("click", () => {
+  if (state.mode === "intro") {
+    simulateEnter();
+  }
+});
+
+completeOverlay.addEventListener("click", () => {
+  if (state.mode === "complete") {
+    simulateEnter();
+  }
+});
+
+pauseOverlay.addEventListener("click", (e) => {
+  if (state.mode !== "paused") return;
+  const target = e.target as HTMLElement;
+  const option = target.closest(".pause-option") as HTMLElement | null;
+  if (option) {
+    const action = option.dataset.action;
+    if (action === "restart") {
+      resetLevel();
+      setMode("playing");
+    } else if (action === "quit") {
+      resetRun();
+      setMode("title");
+    } else {
+      setMode("playing");
+    }
+  }
+});
