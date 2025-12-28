@@ -371,6 +371,28 @@ body {
   display: flex;
 }
 
+.touch-btn-fullscreen {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  z-index: 101;
+  pointer-events: auto;
+  display: none;
+}
+
+.touch-controls.is-visible .touch-btn-fullscreen {
+  display: flex;
+}
+
+/* Hide fullscreen button when already in fullscreen */
+:fullscreen .touch-btn-fullscreen,
+:-webkit-full-screen .touch-btn-fullscreen {
+  display: none;
+}
+
 /* Mobile Responsive */
 @media (max-width: 980px) {
   body {
@@ -467,39 +489,70 @@ body {
 /* Landscape mobile optimization */
 @media (max-height: 500px) and (orientation: landscape) {
   body {
-    padding: 4px;
+    padding: 2px;
+    justify-content: center;
+    align-items: center;
   }
 
   .game-shell {
-    padding: 4px;
-    max-width: calc(100vw - 8px);
+    padding: 2px;
+    max-width: calc(100vw - 4px);
+    max-height: calc(100dvh - 4px);
+    display: flex;
+    flex-direction: column;
   }
 
   #game {
-    max-height: 65dvh;
+    flex: 1;
+    max-height: calc(100dvh - 40px);
+    width: auto;
+    max-width: 100%;
   }
 
   .hud {
-    font-size: 10px;
-    padding: 4px 8px;
+    font-size: 9px;
+    padding: 2px 6px;
+    margin-top: 2px;
+  }
+
+  .hud-secondary {
+    display: none;
   }
 
   .touch-controls {
-    padding: 8px;
+    padding: 4px;
   }
 
   .touch-btn {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .touch-btn-action {
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
   }
 
   .touch-btn-dash {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .start-overlay,
+  .pause-overlay,
+  .complete-overlay,
+  .intro-overlay,
+  .story-overlay {
+    inset: 2px;
+    padding: 8px;
+  }
+
+  .start-overlay h1 {
+    font-size: 18px;
+    margin: 4px 0;
+  }
+
+  .controls {
+    font-size: 9px;
   }
 }

@@ -1562,3 +1562,23 @@ pauseOverlay.addEventListener("click", (e) => {
     }
   }
 });
+
+// Fullscreen button handler
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+if (fullscreenBtn) {
+  fullscreenBtn.addEventListener("click", toggleFullscreen);
+  fullscreenBtn.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    toggleFullscreen();
+  }, { passive: false });
+}
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen().catch(() => {
+      // Fullscreen not supported or denied
+    });
+  }
+}
