@@ -3,4 +3,5 @@ node_modules/
 .playwright/
 /test-results/
 build/
+dist/
 SECRETS
