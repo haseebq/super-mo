@@ -20,6 +20,9 @@ const STOMP_BOUNCE = 0.75 * JUMP_IMPULSE;
 const WALL_SLIDE_SPEED = 1.5 * TILE_SIZE;
 const WALL_JUMP_IMPULSE = 7 * TILE_SIZE;
 const WALL_JUMP_HORIZONTAL = 3 * TILE_SIZE;
+const DASH_SPEED = 6 * TILE_SIZE;
+const DASH_DURATION = 0.15;
+const DASH_COOLDOWN = 0.8;
 
 function approach(current: number, target: number, delta: number): number {
   if (current < target) {
@@ -48,6 +51,8 @@ export type Player = {
   facing: number;
   anim: AnimationState;
   platformId: number | null;
+  dashTimer: number;
+  dashCooldown: number;
 };
 
 export type PlayerEvents = {
@@ -80,6 +85,8 @@ export function createPlayer(x: number, y: number): Player {
     facing: 1,
     anim: createAnimationState(PLAYER_ANIMATIONS, "idle"),
     platformId: null,
+    dashTimer: 0,
+    dashCooldown: 0,
   };
 }
 
@@ -192,7 +199,25 @@ export function updatePlayer(
   const dir = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
   const accel = (player.onGround ? 1 : AIR_CONTROL) * ACCEL;
 
-  if (dir !== 0) {
+  // Update dash cooldown
+  if (player.dashCooldown > 0) {
+    player.dashCooldown -= dt;
+  }
+
+  // Dash input (Shift key)
+  if (input.consumePress("ShiftLeft") || input.consumePress("ShiftRight")) {
+    if (player.dashCooldown <= 0 && player.dashTimer <= 0) {
+      player.dashTimer = DASH_DURATION;
+      player.dashCooldown = DASH_COOLDOWN;
+    }
+  }
+
+  // Apply dash or normal movement
+  if (player.dashTimer > 0) {
+    player.dashTimer -= dt;
+    player.vx = player.facing * DASH_SPEED;
+    player.vy = 0; // Freeze vertical movement during dash
+  } else if (dir !== 0) {
     player.vx = approach(player.vx, dir * speed, accel * dt);
     player.facing = dir;
   } else {
