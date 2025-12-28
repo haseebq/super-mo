@@ -68,6 +68,8 @@ bd sync               # Sync with git
 
 After each commit, verify the game works on both desktop and mobile:
 
+**Treat mobile and desktop as equally important targets.** Always think about impact on both, with extra care for mobile UX.
+
 ### Desktop Testing
 
 ```bash
