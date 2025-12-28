@@ -133,13 +133,47 @@ body {
   position: absolute;
   inset: 16px;
   border: 3px solid var(--text);
-  background: #ffffffcc;
+  background: linear-gradient(135deg, #fff6d6 0%, #ffffff 65%);
   display: grid;
   place-items: center;
   text-align: center;
   padding: 16px;
   pointer-events: auto;
   cursor: pointer;
+  gap: 8px;
+  font-family: "Trebuchet MS", "Segoe Print", "Comic Sans MS", cursive;
+  box-shadow: 6px 6px 0 #0000001a;
+}
+
+.story-overlay h2 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+#story-speaker {
+  margin: 4px 0 0;
+  padding: 4px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  box-shadow: 0 2px 0 #0000001a;
+}
+
+#story-text {
+  margin: 6px 0 2px;
+  padding: 10px 14px;
+  max-width: 420px;
+  border-radius: 14px;
+  border: 2px solid var(--text);
+  background: #fffdf2;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .complete-overlay .yippee {
@@ -449,6 +483,15 @@ body {
   .controls {
     font-size: 10px;
   }
+
+  #story-speaker {
+    font-size: 12px;
+  }
+
+  #story-text {
+    max-width: 320px;
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -554,5 +597,14 @@ body {
 
   .controls {
     font-size: 9px;
+  }
+
+  #story-speaker {
+    font-size: 11px;
+  }
+
+  #story-text {
+    max-width: 260px;
+    font-size: 12px;
   }
 }
