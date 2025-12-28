@@ -17,6 +17,9 @@ const JUMP_BUFFER = 0.12;
 const SHORT_HOP_WINDOW = 0.12;
 const SHORT_HOP_FACTOR = 0.45;
 const STOMP_BOUNCE = 0.75 * JUMP_IMPULSE;
+const WALL_SLIDE_SPEED = 1.5 * TILE_SIZE;
+const WALL_JUMP_IMPULSE = 7 * TILE_SIZE;
+const WALL_JUMP_HORIZONTAL = 3 * TILE_SIZE;
 
 function approach(current: number, target: number, delta: number): number {
   if (current < target) {
@@ -36,6 +39,8 @@ export type Player = {
   vx: number;
   vy: number;
   onGround: boolean;
+  onWall: boolean;
+  wallDir: number; // -1 for left wall, 1 for right wall, 0 for none
   coyoteTimer: number;
   jumpBufferTimer: number;
   jumpHoldTime: number;
@@ -66,6 +71,8 @@ export function createPlayer(x: number, y: number): Player {
     vx: 0,
     vy: 0,
     onGround: false,
+    onWall: false,
+    wallDir: 0,
     coyoteTimer: 0,
     jumpBufferTimer: 0,
     jumpHoldTime: 0,
@@ -101,6 +108,35 @@ function resolveHorizontal(player: Player, level: Level) {
       return;
     }
   }
+}
+
+function checkWallContact(player: Player, level: Level): number {
+  if (player.onGround) {
+    return 0;
+  }
+  const tileSize = level.tileSize;
+  const top = Math.floor((player.y + 4) / tileSize);
+  const bottom = Math.floor((player.y + player.height - 4) / tileSize);
+
+  // Check right side
+  const rightX = Math.floor((player.x + player.width) / tileSize);
+  for (let y = top; y <= bottom; y++) {
+    const id = level.tiles[y * level.width + rightX];
+    if (isSolid(id)) {
+      return 1; // Wall on right
+    }
+  }
+
+  // Check left side
+  const leftX = Math.floor((player.x - 1) / tileSize);
+  for (let y = top; y <= bottom; y++) {
+    const id = level.tiles[y * level.width + leftX];
+    if (isSolid(id)) {
+      return -1; // Wall on left
+    }
+  }
+
+  return 0;
 }
 
 function resolveVertical(player: Player, level: Level) {
@@ -179,6 +215,19 @@ export function updatePlayer(
     player.coyoteTimer -= dt;
   }
 
+  // Wall jump (check before normal jump)
+  if (player.jumpBufferTimer > 0 && player.onWall && !player.onGround) {
+    player.vy = -WALL_JUMP_IMPULSE;
+    player.vx = -player.wallDir * WALL_JUMP_HORIZONTAL;
+    player.facing = -player.wallDir;
+    player.onWall = false;
+    player.wallDir = 0;
+    player.jumpBufferTimer = 0;
+    player.jumpHoldTime = 0;
+    player.jumpCut = false;
+    events.jumped = true;
+  }
+
   const canJump = player.coyoteTimer > 0;
   if (player.jumpBufferTimer > 0 && canJump) {
     player.vy = -JUMP_IMPULSE;
@@ -201,11 +250,20 @@ export function updatePlayer(
 
   player.vy += GRAVITY * dt;
 
+  // Wall slide (limit fall speed when on wall)
+  if (player.onWall && player.vy > WALL_SLIDE_SPEED) {
+    player.vy = WALL_SLIDE_SPEED;
+  }
+
   player.x += player.vx * dt;
   resolveHorizontal(player, level);
 
   player.y += player.vy * dt;
   resolveVertical(player, level);
+
+  // Update wall contact
+  player.wallDir = checkWallContact(player, level);
+  player.onWall = player.wallDir !== 0 && player.vy >= 0;
 
   // Update Animation
   if (!player.onGround) {
