@@ -1524,30 +1524,26 @@ function simulateEnter() {
   window.dispatchEvent(event);
 }
 
-startOverlay.addEventListener("click", () => {
-  if (state.mode === "title") {
-    audio.unlock();
-    simulateEnter();
-  }
-});
+function addOverlayTapHandler(
+  overlay: HTMLElement,
+  mode: Mode,
+  beforeAction?: () => void
+) {
+  const handler = (e: Event) => {
+    if (state.mode === mode) {
+      e.preventDefault();
+      beforeAction?.();
+      simulateEnter();
+    }
+  };
+  overlay.addEventListener("click", handler);
+  overlay.addEventListener("touchend", handler, { passive: false });
+}
 
-storyOverlay.addEventListener("click", () => {
-  if (state.mode === "story") {
-    simulateEnter();
-  }
-});
-
-introOverlay.addEventListener("click", () => {
-  if (state.mode === "intro") {
-    simulateEnter();
-  }
-});
-
-completeOverlay.addEventListener("click", () => {
-  if (state.mode === "complete") {
-    simulateEnter();
-  }
-});
+addOverlayTapHandler(startOverlay, "title", () => audio.unlock());
+addOverlayTapHandler(storyOverlay, "story");
+addOverlayTapHandler(introOverlay, "intro");
+addOverlayTapHandler(completeOverlay, "complete");
 
 pauseOverlay.addEventListener("click", (e) => {
   if (state.mode !== "paused") return;

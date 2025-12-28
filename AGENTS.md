@@ -11,6 +11,19 @@ Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for a
 - `bd close <id>` - Complete work
 - `bd sync` - Sync with git (run at session end)
 
+## Getting Started
+
+When a session begins, **automatically start working on open issues**:
+
+1. Run `bd ready` to see available work
+2. Pick issues in priority order (P0 → P1 → P2 → P3)
+3. For same-priority issues, use your judgment on logical order (e.g., fix blockers first, group related work)
+4. Mark the issue as in-progress: `bd update <id> --status in_progress`
+5. Complete the work, commit, and close: `bd close <id>`
+6. Move to the next issue
+
+**Do not ask the user which issue to work on**—just start with the highest priority available work.
+
 ## Quick Reference
 
 ```bash
