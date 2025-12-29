@@ -301,11 +301,7 @@ function update(dt: number) {
     if (input.consumePress("Enter")) {
       state.levelIndex = 0;
       resetLevel();
-      if (!state.storySeen) {
-        setMode("story");
-      } else {
-        setMode("intro");
-      }
+      setMode("intro");
     }
     
     setAnimation(state.player.anim, "run");
