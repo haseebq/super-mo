@@ -27,6 +27,11 @@ SPRITE_PROMPT_OVERRIDES = {
 # Sprites that should fill their tile completely (no background removal)
 TILE_SPRITES = {"block"}
 
+# Magenta chroma-key detection thresholds
+MAGENTA_RB_TO_G_RATIO = 8  # R+B should be at least 8x greater than G
+MAX_RB_DIFFERENCE = 80      # R and B should be similar (within 80)
+MAX_GREEN_VALUE = 140       # Green channel should be low for magenta
+
 
 def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
     if prompt:
@@ -54,23 +59,40 @@ def build_prompt_from_sprite_template(template: str, sprite_id: str) -> str:
 
 
 def remove_background(img: Image.Image, tolerance: int = 60) -> Image.Image:
-    """Remove background by detecting corner color and making it transparent."""
+    """Remove background by detecting magenta chroma-key or corner color and making it transparent."""
     img = img.convert("RGBA")
     pixels = img.load()
     w, h = img.size
-    # Sample corners to find background color
+    
+    # First, try to detect if this is a magenta chroma-key background
+    # Sample corners to check for magenta using ratio-based detection
+    def is_magenta(r, g, b):
+        """Detect magenta/purple by checking if R and B are high while G is low."""
+        # Magenta has R≈B and both are much higher than G
+        return (r + b) > g * MAGENTA_RB_TO_G_RATIO and abs(r - b) < MAX_RB_DIFFERENCE and g < MAX_GREEN_VALUE
+    
     corners = [pixels[0, 0], pixels[w-1, 0], pixels[0, h-1], pixels[w-1, h-1]]
-    # Use most common corner color as background
-    bg_color = max(set(corners), key=corners.count)[:3]
-
-    # Make matching pixels transparent
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = pixels[x, y]
-            if (abs(r - bg_color[0]) < tolerance and
-                abs(g - bg_color[1]) < tolerance and
-                abs(b - bg_color[2]) < tolerance):
-                pixels[x, y] = (0, 0, 0, 0)
+    magenta_corners = sum(1 for corner in corners if is_magenta(corner[0], corner[1], corner[2]))
+    
+    if magenta_corners >= 2:
+        # This appears to be a magenta chroma-key background
+        # Use magenta-specific removal
+        for y in range(h):
+            for x in range(w):
+                r, g, b, a = pixels[x, y]
+                if is_magenta(r, g, b):
+                    pixels[x, y] = (0, 0, 0, 0)
+    else:
+        # Fall back to corner-based detection for other backgrounds
+        bg_color = max(set(corners), key=corners.count)[:3]
+        for y in range(h):
+            for x in range(w):
+                r, g, b, a = pixels[x, y]
+                if (abs(r - bg_color[0]) < tolerance and
+                    abs(g - bg_color[1]) < tolerance and
+                    abs(b - bg_color[2]) < tolerance):
+                    pixels[x, y] = (0, 0, 0, 0)
+    
     return img
 
 
@@ -82,13 +104,17 @@ def process_image(
 ) -> None:
     """
     Process a raw generated image:
-    1. Center crop (optional, logic preserved)
-    2. Remove background
+    1. Remove background first (important: do this before cropping!)
+    2. Center crop to extract single sprite
     3. Resize to target pixel dimensions
     """
     print(f"Processing {input_path} -> {out_path} ({target_size})")
     with Image.open(input_path) as img:
         img = img.convert("RGBA")
+        
+        # Remove background BEFORE cropping for better results
+        if sprite_id not in TILE_SPRITES:
+            img = remove_background(img)
         
         # Center crop to extract single sprite from potential grid (skip for tiles)
         # Assuming Agent generates a centered subject
@@ -98,9 +124,6 @@ def process_image(
             left = (w - crop_size) // 2
             top = (h - crop_size) // 2
             img = img.crop((left, top, left + crop_size, top + crop_size))
-
-        if sprite_id not in TILE_SPRITES:
-            img = remove_background(img)
             
         resized = img.resize(target_size, Image.NEAREST)
         resized.save(out_path, format="PNG")
