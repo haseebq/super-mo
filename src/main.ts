@@ -563,7 +563,6 @@ function render() {
   drawPlatforms(state.level.platforms);
   drawCollectibles();
   drawCheckpoints();
-  drawPrompts();
   drawLandmark();
   const shouldDrawPlayer =
     state.invulnerableTimer === 0 || Math.floor(state.time * 12) % 2 === 0;
