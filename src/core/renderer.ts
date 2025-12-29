@@ -26,8 +26,11 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
 
   return {
     clear(color) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = color;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
     },
     rect(x, y, w, h, color) {
       ctx.fillStyle = color;
