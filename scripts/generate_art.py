@@ -27,6 +27,11 @@ SPRITE_PROMPT_OVERRIDES = {
 # Sprites that should fill their tile completely (no background removal)
 TILE_SPRITES = {"block"}
 
+# Magenta chroma-key detection thresholds
+MAGENTA_RB_TO_G_RATIO = 8  # R+B should be at least 8x greater than G
+MAX_RB_DIFFERENCE = 80      # R and B should be similar (within 80)
+MAX_GREEN_VALUE = 140       # Green channel should be low for magenta
+
 
 def load_prompt(prompt: str | None, prompt_file: Path | None) -> str:
     if prompt:
@@ -63,12 +68,11 @@ def remove_background(img: Image.Image, tolerance: int = 60) -> Image.Image:
     # Sample corners to check for magenta using ratio-based detection
     def is_magenta(r, g, b):
         """Detect magenta/purple by checking if R and B are high while G is low."""
-        g = max(g, 1)  # Avoid division by zero
         # Magenta has R≈B and both are much higher than G
-        return (r + b) > g * 8 and abs(r - b) < 80 and g < 140
+        return (r + b) > g * MAGENTA_RB_TO_G_RATIO and abs(r - b) < MAX_RB_DIFFERENCE and g < MAX_GREEN_VALUE
     
     corners = [pixels[0, 0], pixels[w-1, 0], pixels[0, h-1], pixels[w-1, h-1]]
-    magenta_corners = sum(1 for r, g, b, *_ in corners if is_magenta(r, g, b))
+    magenta_corners = sum(1 for corner in corners if is_magenta(corner[0], corner[1], corner[2]))
     
     if magenta_corners >= 2:
         # This appears to be a magenta chroma-key background
