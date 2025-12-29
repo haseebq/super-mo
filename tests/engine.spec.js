@@ -12,18 +12,6 @@ test("engine boots and toggles states", async ({ page }) => {
   await page.keyboard.press("Enter");
 
   await expect(startOverlay).toHaveClass(/is-hidden/);
-  const storyOverlay = page.locator(".story-overlay");
-  await expect(storyOverlay).toBeVisible();
-
-  await page.evaluate(() => {
-    const game = window.__SUPER_MO__;
-    if (!game) {
-      return;
-    }
-    game.state.storySeen = true;
-    game.setMode("intro");
-  });
-
   const introOverlay = page.locator(".intro-overlay");
   await expect(introOverlay).toBeVisible();
 
