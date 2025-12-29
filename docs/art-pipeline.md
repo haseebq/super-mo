@@ -37,7 +37,10 @@ Canvas: transparent background, sprite centered with minimal padding, no text, n
    ```bash
    python3 scripts/generate_art.py --process
    ```
-   This converts `*.raw.png` to pixel-perfect `*.png` (crops, removes bg, downscales).
+   This converts `*.raw.png` to pixel-perfect `*.png`:
+   - Removes magenta chroma-key background using ratio-based detection
+   - Crops to center the sprite
+   - Downscales to target pixel dimensions using nearest-neighbor
 5. **Stitch atlas**: Compose `assets/sprites.prod.png` using `art/layout.json`.
    ```bash
    python3 scripts/build_atlas.py --tiles-dir assets/sprites-src --layout art/layout.json --mark-production
@@ -64,6 +67,8 @@ Notes:
   ```
   OPENAI_API_KEY=your_key_here
   ```
+- **Background removal**: The processing script uses intelligent magenta/purple detection based on color ratios (R+B >> G) rather than absolute thresholds. This catches chroma-key backgrounds of varying brightness.
+- **Processing order**: Background removal happens BEFORE cropping to ensure edge pixels are properly cleaned.
 
 ## QA Checklist
 
