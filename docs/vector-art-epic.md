@@ -41,6 +41,7 @@ Move the game from pixel sprites to vector-based art so characters, particles, a
    - Add a small rig preview tool (browser page) for iteration.
 3. **Animation System Upgrade**
    - Add bone transforms, keyframes, and blending to the animation engine.
+   - Reference `docs/vector-animation-system.md` for clip format and usage.
    - Support reuse of animation clips across characters.
 4. **Player Migration**
    - Rebuild player art as vector rig.
