@@ -1,6 +1,7 @@
 import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
+import { KeywordModdingProvider } from "./game/modding/provider.js";
 import { createRenderer } from "./core/renderer.js";
 import { createInput } from "./core/input.js";
 import { loadImage, loadJson } from "./core/assets.js";
@@ -1727,6 +1728,9 @@ const moddingAPI = new ModdingAPI({
   },
 });
 
+// AI/Agent provider for translating prompts to patch operations
+const moddingProvider = new KeywordModdingProvider();
+
 window.__SUPER_MO__ = {
   state,
   modding: moddingAPI,
@@ -1853,29 +1857,26 @@ async function handleModdingRequest(text: string) {
   appendModdingMessage(text, "user");
   moddingInput.value = "";
 
-  const lower = text.toLowerCase();
   try {
-    if (lower.includes("gravity")) {
-      const val = lower.includes("off") || lower.includes("0") ? 0 : 152;
-      moddingAPI.applyPatch({
-        ops: [{ op: "setRule", path: "physics.gravity", value: val }],
-      });
-      appendModdingMessage(`Gravity set to ${val}`, "agent");
-    } else if (lower.includes("coin")) {
-      moddingAPI.applyPatch({
-        ops: [{ op: "setRule", path: "scoring.coinValue", value: 1000 }],
-      });
-      appendModdingMessage("Coins are now worth 1000 points.", "agent");
-    } else if (lower.includes("remove")) {
-      moddingAPI.applyPatch({
-        ops: [{ op: "removeEntities", filter: { kind: "coin" } }],
-      });
-      appendModdingMessage("Removed all coins.", "agent");
+    const snapshot = moddingAPI.getSnapshot();
+    const result = await moddingProvider.processPrompt(text, snapshot);
+
+    if (result.patch.ops.length === 0) {
+      // No operations generated - show the explanation as help text
+      appendModdingMessage(result.explanation, "system");
     } else {
-      appendModdingMessage(
-        "I put on my wizard hat, but nothing happened. (Try 'gravity off')",
-        "system"
-      );
+      // Apply the patch and show the result
+      const applyResult = moddingAPI.applyPatch(result.patch);
+      if (applyResult.success) {
+        appendModdingMessage(result.explanation, "agent");
+      } else {
+        appendModdingMessage(
+          `Partial success: ${
+            result.explanation
+          }\nErrors: ${applyResult.errors?.join(", ")}`,
+          "error"
+        );
+      }
     }
   } catch (err: any) {
     appendModdingMessage(err.message, "error");
