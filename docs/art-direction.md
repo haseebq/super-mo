@@ -9,6 +9,8 @@ Bright, playful, and slightly whimsical. Inspired by classic 16-bit platformers 
 - **Soft shading** (1-2 shades per color)
 - **Minimal outlines** only where needed for readability
 
+Note: A vector-based art migration is planned. See `docs/vector-art-epic.md`.
+
 ## Palette (Base)
 - Sky: #78C7F0
 - Ground: #D4A86A

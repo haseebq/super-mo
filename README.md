@@ -1,6 +1,6 @@
 # Super Mo
 
-A Mario-style platformer game with AI-generated pixel art sprites.
+A Mario-style platformer game with AI-generated sprite art (pixel today, vector migration planned by the coding agent).
 
 ## 100% Vibe Coded
 
@@ -16,7 +16,7 @@ All game logic, rendering, physics, audio synthesis, sprite generation pipeline,
 ## Features
 
 - Classic platformer mechanics (run, jump, wall slide, wall jump, dash)
-- AI-generated pixel art sprites via InvokeAI/DALL-E pipeline
+- AI-generated sprites via InvokeAI/DALL-E pipeline (vector assets will be created by the coding agent)
 - Synthesized chiptune music and sound effects
 - 6 levels with increasing difficulty
 - Enemies: Moomba (stompable), Spikelet (spiky), Flit (flying)
