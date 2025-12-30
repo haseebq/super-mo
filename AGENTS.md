@@ -11,6 +11,8 @@ Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for a
 - `bd close <id>` - Complete work
 - `bd sync` - Sync with git (run at session end)
 
+When creating new issues, think through the dependency chain and add `bd dep` links (blocks or parent-child) so execution order is explicit.
+
 ## Getting Started
 
 When a session begins, **automatically start working on open issues**:
@@ -133,6 +135,3 @@ test('mobile touch controls visible', async ({ page }) => {
 
 - Run the game via `npm run serve` (esbuild transpiles TS on the fly). `build/` is removed and no longer used.
 - Playwright runs against `scripts/serve.js`; if port 4173 is busy, tests fail—kill existing server first.
-- Title screen now renders a full-scale scrolling camera (implemented in `mario-0mi`).
-- Animation system implemented (core + player/enemy states).
-- P1/P2 backlog includes level select + 3 levels, placeholder music/SFX, and expanded powerups.
