@@ -1,5 +1,5 @@
 import { createLoop } from "./core/loop.js";
-import { activeRules } from "./game/modding/rules.js";
+import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
 import { createRenderer } from "./core/renderer.js";
 import { createInput } from "./core/input.js";
@@ -1814,4 +1814,108 @@ function toggleFullscreen() {
       // Fullscreen not supported or denied
     });
   }
+}
+
+// Modding UI Integration
+const moddingOverlay = requireElement<HTMLDivElement>("#modding-overlay");
+const moddingInput = requireElement<HTMLInputElement>("#modding-input");
+const moddingHistory = requireElement<HTMLDivElement>("#modding-history");
+const moddingCloseBtn = requireElement<HTMLButtonElement>("#modding-close");
+const moddingSendBtn = requireElement<HTMLButtonElement>("#modding-send");
+const moddingResetBtn = requireElement<HTMLButtonElement>("#modding-reset");
+
+function toggleModdingUI() {
+  const isHidden = moddingOverlay.classList.contains("is-hidden");
+  if (isHidden) {
+    moddingOverlay.classList.remove("is-hidden");
+    moddingInput.focus();
+  } else {
+    moddingOverlay.classList.add("is-hidden");
+    canvas.focus();
+  }
+}
+
+function appendModdingMessage(
+  text: string,
+  type: "user" | "agent" | "system" | "error"
+) {
+  const div = document.createElement("div");
+  div.className = `modding-message ${type}`;
+  div.textContent = text;
+  moddingHistory.appendChild(div);
+  moddingHistory.scrollTop = moddingHistory.scrollHeight;
+}
+
+async function handleModdingRequest(text: string) {
+  appendModdingMessage(text, "user");
+  moddingInput.value = "";
+
+  const lower = text.toLowerCase();
+  try {
+    if (lower.includes("gravity")) {
+      const val = lower.includes("off") || lower.includes("0") ? 0 : 152;
+      moddingAPI.applyPatch({
+        ops: [{ op: "setRule", path: "physics.gravity", value: val }],
+      });
+      appendModdingMessage(`Gravity set to ${val}`, "agent");
+    } else if (lower.includes("coin")) {
+      moddingAPI.applyPatch({
+        ops: [{ op: "setRule", path: "scoring.coinValue", value: 1000 }],
+      });
+      appendModdingMessage("Coins are now worth 1000 points.", "agent");
+    } else if (lower.includes("remove")) {
+      moddingAPI.applyPatch({
+        ops: [{ op: "removeEntities", filter: { kind: "coin" } }],
+      });
+      appendModdingMessage("Removed all coins.", "agent");
+    } else {
+      appendModdingMessage(
+        "I put on my wizard hat, but nothing happened. (Try 'gravity off')",
+        "system"
+      );
+    }
+  } catch (err: any) {
+    appendModdingMessage(err.message, "error");
+  }
+}
+
+moddingCloseBtn.addEventListener("click", toggleModdingUI);
+moddingResetBtn.addEventListener("click", () => {
+  resetRules();
+  resetLevel();
+  appendModdingMessage("Reset rules and level.", "system");
+});
+moddingSendBtn.addEventListener("click", () => {
+  const text = moddingInput.value.trim();
+  if (text) handleModdingRequest(text);
+});
+moddingInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const text = moddingInput.value.trim();
+    if (text) handleModdingRequest(text);
+  }
+  e.stopPropagation();
+});
+moddingOverlay.addEventListener("keydown", (e) => e.stopPropagation());
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "`" || e.key === "Backquote") {
+    toggleModdingUI();
+    e.preventDefault();
+  }
+});
+
+const moddingTrigger = document.getElementById("modding-trigger");
+if (moddingTrigger) {
+  moddingTrigger.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    toggleModdingUI();
+  });
+  moddingTrigger.addEventListener("click", (e) => {
+    toggleModdingUI();
+    // Keep focus in input if opening
+    if (!moddingOverlay.classList.contains("is-hidden")) {
+      moddingInput.focus();
+    }
+  });
 }

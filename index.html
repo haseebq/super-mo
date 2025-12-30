@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -8,7 +8,12 @@
   </head>
   <body>
     <main class="game-shell">
-      <canvas id="game" width="320" height="180" aria-label="Super Mo game"></canvas>
+      <canvas
+        id="game"
+        width="320"
+        height="180"
+        aria-label="Super Mo game"
+      ></canvas>
       <div class="hud" aria-hidden="true">
         <div class="hud-group hud-primary">
           <span id="hud-lives">3</span>
@@ -29,7 +34,9 @@
         <h1>Super Mo</h1>
         <p class="start-prompt">Press Enter to Start</p>
         <p class="start-prompt-mobile">Tap to Start</p>
-        <p class="controls controls-keyboard">Arrows + Z (jump) + Shift (dash)</p>
+        <p class="controls controls-keyboard">
+          Arrows + Z (jump) + Shift (dash)
+        </p>
         <p class="controls controls-mobile">Use on-screen controls</p>
       </div>
       <div class="pause-overlay is-hidden" aria-hidden="true">
@@ -61,22 +68,65 @@
         <h2>Level Complete</h2>
         <p class="yippee">Yippee!</p>
         <p id="complete-score">Score 0</p>
-        <p id="complete-breakdown">Time Bonus 0 · Goal 0 · Coins 0 · Shards 0</p>
+        <p id="complete-breakdown">
+          Time Bonus 0 · Goal 0 · Coins 0 · Shards 0
+        </p>
         <p class="prompt-keyboard">Press Enter to Continue</p>
         <p class="prompt-mobile">Tap to Continue</p>
+      </div>
+      <div id="modding-overlay" class="modding-overlay is-hidden">
+        <div class="modding-panel">
+          <div class="modding-header">
+            <h3>AI Modding</h3>
+            <button id="modding-close" class="modding-btn-close">×</button>
+          </div>
+          <div id="modding-history" class="modding-history">
+            <div class="modding-message system">
+              Welcome! Ask for changes like "gravity off" or "1000 points per
+              coin".
+            </div>
+          </div>
+          <div class="modding-input-row">
+            <input
+              type="text"
+              id="modding-input"
+              placeholder="Type a mod request..."
+              autocomplete="off"
+            />
+            <button id="modding-send">Send</button>
+          </div>
+          <div class="modding-footer">
+            <button id="modding-reset">Reset Rules</button>
+          </div>
+        </div>
       </div>
     </main>
     <div class="touch-controls" id="touch-controls">
       <div class="touch-dpad">
         <button class="touch-btn touch-btn-left" data-key="ArrowLeft">◀</button>
-        <button class="touch-btn touch-btn-right" data-key="ArrowRight">▶</button>
+        <button class="touch-btn touch-btn-right" data-key="ArrowRight">
+          ▶
+        </button>
       </div>
       <div class="touch-actions">
-        <button class="touch-btn touch-btn-action touch-btn-dash" data-key="ShiftLeft">DASH</button>
-        <button class="touch-btn touch-btn-action touch-btn-jump" data-key="Space">JUMP</button>
+        <button
+          class="touch-btn touch-btn-action touch-btn-dash"
+          data-key="ShiftLeft"
+        >
+          DASH
+        </button>
+        <button
+          class="touch-btn touch-btn-action touch-btn-jump"
+          data-key="Space"
+        >
+          JUMP
+        </button>
       </div>
       <button class="touch-btn touch-btn-pause" data-key="KeyP">⏸</button>
-      <button class="touch-btn touch-btn-fullscreen" id="fullscreen-btn">⛶</button>
+      <button class="touch-btn touch-btn-fullscreen" id="fullscreen-btn">
+        ⛶
+      </button>
+      <button class="touch-btn touch-btn-modding" id="modding-trigger">AI</button>
     </div>
     <script type="module" src="src/main.js"></script>
   </body>
