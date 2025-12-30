@@ -66,7 +66,11 @@ export type PlayerEvents = {
 
 const PLAYER_ANIMATIONS = {
   idle: { frames: ["player"], frameRate: 1, loop: true },
-  run: { frames: ["player_run1", "player_run2"], frameRate: 10, loop: true },
+  run: {
+    frames: ["player_run1", "player_run3", "player_run2", "player_run4"],
+    frameRate: 12,
+    loop: true,
+  },
   jump: { frames: ["player_jump"], frameRate: 1, loop: true },
   fall: { frames: ["player_jump"], frameRate: 1, loop: true },
   death: { frames: ["player_death"], frameRate: 1, loop: false },

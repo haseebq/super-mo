@@ -28,6 +28,18 @@ const VECTOR_SPRITES: VectorSpriteDef[] = [
     h: 24,
   },
   {
+    id: "player_run3",
+    path: "assets/vectors/sprites/player_run3.svg",
+    w: 16,
+    h: 24,
+  },
+  {
+    id: "player_run4",
+    path: "assets/vectors/sprites/player_run4.svg",
+    w: 16,
+    h: 24,
+  },
+  {
     id: "player_jump",
     path: "assets/vectors/sprites/player_jump.svg",
     w: 16,
