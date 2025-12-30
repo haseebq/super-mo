@@ -2,6 +2,12 @@
 
 A Mario-style platformer game with vector SVG art authored by the coding agent.
 
+## 🎮 Play Online
+
+**[Play Super Mo Now!](https://haseebq.github.io/super-mo/)**
+
+The game is automatically deployed via GitHub Pages on every commit to master.
+
 ## 100% Vibe Coded
 
 **This entire codebase was written by AI assistants (Claude and Codex) with zero human-written code.**
