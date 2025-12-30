@@ -1823,14 +1823,17 @@ const moddingHistory = requireElement<HTMLDivElement>("#modding-history");
 const moddingCloseBtn = requireElement<HTMLButtonElement>("#modding-close");
 const moddingSendBtn = requireElement<HTMLButtonElement>("#modding-send");
 const moddingResetBtn = requireElement<HTMLButtonElement>("#modding-reset");
+const moddingToggle = document.getElementById("modding-toggle");
 
 function toggleModdingUI() {
   const isHidden = moddingOverlay.classList.contains("is-hidden");
   if (isHidden) {
     moddingOverlay.classList.remove("is-hidden");
+    moddingToggle?.classList.add("is-active");
     moddingInput.focus();
   } else {
     moddingOverlay.classList.add("is-hidden");
+    moddingToggle?.classList.remove("is-active");
     canvas.focus();
   }
 }
@@ -1917,5 +1920,16 @@ if (moddingTrigger) {
     if (!moddingOverlay.classList.contains("is-hidden")) {
       moddingInput.focus();
     }
+  });
+}
+
+// Always-visible modding toggle button in game shell
+if (moddingToggle) {
+  moddingToggle.addEventListener("touchend", (e) => {
+    e.preventDefault();
+    toggleModdingUI();
+  });
+  moddingToggle.addEventListener("click", () => {
+    toggleModdingUI();
   });
 }
