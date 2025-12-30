@@ -97,3 +97,8 @@ Store rigs alongside art (proposed path: `assets/rigs/NAME.rig.json`).
 
 ## Preview Tool
 Use `docs/tools/rig-preview.html` for a quick sanity check of bone pivots and attachments.
+
+## Sample Assets
+- `assets/vectors/player.svg`
+- `assets/rigs/player.rig.json`
+- `assets/rigs/player.anim.json`
