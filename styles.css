@@ -325,6 +325,9 @@ body {
   .touch-btn-dash {
     display: none;
   }
+  .modding-toggle {
+    display: none;
+  }
 }
 
 /* Touch Controls */
