@@ -1,9 +1,15 @@
 import { createLoop } from "./core/loop.js";
+import { activeRules } from "./game/modding/rules.js";
+import { ModdingAPI } from "./game/modding/api.js";
 import { createRenderer } from "./core/renderer.js";
 import { createInput } from "./core/input.js";
 import { loadImage, loadJson } from "./core/assets.js";
 import { createAudio } from "./core/audio.js";
-import { getCurrentFrame, setAnimation, updateAnimation } from "./core/animation.js";
+import {
+  getCurrentFrame,
+  setAnimation,
+  updateAnimation,
+} from "./core/animation.js";
 import { bouncePlayer, createPlayer, updatePlayer } from "./game/player.js";
 import {
   createLevel1,
@@ -18,7 +24,13 @@ import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createFlit, updateFlit } from "./game/enemies/flit.js";
 import { createParticles } from "./game/particles.js";
-import type { Checkpoint, Collectible, Level, MovingPlatform, Rect } from "./game/level.js";
+import type {
+  Checkpoint,
+  Collectible,
+  Level,
+  MovingPlatform,
+  Rect,
+} from "./game/level.js";
 import type { Player } from "./game/player.js";
 import type { MoombaEnemy } from "./game/enemies/moomba.js";
 import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
@@ -30,7 +42,14 @@ type AssetFrame = { x: number; y: number; w: number; h: number };
 type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
 type Camera = { x: number; y: number };
 type HudState = { lives: number; score: number; coins: number; shards: number };
-type Mode = "title" | "story" | "intro" | "playing" | "paused" | "complete" | "death";
+type Mode =
+  | "title"
+  | "story"
+  | "intro"
+  | "playing"
+  | "paused"
+  | "complete"
+  | "death";
 type Enemy = MoombaEnemy | SpikeletEnemy | FlitEnemy;
 
 type GameState = {
@@ -91,6 +110,7 @@ declare global {
   interface Window {
     __SUPER_MO__?: {
       state: GameState;
+      modding: ModdingAPI;
       setMode: (mode: Mode) => void;
       resetPlayer: () => void;
       setDebug: (flags: { tiles?: boolean; labels?: boolean }) => void;
@@ -125,16 +145,23 @@ const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
 const hudAudio = requireElement<HTMLSpanElement>("#hud-audio");
 const hudCheckpoint = requireElement<HTMLSpanElement>("#hud-checkpoint");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
-const completeBreakdown = requireElement<HTMLParagraphElement>("#complete-breakdown");
+const completeBreakdown = requireElement<HTMLParagraphElement>(
+  "#complete-breakdown"
+);
 const introTitle = requireElement<HTMLHeadingElement>("#intro-title");
 const introGoal = requireElement<HTMLParagraphElement>("#intro-goal");
 const introCollect = requireElement<HTMLParagraphElement>("#intro-collect");
-const introDifficulty = requireElement<HTMLParagraphElement>("#intro-difficulty");
+const introDifficulty =
+  requireElement<HTMLParagraphElement>("#intro-difficulty");
 const storySpeaker = requireElement<HTMLParagraphElement>("#story-speaker");
 const storyText = requireElement<HTMLParagraphElement>("#story-text");
-const controlHints = Array.from(document.querySelectorAll<HTMLParagraphElement>(".controls"));
+const controlHints = Array.from(
+  document.querySelectorAll<HTMLParagraphElement>(".controls")
+);
 const debugToggle = document.querySelector<HTMLInputElement>("#debug-toggle");
-const pauseOptions = Array.from(document.querySelectorAll<HTMLSpanElement>(".pause-option"));
+const pauseOptions = Array.from(
+  document.querySelectorAll<HTMLSpanElement>(".pause-option")
+);
 
 const spawnPoint = { x: 100, y: 152 };
 const LEVEL_TIME_LIMITS = [140, 120, 100];
@@ -150,7 +177,10 @@ const DIFFICULTY_SPEED = [0.85, 1, 1.2];
 const DEFAULT_CONTROLS = { jump: "KeyZ", run: "KeyX" };
 const STORY_LINES = [
   { speaker: "Guide", text: "Welcome, runner. The valley is waking up." },
-  { speaker: "Guide", text: "Reach the goal flag and gather coins and shards." },
+  {
+    speaker: "Guide",
+    text: "Reach the goal flag and gather coins and shards.",
+  },
   { speaker: "Guide", text: "Use your jump and run boosts to cross the gaps." },
   { speaker: "Guide", text: "Each checkpoint will hold your progress." },
 ];
@@ -210,7 +240,11 @@ const state: GameState = {
   player: createPlayer(spawnPoint.x, spawnPoint.y),
   level: LEVELS[0](),
   levelIndex: 0,
-  enemies: [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)],
+  enemies: [
+    createMoomba(160, 160),
+    createSpikelet(240, 160),
+    createFlit(520, 80, 24),
+  ],
   particles: createParticles(),
   assets: null,
   assetsReady: false,
@@ -259,7 +293,10 @@ const state: GameState = {
   storySeen: false,
   debugTiles: DEBUG_FLAGS.has("debugTiles"),
   debugLabels: DEBUG_FLAGS.has("debugLabels"),
-  debugPaint: DEBUG_FLAGS.has("debugPaint") || DEBUG_FLAGS.has("debugTiles") || DEBUG_FLAGS.has("debugLabels"),
+  debugPaint:
+    DEBUG_FLAGS.has("debugPaint") ||
+    DEBUG_FLAGS.has("debugTiles") ||
+    DEBUG_FLAGS.has("debugLabels"),
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
@@ -287,7 +324,9 @@ function update(dt: number) {
   }
 
   if (state.mode === "title") {
-    state.titleScroll = (state.titleScroll + dt * 30) % (state.level.width * state.level.tileSize);
+    state.titleScroll =
+      (state.titleScroll + dt * 30) %
+      (state.level.width * state.level.tileSize);
     if (input.consumePress("KeyJ")) {
       state.controls.jump = state.controls.jump === "KeyZ" ? "Space" : "KeyZ";
       localStorage.setItem("supermo-controls", JSON.stringify(state.controls));
@@ -303,7 +342,7 @@ function update(dt: number) {
       resetLevel();
       setMode("intro");
     }
-    
+
     setAnimation(state.player.anim, "run");
     updateAnimation(state.player.anim, dt);
 
@@ -342,7 +381,8 @@ function update(dt: number) {
       updatePauseMenu();
     }
     if (input.consumePress("ArrowUp")) {
-      state.pauseSelection = (state.pauseSelection - 1 + pauseOptions.length) % pauseOptions.length;
+      state.pauseSelection =
+        (state.pauseSelection - 1 + pauseOptions.length) % pauseOptions.length;
       updatePauseMenu();
     }
     if (input.consumePress("Enter")) {
@@ -443,13 +483,25 @@ function update(dt: number) {
     state.player.vx = state.knockbackVelocity;
   }
   const controlInput = state.knockbackTimer > 0 ? neutralInput : input;
-  const events = updatePlayer(state.player, controlInput, dt, state.level, speedBoost, state.controls);
+  const events = updatePlayer(
+    state.player,
+    controlInput,
+    dt,
+    state.level,
+    speedBoost,
+    state.controls
+  );
   if (events.jumped) {
     audio.playJump();
     state.playerSquash = -0.12;
   }
   if (!wasOnGround && state.player.onGround && prevVy > 120) {
-    state.particles.spawn(state.player.x + 8, state.player.y + state.player.height, 6, "#d4a86a");
+    state.particles.spawn(
+      state.player.x + 8,
+      state.player.y + state.player.height,
+      6,
+      "#d4a86a"
+    );
     state.playerSquash = 0.18;
   }
   if (prevVy < 0 && state.player.vy >= 0) {
@@ -471,8 +523,9 @@ function update(dt: number) {
     const timeBonus = Math.ceil(state.levelTimeRemaining) * 10;
     state.completeTimeBonus = timeBonus;
     state.completeGoalBonus = 500;
-    state.completeCoinScore = state.hud.coins * 10;
-    state.completeShardScore = state.hud.shards * 50;
+    state.completeCoinScore = state.hud.coins * activeRules.scoring.coinValue;
+    state.completeShardScore =
+      state.hud.shards * activeRules.scoring.shardValue;
     state.hud.score += state.completeGoalBonus + state.completeTimeBonus;
     updateHud();
     updateCompleteSummary();
@@ -547,7 +600,8 @@ function render() {
   }
 
   renderer.ctx.save();
-  const shakeMagnitude = state.cameraShakeTimer > 0 ? state.cameraShakeStrength : 0;
+  const shakeMagnitude =
+    state.cameraShakeTimer > 0 ? state.cameraShakeStrength : 0;
   const shakeX = shakeMagnitude ? (Math.random() - 0.5) * shakeMagnitude : 0;
   const shakeY = shakeMagnitude ? (Math.random() - 0.5) * shakeMagnitude : 0;
   renderer.ctx.translate(-state.camera.x + shakeX, -state.camera.y + shakeY);
@@ -578,25 +632,52 @@ function render() {
       if (state.hitFlashTimer > 0) {
         renderer.ctx.save();
         renderer.ctx.globalAlpha = 0.4;
-        renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#ff5b4a");
+        renderer.rect(
+          state.player.x,
+          state.player.y,
+          state.player.width,
+          state.player.height,
+          "#ff5b4a"
+        );
         renderer.ctx.restore();
       }
     } else {
-      renderer.rect(state.player.x, state.player.y, state.player.width, state.player.height, "#e04b3a");
+      renderer.rect(
+        state.player.x,
+        state.player.y,
+        state.player.width,
+        state.player.height,
+        "#e04b3a"
+      );
     }
   }
 
   for (const enemy of state.enemies) {
-    if (!enemy.alive && (!("stompedTimer" in enemy) || enemy.stompedTimer === 0)) {
+    if (
+      !enemy.alive &&
+      (!("stompedTimer" in enemy) || enemy.stompedTimer === 0)
+    ) {
       continue;
     }
     if (state.assetsReady) {
       const isStomped = "stompedTimer" in enemy && enemy.stompedTimer > 0;
       if (enemy.kind === "moomba") {
         if (isStomped) {
-          drawSpriteScaled("moomba", enemy.x, enemy.y + 6, 1.1, 0.4, enemy.vx > 0);
+          drawSpriteScaled(
+            "moomba",
+            enemy.x,
+            enemy.y + 6,
+            1.1,
+            0.4,
+            enemy.vx > 0
+          );
         } else {
-          drawSprite(getCurrentFrame(enemy.anim), enemy.x, enemy.y, enemy.vx > 0);
+          drawSprite(
+            getCurrentFrame(enemy.anim),
+            enemy.x,
+            enemy.y,
+            enemy.vx > 0
+          );
         }
       }
       if (enemy.kind === "spikelet") {
@@ -623,7 +704,6 @@ function render() {
   state.particles.draw(renderer);
 
   renderer.ctx.restore();
-
 }
 
 function drawLevel(level: Level) {
@@ -675,17 +755,25 @@ function drawTileDebug(level: Level) {
 }
 
 function drawSpriteLabels() {
-  renderer.text(getCurrentFrame(state.player.anim), state.player.x, state.player.y - 6, "#2b2b2b");
+  renderer.text(
+    getCurrentFrame(state.player.anim),
+    state.player.x,
+    state.player.y - 6,
+    "#2b2b2b"
+  );
   for (const enemy of state.enemies) {
-    if (!enemy.alive && (!("stompedTimer" in enemy) || enemy.stompedTimer === 0)) {
+    if (
+      !enemy.alive &&
+      (!("stompedTimer" in enemy) || enemy.stompedTimer === 0)
+    ) {
       continue;
     }
     const label =
       enemy.kind === "moomba"
         ? getCurrentFrame(enemy.anim)
         : enemy.kind === "spikelet"
-          ? "spikelet"
-          : "flit";
+        ? "spikelet"
+        : "flit";
     renderer.text(label, enemy.x, enemy.y - 6, "#2b2b2b");
   }
 }
@@ -693,7 +781,13 @@ function drawSpriteLabels() {
 function drawPlatforms(platforms: MovingPlatform[]) {
   for (const platform of platforms) {
     const color = platform.kind === "vertical" ? "#7b4a6d" : "#4a2b3f";
-    renderer.rect(platform.x, platform.y, platform.width, platform.height, color);
+    renderer.rect(
+      platform.x,
+      platform.y,
+      platform.width,
+      platform.height,
+      color
+    );
   }
 }
 
@@ -702,13 +796,36 @@ function drawCloud(x: number, y: number, scale: number, tone: string) {
   ctx.fillStyle = tone;
   ctx.beginPath();
   ctx.ellipse(x, y, 18 * scale, 10 * scale, 0, 0, Math.PI * 2);
-  ctx.ellipse(x + 18 * scale, y - 4 * scale, 16 * scale, 12 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(
+    x + 18 * scale,
+    y - 4 * scale,
+    16 * scale,
+    12 * scale,
+    0,
+    0,
+    Math.PI * 2
+  );
   ctx.ellipse(x + 36 * scale, y, 20 * scale, 12 * scale, 0, 0, Math.PI * 2);
-  ctx.ellipse(x + 20 * scale, y + 6 * scale, 22 * scale, 10 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(
+    x + 20 * scale,
+    y + 6 * scale,
+    22 * scale,
+    10 * scale,
+    0,
+    0,
+    Math.PI * 2
+  );
   ctx.fill();
 }
 
-function drawHill(x: number, baseY: number, width: number, height: number, fill: string, shadow: string) {
+function drawHill(
+  x: number,
+  baseY: number,
+  width: number,
+  height: number,
+  fill: string,
+  shadow: string
+) {
   const ctx = renderer.ctx;
   ctx.fillStyle = fill;
   ctx.beginPath();
@@ -720,7 +837,12 @@ function drawHill(x: number, baseY: number, width: number, height: number, fill:
   ctx.fillStyle = shadow;
   ctx.beginPath();
   ctx.moveTo(x + width * 0.15, baseY);
-  ctx.quadraticCurveTo(x + width * 0.45, baseY - height * 0.75, x + width * 0.7, baseY);
+  ctx.quadraticCurveTo(
+    x + width * 0.45,
+    baseY - height * 0.75,
+    x + width * 0.7,
+    baseY
+  );
   ctx.closePath();
   ctx.fill();
 }
@@ -806,14 +928,14 @@ function drawCollectibles() {
       powerup.kind === "spring"
         ? "#78c7f0"
         : powerup.kind === "speed"
-          ? "#f6d44d"
-          : "#5dbb63";
+        ? "#f6d44d"
+        : "#5dbb63";
     const inner =
       powerup.kind === "spring"
         ? "#f6d44d"
         : powerup.kind === "speed"
-          ? "#e04b3a"
-          : "#ffffff";
+        ? "#e04b3a"
+        : "#ffffff";
     renderer.rect(powerup.x + 2, powerup.y + 2 + bob, 12, 12, outer);
     renderer.rect(powerup.x + 5, powerup.y + 5 + bob, 6, 6, inner);
   }
@@ -852,15 +974,33 @@ function drawPrompts() {
     { x: 360, y: 96, text: "Grab coins + shards" },
   ];
   for (const prompt of prompts) {
-    renderer.rect(prompt.x - 6, prompt.y - 12, 140, 18, "rgba(255,255,255,0.8)");
+    renderer.rect(
+      prompt.x - 6,
+      prompt.y - 12,
+      140,
+      18,
+      "rgba(255,255,255,0.8)"
+    );
     renderer.text(prompt.text, prompt.x, prompt.y, "#2b2b2b");
   }
 }
 
 function drawLandmark() {
   const { landmark } = state.level;
-  renderer.rect(landmark.x, landmark.y, landmark.width, landmark.height, "#2b2b2b");
-  renderer.rect(landmark.x + 4, landmark.y + 4, landmark.width - 8, landmark.height - 8, "#e04b3a");
+  renderer.rect(
+    landmark.x,
+    landmark.y,
+    landmark.width,
+    landmark.height,
+    "#2b2b2b"
+  );
+  renderer.rect(
+    landmark.x + 4,
+    landmark.y + 4,
+    landmark.width - 8,
+    landmark.height - 8,
+    "#e04b3a"
+  );
   renderer.rect(landmark.x + 12, landmark.y + 20, 8, 16, "#f6d44d");
 }
 
@@ -879,10 +1019,15 @@ function renderTitlePreview() {
     drawPlatforms(state.level.platforms);
     drawCollectibles();
     drawLandmark();
-    
+
     // Render player preview if we want it on title screen
     if (state.assetsReady) {
-      drawSprite(getCurrentFrame(state.player.anim), state.player.x, state.player.y, state.player.facing < 0);
+      drawSprite(
+        getCurrentFrame(state.player.anim),
+        state.player.x,
+        state.player.y,
+        state.player.facing < 0
+      );
     }
 
     for (const enemy of state.enemies) {
@@ -891,12 +1036,14 @@ function renderTitlePreview() {
       }
       if (state.assetsReady) {
         if (enemy.kind === "moomba") {
-          drawSprite(getCurrentFrame(enemy.anim), enemy.x, enemy.y, enemy.vx > 0);
+          drawSprite(
+            getCurrentFrame(enemy.anim),
+            enemy.x,
+            enemy.y,
+            enemy.vx > 0
+          );
         } else {
-          const spriteId =
-            enemy.kind === "spikelet"
-              ? "spikelet"
-              : "flit";
+          const spriteId = enemy.kind === "spikelet" ? "spikelet" : "flit";
           drawSprite(spriteId, enemy.x, enemy.y);
         }
       } else {
@@ -904,8 +1051,8 @@ function renderTitlePreview() {
           enemy.kind === "spikelet"
             ? "#4a2b3f"
             : enemy.kind === "flit"
-              ? "#5dbb63"
-              : "#7b4a6d";
+            ? "#5dbb63"
+            : "#7b4a6d";
         renderer.rect(enemy.x, enemy.y, enemy.width, enemy.height, color);
       }
     }
@@ -934,7 +1081,18 @@ function drawSprite(id: string, x: number, y: number, flipX = false) {
   }
   const width = frame.w * state.assetScale;
   const height = frame.h * state.assetScale;
-  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, x, y, width, height, flipX);
+  renderer.sprite(
+    state.assets.image,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    x,
+    y,
+    width,
+    height,
+    flipX
+  );
 }
 
 function drawSpriteScaled(
@@ -958,7 +1116,18 @@ function drawSpriteScaled(
   const height = baseHeight * scaleY;
   const dx = x + (baseWidth - width) / 2;
   const dy = y + (baseHeight - height);
-  renderer.sprite(state.assets.image, frame.x, frame.y, frame.w, frame.h, dx, dy, width, height, flipX);
+  renderer.sprite(
+    state.assets.image,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    dx,
+    dy,
+    width,
+    height,
+    flipX
+  );
 }
 
 function handleEnemyCollisions() {
@@ -1001,7 +1170,7 @@ function handleCollectibles() {
     if (overlaps(state.player, coin)) {
       coin.collected = true;
       state.hud.coins += 1;
-      state.hud.score += 10;
+      state.hud.score += activeRules.scoring.coinValue;
       updateHud();
       audio.playCoin();
       state.particles.spawn(coin.x + 8, coin.y + 8, 6, "#f6d44d");
@@ -1015,7 +1184,7 @@ function handleCollectibles() {
     if (overlaps(state.player, shard)) {
       shard.collected = true;
       state.hud.shards += 1;
-      state.hud.score += 50;
+      state.hud.score += activeRules.scoring.shardValue;
       updateHud();
       audio.playShard();
       state.particles.spawn(shard.x + 8, shard.y + 8, 10, "#78c7f0");
@@ -1035,7 +1204,7 @@ function handleCollectibles() {
       } else {
         state.shieldTimer = 6;
       }
-      state.hud.score += 25;
+      state.hud.score += activeRules.scoring.powerupValue;
       updateHud();
       audio.playPowerup();
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
@@ -1079,9 +1248,20 @@ function resetLevel() {
   state.level = LEVELS[state.levelIndex]();
   state.enemies =
     state.levelIndex === 0
-      ? [createMoomba(220, 160), createSpikelet(360, 160), createFlit(560, 80, 24)]
-      : [createMoomba(160, 160), createSpikelet(240, 160), createFlit(520, 80, 24)];
-  applyDifficultyToEnemies(state.enemies, DIFFICULTY_SPEED[state.difficultyIndex]);
+      ? [
+          createMoomba(220, 160),
+          createSpikelet(360, 160),
+          createFlit(560, 80, 24),
+        ]
+      : [
+          createMoomba(160, 160),
+          createSpikelet(240, 160),
+          createFlit(520, 80, 24),
+        ];
+  applyDifficultyToEnemies(
+    state.enemies,
+    DIFFICULTY_SPEED[state.difficultyIndex]
+  );
   state.particles = createParticles();
   state.hud.coins = 0;
   state.hud.shards = 0;
@@ -1162,7 +1342,11 @@ function updateCamera(dt: number) {
   const targetLookY =
     state.player.vy < -40 ? -18 : state.player.vy > 40 ? 22 : 0;
   state.cameraLookY = approach(state.cameraLookY, targetLookY, 140 * dt);
-  const targetX = state.player.x + state.player.width / 2 - canvas.width / 2 + state.cameraLook;
+  const targetX =
+    state.player.x +
+    state.player.width / 2 -
+    canvas.width / 2 +
+    state.cameraLook;
   const offset = targetX - state.camera.x;
   const deadZone = 6;
   if (Math.abs(offset) > deadZone) {
@@ -1171,7 +1355,11 @@ function updateCamera(dt: number) {
   }
   state.camera.x = clamp(state.camera.x, 0, maxX);
 
-  const targetY = state.player.y + state.player.height / 2 - canvas.height / 2 + state.cameraLookY;
+  const targetY =
+    state.player.y +
+    state.player.height / 2 -
+    canvas.height / 2 +
+    state.cameraLookY;
   const offsetY = targetY - state.camera.y;
   const deadZoneY = 4;
   if (Math.abs(offsetY) > deadZoneY) {
@@ -1267,7 +1455,10 @@ function updateStory(dt: number) {
     return;
   }
   state.storyTimer += dt;
-  const targetChars = Math.min(entry.text.length, Math.floor(state.storyTimer * 30));
+  const targetChars = Math.min(
+    entry.text.length,
+    Math.floor(state.storyTimer * 30)
+  );
   if (targetChars !== state.storyCharCount) {
     state.storyCharCount = targetChars;
     updateStoryText();
@@ -1292,8 +1483,12 @@ function updateStory(dt: number) {
 
 function updateIntroCard() {
   const levelNumber = state.levelIndex + 1;
-  const difficultyLabel = DIFFICULTY_SPEED[state.difficultyIndex] < 1 ? "Easy" :
-    DIFFICULTY_SPEED[state.difficultyIndex] > 1 ? "Hard" : "Normal";
+  const difficultyLabel =
+    DIFFICULTY_SPEED[state.difficultyIndex] < 1
+      ? "Easy"
+      : DIFFICULTY_SPEED[state.difficultyIndex] > 1
+      ? "Hard"
+      : "Normal";
   introTitle.textContent = `Level ${levelNumber}`;
   introGoal.textContent = "Reach the goal flag.";
   introCollect.textContent = `Collect ${state.level.coins.length} coins and ${state.level.shards.length} shards.`;
@@ -1307,7 +1502,8 @@ function updatePlatforms(platforms: MovingPlatform[], dt: number) {
     const prevY = platform.y;
     if (platform.kind === "vertical") {
       platform.angle += (twoPi / platform.period) * dt;
-      platform.y = platform.baseY + Math.sin(platform.angle) * platform.amplitude;
+      platform.y =
+        platform.baseY + Math.sin(platform.angle) * platform.amplitude;
       platform.x = platform.baseX;
     } else {
       platform.angle += (twoPi / platform.period) * dt;
@@ -1468,7 +1664,8 @@ async function createDebugPaintedImage(
   debugImage.src = canvas.toDataURL();
   await new Promise<void>((resolve, reject) => {
     debugImage.onload = () => resolve();
-    debugImage.onerror = () => reject(new Error("Failed to load debug-painted image"));
+    debugImage.onerror = () =>
+      reject(new Error("Failed to load debug-painted image"));
   });
   return debugImage;
 }
@@ -1478,10 +1675,15 @@ async function loadAssets() {
     let image: HTMLImageElement | null = null;
     let atlas: Record<string, AssetFrame> | null = null;
     try {
-      atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.prod.json");
+      atlas = await loadJson<Record<string, AssetFrame>>(
+        "assets/sprites.prod.json"
+      );
       image = await loadImage("assets/sprites.prod.png");
     } catch (error) {
-      console.warn("Production sprites missing, falling back to placeholder assets.", error);
+      console.warn(
+        "Production sprites missing, falling back to placeholder assets.",
+        error
+      );
       atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.json");
       image = await loadImage("assets/sprites.svg");
     }
@@ -1496,13 +1698,45 @@ async function loadAssets() {
   }
 }
 
+const moddingAPI = new ModdingAPI({
+  getState: () => state,
+  removeEntities: (filter) => {
+    let removed = 0;
+    if (filter.kind === "coin") {
+      for (const coin of state.level.coins) {
+        if (!coin.collected) {
+          coin.collected = true;
+          removed++;
+        }
+      }
+    }
+    if (filter.kind === "enemy") {
+      for (const enemy of state.enemies) {
+        if (enemy.alive) {
+          enemy.alive = false;
+          removed++;
+        }
+      }
+    }
+    return removed;
+  },
+  setPlayerAbility: (ability, active) => {
+    if (ability === "invincible") {
+      state.invulnerableTimer = active ? 3600 : 0;
+    }
+  },
+});
+
 window.__SUPER_MO__ = {
   state,
+  modding: moddingAPI,
   setMode,
   resetPlayer,
   setDebug(flags: { tiles?: boolean; labels?: boolean }) {
-    const tiles = typeof flags.tiles === "boolean" ? flags.tiles : state.debugTiles;
-    const labels = typeof flags.labels === "boolean" ? flags.labels : state.debugLabels;
+    const tiles =
+      typeof flags.tiles === "boolean" ? flags.tiles : state.debugTiles;
+    const labels =
+      typeof flags.labels === "boolean" ? flags.labels : state.debugLabels;
     setDebugState(tiles, labels, false);
   },
 };
@@ -1562,10 +1796,14 @@ pauseOverlay.addEventListener("click", (e) => {
 const fullscreenBtn = document.getElementById("fullscreen-btn");
 if (fullscreenBtn) {
   fullscreenBtn.addEventListener("click", toggleFullscreen);
-  fullscreenBtn.addEventListener("touchend", (e) => {
-    e.preventDefault();
-    toggleFullscreen();
-  }, { passive: false });
+  fullscreenBtn.addEventListener(
+    "touchend",
+    (e) => {
+      e.preventDefault();
+      toggleFullscreen();
+    },
+    { passive: false }
+  );
 }
 
 function toggleFullscreen() {

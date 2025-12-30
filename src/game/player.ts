@@ -1,22 +1,27 @@
+import { activeRules } from "./modding/rules.js";
 import { isSolid } from "./level.js";
-import { createAnimationState, setAnimation, updateAnimation } from "../core/animation.js";
+import {
+  createAnimationState,
+  setAnimation,
+  updateAnimation,
+} from "../core/animation.js";
 import type { AnimationState } from "../core/animation.js";
 import type { Level } from "./level.js";
 import type { InputState } from "../core/input.js";
 
 const TILE_SIZE = 16;
 const WALK_SPEED = 1.6 * TILE_SIZE;
-const RUN_SPEED = 2.6 * TILE_SIZE;
+// const RUN_SPEED = 2.6 * TILE_SIZE; // Moved to activeRules
 const ACCEL = 10 * TILE_SIZE;
 const DECEL = 12 * TILE_SIZE;
 const AIR_CONTROL = 0.7;
-const JUMP_IMPULSE = 8.4 * TILE_SIZE;
-const GRAVITY = 9.5 * TILE_SIZE;
+// const JUMP_IMPULSE = 8.4 * TILE_SIZE; // Moved to activeRules
+// GRAVITY moved to activeRules
 const COYOTE_TIME = 0.12;
 const JUMP_BUFFER = 0.12;
 const SHORT_HOP_WINDOW = 0.12;
 const SHORT_HOP_FACTOR = 0.45;
-const STOMP_BOUNCE = 0.75 * JUMP_IMPULSE;
+const STOMP_BOUNCE = 0.75 * 8.4 * TILE_SIZE;
 const WALL_SLIDE_SPEED = 1.5 * TILE_SIZE;
 const WALL_JUMP_IMPULSE = 7 * TILE_SIZE;
 const WALL_JUMP_HORIZONTAL = 3 * TILE_SIZE;
@@ -96,9 +101,10 @@ function resolveHorizontal(player: Player, level: Level) {
   }
 
   const tileSize = level.tileSize;
-  const leadingX = player.vx > 0
-    ? Math.floor((player.x + player.width - 1) / tileSize)
-    : Math.floor(player.x / tileSize);
+  const leadingX =
+    player.vx > 0
+      ? Math.floor((player.x + player.width - 1) / tileSize)
+      : Math.floor(player.x / tileSize);
   const top = Math.floor(player.y / tileSize);
   const bottom = Math.floor((player.y + player.height - 1) / tileSize);
 
@@ -153,9 +159,10 @@ function resolveVertical(player: Player, level: Level) {
   }
 
   const tileSize = level.tileSize;
-  const leadingY = player.vy > 0
-    ? Math.floor((player.y + player.height - 1) / tileSize)
-    : Math.floor(player.y / tileSize);
+  const leadingY =
+    player.vy > 0
+      ? Math.floor((player.y + player.height - 1) / tileSize)
+      : Math.floor(player.y / tileSize);
   const left = Math.floor(player.x / tileSize);
   const right = Math.floor((player.x + player.width - 1) / tileSize);
 
@@ -195,8 +202,9 @@ export function updatePlayer(
     jumped: false,
   };
   // Always run at full speed
-  const speed = RUN_SPEED * speedBoost;
-  const dir = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
+  const speed = activeRules.physics.moveSpeed * speedBoost;
+  const dir =
+    (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
   const accel = (player.onGround ? 1 : AIR_CONTROL) * ACCEL;
 
   // Update dash cooldown
@@ -255,7 +263,7 @@ export function updatePlayer(
 
   const canJump = player.coyoteTimer > 0;
   if (player.jumpBufferTimer > 0 && canJump) {
-    player.vy = -JUMP_IMPULSE;
+    player.vy = -activeRules.physics.jumpImpulse;
     player.onGround = false;
     player.coyoteTimer = 0;
     player.jumpBufferTimer = 0;
@@ -267,13 +275,17 @@ export function updatePlayer(
   if (!player.onGround && player.vy < 0) {
     player.jumpHoldTime += dt;
     const holdingJump = input.isDown(controls.jump) || input.isDown("Space");
-    if (!holdingJump && !player.jumpCut && player.jumpHoldTime <= SHORT_HOP_WINDOW) {
+    if (
+      !holdingJump &&
+      !player.jumpCut &&
+      player.jumpHoldTime <= SHORT_HOP_WINDOW
+    ) {
       player.vy *= SHORT_HOP_FACTOR;
       player.jumpCut = true;
     }
   }
 
-  player.vy += GRAVITY * dt;
+  player.vy += activeRules.physics.gravity * dt;
 
   // Wall slide (limit fall speed when on wall)
   if (player.onWall && player.vy > WALL_SLIDE_SPEED) {
