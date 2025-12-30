@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vector Rendering Spike</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Georgia", "Times New Roman", serif;
+        background: #f3efe6;
+        color: #2c2c2c;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .panel {
+        width: min(960px, 100%);
+        background: #fff9f0;
+        border: 2px solid #e0d6c8;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(60, 40, 20, 0.12);
+        display: grid;
+        gap: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button {
+        background: #2b2b2b;
+        color: #f7efe3;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+      }
+
+      button.is-active {
+        background: #e04b3a;
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      canvas {
+        width: 100%;
+        height: 420px;
+        border: 1px solid #d0c6b8;
+        background: radial-gradient(circle at 10% 20%, #fff2de, #f2e2c7);
+      }
+
+      .hint {
+        font-size: 13px;
+        color: #6a5b4b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <h1>Vector Rendering Spike</h1>
+      <div class="controls">
+        <button id="mode-image" class="is-active">SVG Image</button>
+        <button id="mode-path">Path2D</button>
+        <label>
+          Sprite Count
+          <input id="sprite-count" type="range" min="25" max="400" value="200" />
+        </label>
+      </div>
+      <div class="readout">
+        <div>Mode: <strong id="mode-label">SVG Image</strong></div>
+        <div>FPS: <strong id="fps">--</strong></div>
+        <div>Sprites: <strong id="sprite-readout">200</strong></div>
+      </div>
+      <canvas id="spike" width="960" height="420"></canvas>
+      <div class="hint">
+        Tip: use DevTools mobile emulation to gauge lower-end performance.
+      </div>
+    </div>
+    <script type="module" src="./vector-rendering.js"></script>
+  </body>
+</html>
