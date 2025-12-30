@@ -121,18 +121,31 @@ type OpRemoveEntities = {
 
 - `kind` must be valid.
 
+## Prompting Layer
+
+The runtime ships with a keyword-based provider for local development:
+
+- `src/game/modding/provider.ts` implements `KeywordModdingProvider`.
+- It maps phrases like "gravity off" or "remove all coins" into patch operations.
+- Providers implement `ModdingProvider` and can be swapped without changing the patch schema.
+
 ## Safety Model
 
-The game runtime maintains a `ModdingSafety` layer that validates every patch before application.
+The runtime validates patches through a small, explicit set of allowed operations and rule-path checks.
 
 ### Validation Rules
 
-1.  **Schema Validation**: The standard `zod` or similar library validation ensures the JSON structure matches the Typescript types.
-2.  **Bounds Checking**:
-    - `physics.gravity`: [0, 5000] (Prevent physics explosions)
-    - `scoring.coinValue`: [0, 1000] (Prevent score overflow)
-3.  **Rate Limiting**: The agent can only apply patches at a specific rate (e.g., once per second) to prevent flooding.
-4.  **Transactionality**: A patch is applied atomically. If any operation fails validation, the entire patch is rejected, and the state remains unchanged.
+1.  **Schema Validation**: Patch structure is validated by TypeScript types and the `ModdingAPI` operation handlers.
+2.  **Path Validation**: `setRule` checks against known rules via `updateRule`.
+3.  **Operation Whitelist**: Only explicit operations (`setRule`, `setAbility`, `removeEntities`) are allowed.
+
+**Why no arbitrary code execution?** Allowing code execution would expose the runtime to security and stability risks. The patch model keeps changes scoped, auditable, and safe to reject.
+
+### Current Gaps
+
+- No numeric bounds checking yet (ex: gravity min/max).
+- No rate limiting or transactional rollback.
+- Validation failures currently return errors but do not block the entire patch.
 
 ## Examples (User Stories)
 
@@ -197,6 +210,7 @@ _(Agent might choose to disable gravity 0 to simulate flight if the game engine 
 
 ## Implementation Plan (Next Steps)
 
-1.  **Define Types**: Create `src/game/modding/types.ts`.
-2.  **Create Registry**: Create `src/game/modding/rules.ts` to define the "tunables" and their bounds.
-3.  **Implement Validator**: Implement the `applyPatch` function with validation logic.
+1.  **Define Types**: Update `src/game/modding/types.ts` if new operations are needed.
+2.  **Extend Rules**: Add tunables in `src/game/modding/rules.ts`.
+3.  **Apply Operations**: Add handling in `src/game/modding/api.ts`.
+4.  **Teach the Provider**: Update `src/game/modding/provider.ts` to map prompts to new ops.
