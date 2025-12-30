@@ -1,6 +1,6 @@
 # Super Mo
 
-A Mario-style platformer game with AI-generated sprite art (pixel today, vector migration planned by the coding agent).
+A Mario-style platformer game with vector SVG art authored by the coding agent.
 
 ## 100% Vibe Coded
 
@@ -16,7 +16,7 @@ All game logic, rendering, physics, audio synthesis, sprite generation pipeline,
 ## Features
 
 - Classic platformer mechanics (run, jump, wall slide, wall jump, dash)
-- AI-generated sprites via InvokeAI/DALL-E pipeline (vector assets will be created by the coding agent)
+- Vector SVG assets authored by the coding agent
 - Synthesized chiptune music and sound effects
 - 6 levels with increasing difficulty
 - Enemies: Moomba (stompable), Spikelet (spiky), Flit (flying)
@@ -80,21 +80,13 @@ npm run test:headed
 
 ## Art Pipeline
 
-Sprites are generated using AI image generation:
-1. Prompts define each sprite (character, enemy, item, tile)
-2. Images generated at 1024x1024 via InvokeAI or OpenAI
-3. Center-cropped to isolate single sprite from AI grids
-4. Background removed via corner color detection
-5. Resized to target dimensions (32x32 or 32x48)
-6. Composited into sprite atlas
+Vector assets live in-repo:
+- Sprites: `assets/vectors/sprites`
+- Rigs + animations: `assets/rigs` + `assets/vectors`
+- HUD + backgrounds: `assets/vectors/hud`, `assets/vectors/backgrounds`
 
-```bash
-# Regenerate sprites (requires InvokeAI or OpenAI API)
-python3 scripts/generate_art.py --provider invokeai
-
-# Build sprite atlas
-python3 scripts/build_atlas.py --mark-production
-```
+Reference:
+- Rigging spec: `docs/vector-rigging-spec.md`
 
 ## License
 

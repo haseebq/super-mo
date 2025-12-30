@@ -4,10 +4,10 @@
 A lightweight, modular HTML5 game built on Canvas 2D. The core loop is a fixed-timestep update with variable rendering to keep physics stable and visuals smooth.
 
 ## Core Decisions
-- **Rendering:** Canvas 2D for fast pixel art rendering.
+- **Rendering:** Canvas 2D for vector SVG rendering.
 - **Resolution:** Internal fixed resolution (e.g., 320x180) scaled to fit viewport.
 - **Loop:** `requestAnimationFrame` with fixed update step (e.g., 16.67ms).
-- **Assets:** Sprite sheets (PNG) and simple JSON metadata.
+- **Assets:** Per-sprite SVG files with lightweight metadata.
 - **Audio:** Web Audio API for low-latency SFX and loops.
 
 ## Directory Layout (Proposed)
@@ -28,8 +28,7 @@ A lightweight, modular HTML5 game built on Canvas 2D. The core loop is a fixed-t
     enemies/         # Enemy types
     levels/          # Level data + scripts
   assets/
-    sprites.png
-    sprites.json
+    vectors/
     audio/
       jump.wav
       stomp.wav

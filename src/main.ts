@@ -4,7 +4,7 @@ import { ModdingAPI } from "./game/modding/api.js";
 import { KeywordModdingProvider } from "./game/modding/provider.js";
 import { createRenderer } from "./core/renderer.js";
 import { createInput } from "./core/input.js";
-import { loadImage, loadJson } from "./core/assets.js";
+import { loadVectorAssets } from "./game/vector-assets.js";
 import { createAudio } from "./core/audio.js";
 import {
   getCurrentFrame,
@@ -39,8 +39,7 @@ import type { FlitEnemy } from "./game/enemies/flit.js";
 import type { Renderer } from "./core/renderer.js";
 import type { InputState } from "./core/input.js";
 
-type AssetFrame = { x: number; y: number; w: number; h: number };
-type Assets = { image: HTMLImageElement; atlas: Record<string, AssetFrame> };
+type Assets = Record<string, { image: HTMLImageElement; w: number; h: number }>;
 type Camera = { x: number; y: number };
 type HudState = { lives: number; score: number; coins: number; shards: number };
 type Mode =
@@ -61,7 +60,6 @@ type GameState = {
   particles: ReturnType<typeof createParticles>;
   assets: Assets | null;
   assetsReady: boolean;
-  assetScale: number;
   camera: Camera;
   cameraLook: number;
   cameraLookY: number;
@@ -249,7 +247,6 @@ const state: GameState = {
   particles: createParticles(),
   assets: null,
   assetsReady: false,
-  assetScale: 1,
   camera: {
     x: 0,
     y: 0,
@@ -1076,22 +1073,20 @@ function drawSprite(id: string, x: number, y: number, flipX = false) {
   if (!state.assets) {
     return;
   }
-  const frame = state.assets.atlas[id];
-  if (!frame) {
+  const sprite = state.assets[id];
+  if (!sprite) {
     return;
   }
-  const width = frame.w * state.assetScale;
-  const height = frame.h * state.assetScale;
   renderer.sprite(
-    state.assets.image,
-    frame.x,
-    frame.y,
-    frame.w,
-    frame.h,
+    sprite.image,
+    0,
+    0,
+    sprite.w,
+    sprite.h,
     x,
     y,
-    width,
-    height,
+    sprite.w,
+    sprite.h,
     flipX
   );
 }
@@ -1107,22 +1102,22 @@ function drawSpriteScaled(
   if (!state.assets) {
     return;
   }
-  const frame = state.assets.atlas[id];
-  if (!frame) {
+  const sprite = state.assets[id];
+  if (!sprite) {
     return;
   }
-  const baseWidth = frame.w * state.assetScale;
-  const baseHeight = frame.h * state.assetScale;
-  const width = baseWidth * scaleX;
-  const height = baseHeight * scaleY;
-  const dx = x + (baseWidth - width) / 2;
-  const dy = y + (baseHeight - height);
+  const baseWidth = sprite.w;
+  const baseHeight = sprite.h;
+  const width = sprite.w * scaleX;
+  const height = sprite.h * scaleY;
+  const dx = x + (sprite.w - width) / 2;
+  const dy = y + (sprite.h - height);
   renderer.sprite(
-    state.assets.image,
-    frame.x,
-    frame.y,
-    frame.w,
-    frame.h,
+    sprite.image,
+    0,
+    0,
+    sprite.w,
+    sprite.h,
     dx,
     dy,
     width,
@@ -1616,83 +1611,9 @@ function triggerCameraShake(duration: number, strength: number) {
   state.cameraShakeStrength = Math.max(state.cameraShakeStrength, strength);
 }
 
-function buildDebugPalette(count: number) {
-  const palette = [
-    "#e04b3a",
-    "#5dbb63",
-    "#78c7f0",
-    "#f6d44d",
-    "#4a2b3f",
-    "#ff8a5c",
-    "#9bc7ff",
-    "#3c7d6b",
-    "#d47b9f",
-    "#7b4a6d",
-    "#f28cb0",
-    "#2b2b2b",
-    "#a37c2e",
-    "#6cc0a2",
-  ];
-  if (count <= palette.length) {
-    return palette;
-  }
-  const extended = [];
-  for (let i = 0; i < count; i += 1) {
-    extended.push(palette[i % palette.length]);
-  }
-  return extended;
-}
-
-async function createDebugPaintedImage(
-  image: HTMLImageElement,
-  atlas: Record<string, AssetFrame>
-): Promise<HTMLImageElement> {
-  const canvas = document.createElement("canvas");
-  canvas.width = image.width;
-  canvas.height = image.height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return image;
-  }
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const entries = Object.entries(atlas).sort(([a], [b]) => a.localeCompare(b));
-  const palette = buildDebugPalette(entries.length);
-  entries.forEach(([_, frame], index) => {
-    ctx.fillStyle = palette[index];
-    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
-  });
-  const debugImage = new Image();
-  debugImage.src = canvas.toDataURL();
-  await new Promise<void>((resolve, reject) => {
-    debugImage.onload = () => resolve();
-    debugImage.onerror = () =>
-      reject(new Error("Failed to load debug-painted image"));
-  });
-  return debugImage;
-}
-
 async function loadAssets() {
   try {
-    let image: HTMLImageElement | null = null;
-    let atlas: Record<string, AssetFrame> | null = null;
-    try {
-      atlas = await loadJson<Record<string, AssetFrame>>(
-        "assets/sprites.prod.json"
-      );
-      image = await loadImage("assets/sprites.prod.png");
-    } catch (error) {
-      console.warn(
-        "Production sprites missing, falling back to placeholder assets.",
-        error
-      );
-      atlas = await loadJson<Record<string, AssetFrame>>("assets/sprites.json");
-      image = await loadImage("assets/sprites.svg");
-    }
-    if (state.debugPaint) {
-      image = await createDebugPaintedImage(image, atlas);
-    }
-    state.assets = { image, atlas };
-    state.assetScale = image.width >= 512 ? 0.5 : 1;
+    state.assets = await loadVectorAssets();
     state.assetsReady = true;
   } catch (error) {
     console.error(error);

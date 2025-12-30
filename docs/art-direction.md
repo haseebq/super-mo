@@ -4,12 +4,12 @@
 Bright, playful, and slightly whimsical. Inspired by classic 16-bit platformers but with a clean, modern read. Shapes are bold, outlines are subtle, and colors are cheerful without being neon.
 
 ## Visual Style
-- **Pixel art** with clean silhouettes
+- **Vector art** with clean silhouettes
 - **Consistent light source** (top-left)
 - **Soft shading** (1-2 shades per color)
 - **Minimal outlines** only where needed for readability
 
-Note: A vector-based art migration is planned. See `docs/vector-art-epic.md`.
+Note: Vector-based art is the default pipeline. See `docs/vector-art-epic.md`.
 
 ## Palette (Base)
 - Sky: #78C7F0
@@ -39,13 +39,13 @@ Note: A vector-based art migration is planned. See `docs/vector-art-epic.md`.
 - Enemies: 2-4 frames each
 
 ## UI Style
-- Chunky pixel font for HUD
+- Bold, legible display font for HUD
 - Clean iconography (coin, life)
 - Minimal clutter
 
 ## References
 - 16-bit era platformers
-- Modern indie pixel art with smooth shading
+- Modern indie platformers with smooth vector animation
 
 ## Production Pipeline
-See `docs/art-pipeline.md` for the 1024x1024 generation prompt template, scaling rules, and atlas integration workflow.
+See `docs/art-pipeline.md` for the vector SVG authoring workflow.

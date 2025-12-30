@@ -1,37 +1,32 @@
-# Super Mo - Sprite Sheet Production Plan
+# Super Mo - Vector Asset Catalog
 
-## Canvas
+## Sizes
 - Base tile: 16x16
-- Character scale: 16x24 (player), 16x16 (enemies)
+- Player: 16x24
+- Enemies: 16x16
 
-## Player (Super Mo)
-- Idle: 4 frames
-- Run: 6 frames
-- Jump: 1 frame
-- Fall: 1 frame
-- Stomp: 2 frames
-- Hurt: 1 frame
+## Player
+- `player.svg`
+- `player_run1.svg`
+- `player_run2.svg`
+- `player_jump.svg`
+- `player_death.svg`
 
 ## Enemies
-- Moomba: 2 frames
-- Spikelet: 2 frames
-- Flit: 2 frames
+- `moomba_walk1.svg`
+- `moomba_walk2.svg`
+- `moomba.svg` (stomped)
+- `spikelet.svg`
+- `flit.svg`
 
 ## Tiles
-- Ground: top/mid/edge/corner (8 tiles)
-- Platform: 4 tiles
-- Question block: 4 frames
-- Solid block: 1 tile
-- One-way platform (optional): 1 tile
+- `block.svg`
+- `goal.svg`
+- `spikelet.svg` (tile hazard)
 
 ## Collectibles
-- Coin: 4 frames
-- Star Shard: 6 frames
+- `coin.svg`
+- `shard.svg`
 
-## Effects
-- Stomp puff: 3 frames
-- Coin sparkle: 3 frames
-
-## Export
-- PNG sprite sheet + JSON atlas
-- Keep 2px padding between sprites
+## Location
+Vector sprites live in `assets/vectors/sprites`.

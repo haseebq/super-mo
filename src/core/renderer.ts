@@ -23,7 +23,7 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
   if (!ctx) {
     throw new Error("Canvas 2D context not available.");
   }
-  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = true;
 
   return {
     clear(color) {

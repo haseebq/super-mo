@@ -19,5 +19,5 @@ A playable single level demonstrating core movement, one enemy, and basic UI/aud
 
 ## Deliverables
 - HTML/JS/CSS scaffold
-- Sprite sheet placeholders or first-pass art
+- Vector sprite placeholders or first-pass art
 - Level data JSON for 1-1

@@ -11,7 +11,7 @@
 - Top-right: Shards (0/1)
 
 ## Typography
-- Pixel font for HUD (legible at small sizes)
+- Bold display font for HUD (legible at small sizes)
 - Title uses a chunky display font
 
 ## Controls Display
