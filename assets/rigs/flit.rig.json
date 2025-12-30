@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "name": "flit",
+  "viewBox": [0, 0, 48, 48],
+  "root": "root",
+  "bones": [
+    { "name": "root", "parent": null, "pivot": [24, 24], "z": 0 },
+    { "name": "body", "parent": "root", "pivot": [24, 24], "z": 1 },
+    { "name": "wing.l", "parent": "body", "pivot": [16, 24], "z": 2 },
+    { "name": "wing.r", "parent": "body", "pivot": [32, 24], "z": 2 },
+    { "name": "eye", "parent": "body", "pivot": [24, 22], "z": 3 }
+  ]
+}

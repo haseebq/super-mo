@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "moomba",
+  "viewBox": [0, 0, 48, 48],
+  "root": "root",
+  "bones": [
+    { "name": "root", "parent": null, "pivot": [24, 30], "z": 0 },
+    { "name": "body", "parent": "root", "pivot": [24, 26], "z": 1 },
+    { "name": "eye.l", "parent": "body", "pivot": [19, 24], "z": 2 },
+    { "name": "eye.r", "parent": "body", "pivot": [29, 24], "z": 2 },
+    { "name": "leg.l", "parent": "root", "pivot": [18, 34], "z": 0 },
+    { "name": "leg.r", "parent": "root", "pivot": [30, 34], "z": 0 }
+  ]
+}

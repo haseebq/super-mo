@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <g id="part:body">
+    <circle cx="24" cy="24" r="8" fill="#5dbb63" />
+  </g>
+  <g id="part:wing.l">
+    <path d="M12 20c-6 2-6 10 0 12" fill="none" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round" />
+  </g>
+  <g id="part:wing.r">
+    <path d="M36 20c6 2 6 10 0 12" fill="none" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round" />
+  </g>
+  <g id="part:eye">
+    <circle cx="24" cy="22" r="1.5" fill="#2b2b2b" />
+  </g>
+</svg>

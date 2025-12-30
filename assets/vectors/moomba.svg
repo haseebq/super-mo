@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <g id="part:body">
+    <ellipse cx="24" cy="26" rx="14" ry="10" fill="#7b4a6d" />
+  </g>
+  <g id="part:eye.l">
+    <circle cx="19" cy="24" r="2" fill="#f5f5f5" />
+    <circle cx="19" cy="24" r="1" fill="#2b2b2b" />
+  </g>
+  <g id="part:eye.r">
+    <circle cx="29" cy="24" r="2" fill="#f5f5f5" />
+    <circle cx="29" cy="24" r="1" fill="#2b2b2b" />
+  </g>
+  <g id="part:leg.l">
+    <rect x="16" y="32" width="5" height="8" rx="2" fill="#2b2b2b" />
+  </g>
+  <g id="part:leg.r">
+    <rect x="27" y="32" width="5" height="8" rx="2" fill="#2b2b2b" />
+  </g>
+</svg>

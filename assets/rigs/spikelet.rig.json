@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "name": "spikelet",
+  "viewBox": [0, 0, 48, 48],
+  "root": "root",
+  "bones": [
+    { "name": "root", "parent": null, "pivot": [24, 26], "z": 0 },
+    { "name": "body", "parent": "root", "pivot": [24, 26], "z": 1 },
+    { "name": "spikes", "parent": "body", "pivot": [24, 26], "z": 2 }
+  ]
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <g id="part:body">
+    <circle cx="24" cy="26" r="9" fill="#2b2b2b" />
+  </g>
+  <g id="part:spikes">
+    <path d="M24 8l3 6h-6z" fill="#7b4a6d" />
+    <path d="M38 20l-6 3v-6z" fill="#7b4a6d" />
+    <path d="M10 20l6 3v-6z" fill="#7b4a6d" />
+    <path d="M24 40l-3-6h6z" fill="#7b4a6d" />
+  </g>
+</svg>

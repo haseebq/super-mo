@@ -1,6 +1,7 @@
 export type Renderer = {
   clear: (color: string) => void;
   rect: (x: number, y: number, w: number, h: number, color: string) => void;
+  circle: (x: number, y: number, r: number, color: string) => void;
   sprite: (
     image: HTMLImageElement,
     sx: number,
@@ -35,6 +36,12 @@ export function createRenderer(canvas: HTMLCanvasElement): Renderer {
     rect(x, y, w, h, color) {
       ctx.fillStyle = color;
       ctx.fillRect(Math.round(x), Math.round(y), w, h);
+    },
+    circle(x, y, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
     },
     sprite(image, sx, sy, sw, sh, dx, dy, dw = sw, dh = sh, flipX = false) {
       if (flipX) {

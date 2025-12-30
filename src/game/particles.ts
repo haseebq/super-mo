@@ -7,6 +7,7 @@ type Particle = {
   vy: number;
   life: number;
   color: string;
+  size: number;
 };
 
 export function createParticles() {
@@ -27,6 +28,7 @@ export function createParticles() {
         vy: -20 - random() * 30,
         life: 0.5,
         color,
+        size: 2,
       });
     }
   }
@@ -46,7 +48,7 @@ export function createParticles() {
 
   function draw(renderer: Renderer) {
     for (const p of particles) {
-      renderer.rect(p.x, p.y, 2, 2, p.color);
+      renderer.circle(p.x, p.y, p.size, p.color);
     }
   }
 

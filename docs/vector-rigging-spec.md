@@ -102,3 +102,12 @@ Use `docs/tools/rig-preview.html` for a quick sanity check of bone pivots and at
 - `assets/vectors/player.svg`
 - `assets/rigs/player.rig.json`
 - `assets/rigs/player.anim.json`
+- `assets/vectors/moomba.svg`
+- `assets/rigs/moomba.rig.json`
+- `assets/rigs/moomba.anim.json`
+- `assets/vectors/flit.svg`
+- `assets/rigs/flit.rig.json`
+- `assets/rigs/flit.anim.json`
+- `assets/vectors/spikelet.svg`
+- `assets/rigs/spikelet.rig.json`
+- `assets/rigs/spikelet.anim.json`

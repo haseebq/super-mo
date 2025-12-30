@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "name": "spikelet",
+  "clips": {
+    "idle": {
+      "duration": 1,
+      "loop": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "bones": {
+            "body": { "scale": { "x": 1, "y": 1 } },
+            "spikes": { "rotation": 0 }
+          },
+          "easing": "easeInOut"
+        },
+        {
+          "time": 0.5,
+          "bones": {
+            "body": { "scale": { "x": 1.05, "y": 0.95 } },
+            "spikes": { "rotation": 0.2 }
+          },
+          "easing": "easeInOut"
+        },
+        {
+          "time": 1,
+          "bones": {
+            "body": { "scale": { "x": 1, "y": 1 } },
+            "spikes": { "rotation": 0 }
+          },
+          "easing": "easeInOut"
+        }
+      ]
+    }
+  }
+}

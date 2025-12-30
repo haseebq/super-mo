@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "name": "moomba",
+  "clips": {
+    "idle": {
+      "duration": 1,
+      "loop": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "bones": { "body": { "translation": { "y": 0 } } },
+          "easing": "easeInOut"
+        },
+        {
+          "time": 0.5,
+          "bones": { "body": { "translation": { "y": -0.5 } } },
+          "easing": "easeInOut"
+        },
+        {
+          "time": 1,
+          "bones": { "body": { "translation": { "y": 0 } } },
+          "easing": "easeInOut"
+        }
+      ]
+    },
+    "walk": {
+      "duration": 0.6,
+      "loop": true,
+      "keyframes": [
+        {
+          "time": 0,
+          "bones": {
+            "leg.l": { "rotation": 0.5 },
+            "leg.r": { "rotation": -0.5 }
+          },
+          "easing": "easeInOut"
+        },
+        {
+          "time": 0.3,
+          "bones": {
+            "leg.l": { "rotation": -0.5 },
+            "leg.r": { "rotation": 0.5 }
+          },
+          "easing": "easeInOut"
+        },
+        {
+          "time": 0.6,
+          "bones": {
+            "leg.l": { "rotation": 0.5 },
+            "leg.r": { "rotation": -0.5 }
+          },
+          "easing": "easeInOut"
+        }
+      ]
+    }
+  }
+}
