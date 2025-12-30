@@ -16,9 +16,7 @@ export const DEFAULT_RULES: ModdingRules = {
   physics: {
     gravity: 9.5 * 16, // From player.ts (9.5 * TILE_SIZE)
     jumpImpulse: 8.4 * 16, // From player.ts
-    moveSpeed: 1.6 * 16, // From player.ts (WALK_SPEED? or RUN_SPEED?)
-    // player.ts has RUN_SPEED = 2.6 * 16.
-    // Let's assume we want to tune RUN_SPEED as 'moveSpeed'.
+    moveSpeed: 2.6 * 16, // From player.ts RUN_SPEED
   },
   scoring: {
     coinValue: 10,
