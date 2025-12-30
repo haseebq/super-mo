@@ -64,6 +64,7 @@ bd sync               # Sync with git
 ## Pre-Commit Checks
 
 - Run the quick test script before every commit (P0 requirement)
+- Run Playwright tests before every commit: `npm run test`
 - Keep the quick test fast: typecheck + smoke test where possible
 
 ## Post-Commit Testing

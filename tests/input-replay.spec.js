@@ -3,7 +3,11 @@ import { test, expect } from "@playwright/test";
 test("deterministic input replay moves player forward", async ({ page }) => {
   await page.goto("/");
   await page.keyboard.press("Enter"); // Title -> Intro
+  await page.waitForFunction(() => window.__SUPER_MO__?.state.mode === "intro");
   await page.keyboard.press("Enter"); // Intro -> Playing
+  await page.waitForFunction(
+    () => window.__SUPER_MO__?.state.mode === "playing"
+  );
 
   const start = await page.evaluate(() => {
     const { x, y } = window.__SUPER_MO__.state.player;
