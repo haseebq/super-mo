@@ -56,7 +56,6 @@ Move the game from pixel sprites to vector-based art so characters, particles, a
 7. **Polish + Performance**
    - Cache static assets.
    - Profile render hot spots.
-   - Raster cache utility: `src/core/vector-cache.ts` (notes in `docs/vector-cache.md`).
 
 ## Open Questions
 - SVG parsing library vs. custom parser?
