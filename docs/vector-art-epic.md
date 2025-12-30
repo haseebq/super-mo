@@ -29,6 +29,7 @@ Move the game from pixel sprites to vector-based art so characters, particles, a
 - **Pipeline**:
   - Author base SVGs directly in-repo via the coding agent (no external image-gen pipeline).
   - Export JSON rigs (bones, pivot points, attachment slots).
+  - Follow the rig naming conventions in `docs/vector-rigging-spec.md`.
   - Provide conversion tooling to preview rigs and validate naming conventions.
 
 ## Milestones
