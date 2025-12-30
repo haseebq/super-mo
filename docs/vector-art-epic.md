@@ -52,6 +52,7 @@ Move the game from pixel sprites to vector-based art so characters, particles, a
 6. **Background + UI Pass**
    - Convert HUD icons and core background layers.
    - Ensure clean scaling across aspect ratios.
+   - Store vector HUD assets in `assets/vectors/hud` and backgrounds in `assets/vectors/backgrounds`.
 7. **Polish + Performance**
    - Cache static assets.
    - Profile render hot spots.
