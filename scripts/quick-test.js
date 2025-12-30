@@ -12,4 +12,10 @@ if (existsSync("tsconfig.json")) {
   run("npm", ["run", "typecheck"]);
 }
 
-run("npm", ["run", "test", "--", "tests/engine.spec.js"]);
+run("npm", [
+  "run",
+  "test",
+  "--",
+  "tests/engine.spec.js",
+  "tests/modding.spec.js",
+]);

@@ -1,58 +1,52 @@
 import { test, expect } from "@playwright/test";
 
-test("modding api modifies game rules", async ({ page }) => {
+test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await page.keyboard.press("Enter"); // Start
-  await page.keyboard.press("Enter"); // Intro -> Playing
+  await page.waitForFunction(() => window.__SUPER_MO__?.modding != null);
 
-  // Wait for game to stabilize
-  await page.waitForTimeout(500);
+  const startOverlay = page.locator(".start-overlay");
+  await expect(startOverlay).toBeVisible();
+  await page.keyboard.press("Enter");
 
-  // 1. Modify coin value
-  await page.evaluate(() => {
-    window.__SUPER_MO__.modding.applyPatch({
-      ops: [{ op: "setRule", path: "scoring.coinValue", value: 1000 }],
-    });
-  });
+  const introOverlay = page.locator(".intro-overlay");
+  await expect(introOverlay).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(introOverlay).toHaveClass(/is-hidden/);
+});
 
-  // Verify rule change in snapshot
-  const value = await page.evaluate(() => {
-    return window.__SUPER_MO__.modding.getSnapshot().rules.scoring.coinValue;
-  });
-  expect(value).toBe(1000);
+test("modding prompt removes coins", async ({ page }) => {
+  const moddingToggle = page.locator("#modding-toggle");
+  await moddingToggle.click();
 
-  // 2. Remove entities (coins)
-  // First check initial count
+  const moddingOverlay = page.locator("#modding-overlay");
+  await expect(moddingOverlay).not.toHaveClass(/is-hidden/);
+
   const initialCoins = await page.evaluate(
     () => window.__SUPER_MO__.modding.getSnapshot().entities.coins
   );
   expect(initialCoins).toBeGreaterThan(0);
 
-  await page.evaluate(() => {
-    window.__SUPER_MO__.modding.applyPatch({
-      ops: [{ op: "removeEntities", filter: { kind: "coin" } }],
-    });
-  });
+  const input = page.locator("#modding-input");
+  await input.fill("remove all coins");
+  await page.locator("#modding-send").click();
 
-  const finalCoins = await page.evaluate(
-    () => window.__SUPER_MO__.modding.getSnapshot().entities.coins
+  await page.waitForFunction(
+    () => window.__SUPER_MO__.modding.getSnapshot().entities.coins === 0
   );
-  expect(finalCoins).toBe(0);
+});
 
-  // 3. Gravity (Fly)
-  const initialGravity = await page.evaluate(
-    () => window.__SUPER_MO__.modding.getSnapshot().rules.physics.gravity
+test("modding prompt updates gravity", async ({ page }) => {
+  const moddingToggle = page.locator("#modding-toggle");
+  await moddingToggle.click();
+
+  const moddingOverlay = page.locator("#modding-overlay");
+  await expect(moddingOverlay).not.toHaveClass(/is-hidden/);
+
+  const input = page.locator("#modding-input");
+  await input.fill("gravity off");
+  await page.locator("#modding-send").click();
+
+  await page.waitForFunction(
+    () => window.__SUPER_MO__.modding.getSnapshot().rules.physics.gravity === 0
   );
-  expect(initialGravity).toBeGreaterThan(0);
-
-  await page.evaluate(() => {
-    window.__SUPER_MO__.modding.applyPatch({
-      ops: [{ op: "setRule", path: "physics.gravity", value: 0 }],
-    });
-  });
-
-  const finalGravity = await page.evaluate(
-    () => window.__SUPER_MO__.modding.getSnapshot().rules.physics.gravity
-  );
-  expect(finalGravity).toBe(0);
 });
