@@ -18,4 +18,5 @@ run("npm", [
   "--",
   "tests/engine.spec.js",
   "tests/modding.spec.js",
+  "tests/docs-pages.spec.js",
 ]);
