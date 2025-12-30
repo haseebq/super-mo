@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "rig-sample",
+  "viewBox": [0, 0, 48, 48],
+  "root": "root",
+  "bones": [
+    { "name": "root", "parent": null, "pivot": [24, 36], "z": 0 },
+    { "name": "torso", "parent": "root", "pivot": [24, 28], "z": 1 },
+    { "name": "head", "parent": "torso", "pivot": [24, 16], "z": 2 },
+    { "name": "arm.l.upper", "parent": "torso", "pivot": [16, 26], "z": 2 },
+    { "name": "arm.l.lower", "parent": "arm.l.upper", "pivot": [12, 34], "z": 2 },
+    { "name": "arm.r.upper", "parent": "torso", "pivot": [32, 26], "z": 1 },
+    { "name": "arm.r.lower", "parent": "arm.r.upper", "pivot": [36, 34], "z": 1 },
+    { "name": "leg.l.upper", "parent": "root", "pivot": [21, 38], "z": 0 },
+    { "name": "leg.l.lower", "parent": "leg.l.upper", "pivot": [21, 44], "z": 0 },
+    { "name": "leg.r.upper", "parent": "root", "pivot": [27, 38], "z": 0 },
+    { "name": "leg.r.lower", "parent": "leg.r.upper", "pivot": [27, 44], "z": 0 }
+  ],
+  "attachments": [
+    { "name": "hat", "bone": "head", "offset": [0, -6], "rotation": 0, "z": 5 }
+  ]
+}

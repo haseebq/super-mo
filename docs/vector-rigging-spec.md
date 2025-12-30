@@ -94,3 +94,6 @@ Store rigs alongside art (proposed path: `assets/rigs/NAME.rig.json`).
 - Every `part:` has a matching bone of the same name.
 - Pivots land on intended joints in the SVG.
 - ViewBox dimensions match the art file.
+
+## Preview Tool
+Use `docs/tools/rig-preview.html` for a quick sanity check of bone pivots and attachments.
