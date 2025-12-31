@@ -543,6 +543,12 @@ function update(dt: number) {
     }
   }
 
+  // Prevent player from going above the level
+  if (state.player.y < 0) {
+    state.player.y = 0;
+    state.player.vy = 0;
+  }
+
   handleCollectibles();
   handleCheckpoints();
   updateCamera(dt);
