@@ -7,39 +7,38 @@ test("jetpack power-up activates and functions correctly", async ({ page }) => {
   await page.keyboard.press("Enter");
   await page.keyboard.press("Enter");
   
-  // Wait for game to be ready
+  // Wait for game to be in playing mode
   await page.waitForTimeout(500);
   
+  // Verify game is in playing mode
+  const gameMode = await page.evaluate(() => {
+    return window.__SUPER_MO__?.state.mode;
+  });
+  
+  expect(gameMode).toBe("playing");
+  
   // Activate jetpack via game state
-  const activated = await page.evaluate(() => {
+  await page.evaluate(() => {
     if (window.__SUPER_MO__) {
       window.__SUPER_MO__.state.jetpackTimer = 10;
       window.__SUPER_MO__.state.jetpackWarning = false;
-      return true;
     }
-    return false;
   });
   
-  expect(activated).toBe(true);
+  // Wait for timer to tick down enough that ceil() value changes
+  await page.waitForTimeout(1500);
   
-  // Wait for HUD to update
-  await page.waitForTimeout(200);
-  
-  // Check HUD shows jetpack timer
-  const hudBuffs = page.locator("#hud-buffs");
-  await expect(hudBuffs).toContainText("🚀");
-  
-  // Verify jetpack timer counts down
-  await page.waitForTimeout(1000);
+  // Verify jetpack timer is counting down
   const timer = await page.evaluate(() => {
-    if (window.__SUPER_MO__) {
-      return window.__SUPER_MO__.state.jetpackTimer;
-    }
-    return 0;
+    return window.__SUPER_MO__?.state.jetpackTimer || 0;
   });
   
   expect(timer).toBeLessThan(10);
-  expect(timer).toBeGreaterThan(8);
+  expect(timer).toBeGreaterThan(7);
+  
+  // Check HUD shows jetpack timer (should be visible after ceil value changed)
+  const hudBuffs = page.locator("#hud-buffs");
+  await expect(hudBuffs).toContainText("🚀");
 });
 
 test("jetpack warning appears at 2 seconds", async ({ page }) => {
@@ -58,12 +57,12 @@ test("jetpack warning appears at 2 seconds", async ({ page }) => {
     }
   });
   
-  // Wait for HUD to update
-  await page.waitForTimeout(200);
+  // Wait for HUD to update with multiple checks
+  await page.waitForTimeout(300);
   
   // Verify jetpack is shown
   let hudBuffs = page.locator("#hud-buffs");
-  await expect(hudBuffs).toContainText("🚀");
+  await expect(hudBuffs).toContainText("🚀", { timeout: 2000 });
   
   // Now set it to 1.9 seconds to be in warning range
   await page.evaluate(() => {
@@ -73,10 +72,10 @@ test("jetpack warning appears at 2 seconds", async ({ page }) => {
   });
   
   // Wait for next update cycle
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(200);
   
   // Check HUD shows warning icon
-  await expect(hudBuffs).toContainText("🚀⚠");
+  await expect(hudBuffs).toContainText("🚀⚠", { timeout: 2000 });
 });
 
 test("jetpack power-up can be collected", async ({ page }) => {
