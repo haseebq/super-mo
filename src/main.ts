@@ -26,6 +26,7 @@ import { createMoomba, updateMoomba } from "./game/enemies/moomba.js";
 import { createSpikelet, updateSpikelet } from "./game/enemies/spikelet.js";
 import { createFlit, updateFlit } from "./game/enemies/flit.js";
 import { createParticles } from "./game/particles.js";
+import { createRocket, updateRockets, drawRocket } from "./game/rockets.js";
 import type {
   Checkpoint,
   Collectible,
@@ -33,6 +34,7 @@ import type {
   MovingPlatform,
   Rect,
 } from "./game/level.js";
+import type { Rocket } from "./game/rockets.js";
 import type { Player } from "./game/player.js";
 import type { MoombaEnemy } from "./game/enemies/moomba.js";
 import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
@@ -106,6 +108,9 @@ type GameState = {
   deathTimer: number;
   deathVelocity: number;
   deathExitMode: Mode;
+  rocketTimer: number;
+  rocketCount: number;
+  rockets: Rocket[];
 };
 
 declare global {
@@ -304,6 +309,9 @@ const state: GameState = {
   deathTimer: 0,
   deathVelocity: 0,
   deathExitMode: "playing",
+  rocketTimer: 0,
+  rocketCount: 0,
+  rockets: [],
 };
 
 const neutralInput: InputState = {
@@ -433,6 +441,31 @@ function update(dt: number) {
     updateHud();
   }
 
+  // Handle rocket launcher firing
+  if (state.rocketCount > 0) {
+    if (state.rocketTimer > 0) {
+      state.rocketTimer = Math.max(0, state.rocketTimer - dt);
+    }
+    if (input.consumePress("KeyC") && state.rocketTimer <= 0 && state.rocketCount > 0) {
+      // Fire rocket in direction player is facing
+      const rocketSpeed = 300;
+      state.rockets.push(
+        createRocket(
+          state.player.x + 8,
+          state.player.y + 8,
+          state.player.facing * rocketSpeed,
+          -50
+        )
+      );
+      state.rocketCount -= 1;
+      state.rocketTimer = 0.3; // Cooldown between shots
+      audio.playPowerup();
+      if (state.rocketCount === 0) {
+        state.rocketTimer = 0;
+      }
+    }
+  }
+
   state.time += dt;
   state.playerSquash = approach(state.playerSquash, 0, dt * 6);
   if (state.hitFlashTimer > 0) {
@@ -560,6 +593,8 @@ function update(dt: number) {
 
   handleCollectibles();
   handleCheckpoints();
+  updateRockets(state.rockets, dt);
+  handleRocketCollisions();
   updateCamera(dt);
   state.particles.update(dt);
   if (overlaps(state.player, state.level.goal)) {
@@ -772,6 +807,11 @@ function render() {
 
   if (state.debugLabels) {
     drawSpriteLabels();
+  }
+
+  // Draw rockets
+  for (const rocket of state.rockets) {
+    drawRocket(rocket, renderer);
   }
 
   state.particles.draw(renderer);
@@ -1344,6 +1384,9 @@ function handleCollectibles() {
       } else if (powerup.kind === "jetpack") {
         state.jetpackTimer = 10;
         state.jetpackWarning = false;
+      } else if (powerup.kind === "rocket") {
+        state.rocketCount = 3;
+        state.rocketTimer = 15;
       }
       state.hud.score += activeRules.scoring.powerupValue;
       updateHud();
@@ -1351,6 +1394,30 @@ function handleCollectibles() {
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
     }
   }
+}
+
+function handleRocketCollisions() {
+  // Rockets vs enemies
+  for (const rocket of state.rockets) {
+    if (!rocket.alive) continue;
+
+    for (const enemy of state.enemies) {
+      if (!enemy.alive) continue;
+
+      if (overlaps(rocket, enemy)) {
+        rocket.alive = false;
+        enemy.alive = false;
+        state.hud.score += 100;
+        updateHud();
+        audio.playStomp();
+        triggerCameraShake(0.1, 3);
+        state.particles.spawn(rocket.x, rocket.y, 12, "#ff6b35");
+      }
+    }
+  }
+
+  // Remove dead rockets
+  state.rockets = state.rockets.filter((r) => r.alive);
 }
 
 function overlaps(a: Rect, b: Rect) {
@@ -1414,6 +1481,9 @@ function resetLevel() {
   state.shieldTimer = 0;
   state.jetpackTimer = 0;
   state.jetpackWarning = false;
+  state.rocketCount = 0;
+  state.rocketTimer = 0;
+  state.rockets = [];
   state.completeTimeBonus = 0;
   state.completeGoalBonus = 0;
   state.completeCoinScore = 0;

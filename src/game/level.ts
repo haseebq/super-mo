@@ -12,7 +12,7 @@ export type Collectible = Rect & {
 
 export type Powerup = Rect & {
   collected: boolean;
-  kind: "spring" | "speed" | "shield" | "jetpack";
+  kind: "spring" | "speed" | "shield" | "jetpack" | "rocket";
 };
 
 export type MovingPlatform = Rect & {
@@ -212,6 +212,7 @@ export function createLevel2(): Level {
   powerups.push(createPowerup(24, 6, "speed"));
   powerups.push(createPowerup(52, 5, "spring"));
   powerups.push(createPowerup(40, 6, "jetpack"));
+  powerups.push(createPowerup(30, 12, "rocket"));
   platforms.push(createVerticalPlatform(12, 8, 2.5, 3));
   checkpoints.push(createCheckpoint(44, 9));
 
