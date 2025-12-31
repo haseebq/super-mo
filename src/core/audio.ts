@@ -8,6 +8,7 @@ type SfxKey =
   | "goal"
   | "triumph"
   | "dash"
+  | "jetpack"
   | "checkpoint"
   | "wallSlide"
   | "landing"
@@ -33,6 +34,7 @@ const SFX_TRACKS: Record<SfxKey, string> = {
   goal: "assets/audio/sfx/goal.mp3",
   triumph: "assets/audio/sfx/triumph.mp3",
   dash: "assets/audio/sfx/dash.mp3",
+  jetpack: "assets/audio/sfx/jetpack.mp3",
   checkpoint: "assets/audio/sfx/checkpoint.mp3",
   wallSlide: "assets/audio/sfx/wallslide.mp3",
   landing: "assets/audio/sfx/landing.mp3",
@@ -162,6 +164,7 @@ export function createAudio() {
     playGoal: () => playSfx("goal"),
     playTriumph: () => playSfx("triumph"),
     playDash: () => playSfx("dash"),
+    playJetpack: () => playSfx("jetpack"),
     playCheckpoint: () => playSfx("checkpoint"),
     playWallSlide: () => playSfx("wallSlide"),
     playLanding: () => playSfx("landing"),

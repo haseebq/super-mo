@@ -1546,7 +1546,9 @@ function handleCollectibles() {
       }
       state.hud.score += activeRules.scoring.powerupValue;
       updateHud();
-      if (powerup.kind !== "rocket") {
+      if (powerup.kind === "jetpack") {
+        audio.playJetpack();
+      } else if (powerup.kind !== "rocket") {
         audio.playPowerup();
       }
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
