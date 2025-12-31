@@ -27,13 +27,13 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const GAME_HEIGHT = 180;
   
   // Initialize Pixi with the game's native resolution
-  // CSS will handle visual scaling via image-rendering: pixelated
+  // CSS will handle visual scaling via image-rendering: auto for smooth vector graphics
   await app.init({
     canvas,
     width: GAME_WIDTH,
     height: GAME_HEIGHT,
     backgroundColor: 0x78c7f0, // Match the sky blue background
-    antialias: false,
+    antialias: true, // Enable antialiasing for smooth vector graphics
     resolution: 1, // Keep 1:1 pixel ratio, CSS handles scaling
     autoDensity: false, // Don't auto-adjust for device pixel ratio
     autoStart: false, // Don't start Pixi's own render loop - we manage our own

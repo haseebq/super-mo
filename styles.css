@@ -30,7 +30,7 @@ body {
 #game {
   width: 960px;
   height: 540px;
-  image-rendering: pixelated;
+  image-rendering: auto;
   background: #78c7f0;
   display: block;
 }
