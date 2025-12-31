@@ -452,12 +452,33 @@ function update(dt: number) {
     if (input.consumePress("KeyC") && state.rocketTimer <= 0 && state.rocketCount > 0) {
       // Fire rocket in direction player is facing
       const rocketSpeed = 300;
+      const rocketOriginX = state.player.x + 8;
+      const rocketOriginY = state.player.y + 8;
+      let targetVX = state.player.facing * rocketSpeed;
+      let targetVY = -20;
+      let closestDistance = Number.POSITIVE_INFINITY;
+      for (const enemy of state.enemies) {
+        if (!enemy.alive) continue;
+        const enemyCenterX = enemy.x + enemy.width / 2;
+        const enemyCenterY = enemy.y + enemy.height / 2;
+        const dx = enemyCenterX - rocketOriginX;
+        if (Math.sign(dx) !== state.player.facing || Math.abs(dx) > 260) {
+          continue;
+        }
+        const dy = enemyCenterY - rocketOriginY;
+        const distance = Math.hypot(dx, dy);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          targetVX = (dx / distance) * rocketSpeed;
+          targetVY = (dy / distance) * rocketSpeed;
+        }
+      }
       state.rockets.push(
         createRocket(
-          state.player.x + 8,
-          state.player.y + 8,
-          state.player.facing * rocketSpeed,
-          -50
+          rocketOriginX,
+          rocketOriginY,
+          targetVX,
+          targetVY
         )
       );
       state.rocketCount -= 1;
