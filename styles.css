@@ -886,6 +886,10 @@ body {
   box-shadow: 0 0 20px rgba(93, 187, 99, 0.9);
 }
 
+.modding-toggle.is-hidden {
+  display: none;
+}
+
 @media (max-width: 980px) {
   .modding-toggle {
     top: 12px;

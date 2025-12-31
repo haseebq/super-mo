@@ -49,6 +49,8 @@ export function createInput(): InputState {
     const touchControls = document.getElementById("touch-controls");
     if (touchControls) {
       touchControls.classList.add("is-visible");
+      const moddingToggle = document.getElementById("modding-toggle");
+      moddingToggle?.classList.add("is-hidden");
 
       const buttons = touchControls.querySelectorAll<HTMLButtonElement>("[data-key]");
       buttons.forEach((btn) => {
