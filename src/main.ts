@@ -512,6 +512,15 @@ function update(dt: number) {
     audio.playJump();
     state.playerSquash = -0.12;
   }
+  if (events.dashed) {
+    audio.playDash();
+  }
+  if (events.wallSliding) {
+    audio.playWallSlide();
+  }
+  if (events.landed && prevVy > 120) {
+    audio.playLanding();
+  }
   if (!wasOnGround && state.player.onGround && prevVy > 120) {
     state.particles.spawn(
       state.player.x + 8,
@@ -1085,6 +1094,7 @@ function handleCheckpoints() {
     if (overlaps(state.player, checkpoint)) {
       checkpoint.activated = true;
       state.activeCheckpoint = checkpoint;
+      audio.playCheckpoint();
       updateHud();
     }
   }
@@ -1736,7 +1746,7 @@ function applyDamage() {
   }
   state.hud.lives = Math.max(0, state.hud.lives - 1);
   updateHud();
-  audio.playHurt();
+  audio.playDamage();
   if (state.hud.lives === 0) {
     startDeath("title");
   } else {

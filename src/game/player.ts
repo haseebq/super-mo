@@ -62,6 +62,9 @@ export type Player = {
 
 export type PlayerEvents = {
   jumped: boolean;
+  dashed: boolean;
+  wallSliding: boolean;
+  landed: boolean;
 };
 
 const PLAYER_ANIMATIONS = {
@@ -204,6 +207,9 @@ export function updatePlayer(
 ): PlayerEvents {
   const events: PlayerEvents = {
     jumped: false,
+    dashed: false,
+    wallSliding: false,
+    landed: false,
   };
   // Always run at full speed
   const speed = activeRules.physics.moveSpeed * speedBoost;
@@ -221,6 +227,7 @@ export function updatePlayer(
     if (player.dashCooldown <= 0 && player.dashTimer <= 0) {
       player.dashTimer = DASH_DURATION;
       player.dashCooldown = DASH_COOLDOWN;
+      events.dashed = true;
     }
   }
 
@@ -299,12 +306,24 @@ export function updatePlayer(
   player.x += player.vx * dt;
   resolveHorizontal(player, level);
 
+  const prevOnGround = player.onGround;
   player.y += player.vy * dt;
   resolveVertical(player, level);
 
+  // Detect landing
+  if (!prevOnGround && player.onGround) {
+    events.landed = true;
+  }
+
   // Update wall contact
   player.wallDir = checkWallContact(player, level);
+  const prevOnWall = player.onWall;
   player.onWall = player.wallDir !== 0 && player.vy >= 0;
+  
+  // Detect wall slide (just started sliding)
+  if (player.onWall && !prevOnWall && player.vy > 0) {
+    events.wallSliding = true;
+  }
 
   // Update Animation
   if (!player.onGround) {

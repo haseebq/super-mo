@@ -74,6 +74,34 @@ export function createAudio() {
     });
   }
 
+  function playDash() {
+    // Whoosh sound for dash
+    playTone(440, 0.1, "square", 0.15);
+    setTimeout(() => playTone(550, 0.08, "square", 0.12), 30);
+  }
+
+  function playCheckpoint() {
+    // Two-note checkpoint sound
+    playTone(392, 0.1, "square", 0.1);
+    setTimeout(() => playTone(523, 0.1, "square", 0.1), 100);
+  }
+
+  function playWallSlide() {
+    // Continuous sliding sound
+    playTone(262, 0.15, "sine", 0.08);
+  }
+
+  function playLanding() {
+    // Heavy landing impact
+    playTone(180, 0.06, "triangle", 0.15);
+  }
+
+  function playDamage() {
+    // Buzz/hit sound
+    playTone(100, 0.1, "square", 0.12);
+    setTimeout(() => playTone(150, 0.08, "square", 0.1), 40);
+  }
+
   function startMusic() {
     if (!ctx || !master || music) {
       return;
@@ -144,6 +172,11 @@ export function createAudio() {
     playPowerup,
     playHurt,
     playGoal,
+    playDash,
+    playCheckpoint,
+    playWallSlide,
+    playLanding,
+    playDamage,
     startMusic,
     stopMusic,
     setMuted,
