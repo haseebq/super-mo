@@ -10,7 +10,7 @@ This document evaluates whether migrating Super Mo from the current Canvas 2D re
 
 **Recommendation: Do NOT migrate to Babylon.js.**
 
-The current vanilla Canvas 2D approach is the optimal choice for this 2D platformer. If a framework is desired in the future, consider **Phaser** or **Pixi.js** instead.
+The current vanilla Canvas 2D approach was the original choice for this 2D platformer. However, we later migrated to **Pixi.js** (see [pixi-migration.md](pixi-migration.md)) for better performance and GPU acceleration while maintaining our existing game architecture.
 
 ---
 
