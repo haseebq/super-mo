@@ -195,6 +195,118 @@ const STORY_LINES = [
   { speaker: "Guide", text: "Each checkpoint will hold your progress." },
 ];
 const DEBUG_FLAGS = new URLSearchParams(window.location.search);
+type BackgroundTheme = {
+  clear: string;
+  showStars: boolean;
+  stars: string;
+  cloudPrimary: string;
+  cloudSecondary: string;
+  hillFarA: string;
+  hillFarB: string;
+  hillNearA: string;
+  hillNearB: string;
+  waterfallTop: string;
+  waterfallMid: string;
+  waterfallBottom: string;
+  waterfallHighlight: string;
+};
+
+const BACKGROUND_THEMES: BackgroundTheme[] = [
+  {
+    clear: "#78c7f0",
+    showStars: true,
+    stars: "#ffffff",
+    cloudPrimary: "#ffffff",
+    cloudSecondary: "#f3f6ff",
+    hillFarA: "#b7d9ff",
+    hillFarB: "#9bc7ff",
+    hillNearA: "#78c7f0",
+    hillNearB: "#4aa0d0",
+    waterfallTop: "#b9ecff",
+    waterfallMid: "#78c7f0",
+    waterfallBottom: "#4aa0d0",
+    waterfallHighlight: "rgba(255,255,255,0.45)",
+  },
+  {
+    clear: "#f7b07a",
+    showStars: false,
+    stars: "#fff2d5",
+    cloudPrimary: "#fff1e3",
+    cloudSecondary: "#ffd1b3",
+    hillFarA: "#f3c3a2",
+    hillFarB: "#e6a67f",
+    hillNearA: "#d47a5c",
+    hillNearB: "#b85a3f",
+    waterfallTop: "#ffe1c6",
+    waterfallMid: "#f7b07a",
+    waterfallBottom: "#d9784f",
+    waterfallHighlight: "rgba(255,255,255,0.35)",
+  },
+  {
+    clear: "#5b7ba6",
+    showStars: true,
+    stars: "#e6f0ff",
+    cloudPrimary: "#c9d6f2",
+    cloudSecondary: "#b0c2e8",
+    hillFarA: "#6b8fbc",
+    hillFarB: "#5579a9",
+    hillNearA: "#4a5f82",
+    hillNearB: "#3c4a68",
+    waterfallTop: "#b5c7e8",
+    waterfallMid: "#7ea3d6",
+    waterfallBottom: "#5a7fb0",
+    waterfallHighlight: "rgba(255,255,255,0.3)",
+  },
+  {
+    clear: "#7cc58f",
+    showStars: false,
+    stars: "#eafff1",
+    cloudPrimary: "#e1f6ea",
+    cloudSecondary: "#c6ecd6",
+    hillFarA: "#9ad6a9",
+    hillFarB: "#7fc495",
+    hillNearA: "#5da873",
+    hillNearB: "#478a60",
+    waterfallTop: "#d7f5e2",
+    waterfallMid: "#97d6b1",
+    waterfallBottom: "#5fae82",
+    waterfallHighlight: "rgba(255,255,255,0.35)",
+  },
+  {
+    clear: "#3f4f6c",
+    showStars: true,
+    stars: "#d7e6ff",
+    cloudPrimary: "#9aa9c4",
+    cloudSecondary: "#7b8ba7",
+    hillFarA: "#5c6d8b",
+    hillFarB: "#4a5c79",
+    hillNearA: "#3f4f6c",
+    hillNearB: "#2e3d55",
+    waterfallTop: "#a7b7d3",
+    waterfallMid: "#6c83a6",
+    waterfallBottom: "#495b7b",
+    waterfallHighlight: "rgba(255,255,255,0.25)",
+  },
+  {
+    clear: "#4b2b6b",
+    showStars: true,
+    stars: "#f6e8ff",
+    cloudPrimary: "#c9b6e6",
+    cloudSecondary: "#b099d6",
+    hillFarA: "#6f4c9a",
+    hillFarB: "#5a3c7f",
+    hillNearA: "#4b2b6b",
+    hillNearB: "#3a2057",
+    waterfallTop: "#d7c9ff",
+    waterfallMid: "#9a7bd1",
+    waterfallBottom: "#6a4ea4",
+    waterfallHighlight: "rgba(255,255,255,0.3)",
+  },
+];
+
+function getBackgroundTheme(levelIndex: number): BackgroundTheme {
+  return BACKGROUND_THEMES[levelIndex % BACKGROUND_THEMES.length];
+}
 
 function syncDebugToggle() {
   if (!debugToggle) {
@@ -702,7 +814,8 @@ function handleSpikeCollisions() {
 }
 
 function render() {
-  renderer.clear("#78c7f0");
+  const theme = getBackgroundTheme(state.levelIndex);
+  renderer.clear(theme.clear);
 
   if (state.mode === "title") {
     renderTitlePreview();
@@ -715,7 +828,7 @@ function render() {
   const shakeX = shakeMagnitude ? (Math.random() - 0.5) * shakeMagnitude : 0;
   const shakeY = shakeMagnitude ? (Math.random() - 0.5) * shakeMagnitude : 0;
   renderer.ctx.translate(-state.camera.x + shakeX, -state.camera.y + shakeY);
-  drawBackground(state.camera.x, state.backgroundTime);
+  drawBackground(state.camera.x, state.backgroundTime, theme);
   drawLevel(state.level);
   if (state.debugTiles) {
     drawTileDebug(state.level);
@@ -992,22 +1105,22 @@ function drawHill(
   ctx.fill();
 }
 
-function drawWaterfall(x: number, y: number, height: number) {
+function drawWaterfall(x: number, y: number, height: number, theme: BackgroundTheme) {
   const ctx = renderer.ctx;
   const gradient = ctx.createLinearGradient(x, y, x, y + height);
-  gradient.addColorStop(0, "#b9ecff");
-  gradient.addColorStop(0.5, "#78c7f0");
-  gradient.addColorStop(1, "#4aa0d0");
+  gradient.addColorStop(0, theme.waterfallTop);
+  gradient.addColorStop(0.5, theme.waterfallMid);
+  gradient.addColorStop(1, theme.waterfallBottom);
 
   ctx.fillStyle = gradient;
   ctx.fillRect(x, y, 18, height);
 
-  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.fillStyle = theme.waterfallHighlight;
   ctx.fillRect(x + 3, y + 6, 4, height - 12);
   ctx.fillRect(x + 10, y + 10, 3, height - 20);
 }
 
-function drawBackground(camX: number, time: number) {
+function drawBackground(camX: number, time: number, theme: BackgroundTheme) {
   renderer.ctx.save();
   renderer.ctx.translate(camX * 0.3, 0);
 
@@ -1018,43 +1131,54 @@ function drawBackground(camX: number, time: number) {
   const farOffset = (time * 6) % 220;
   const fastCloudOffset = (time * 20) % 240;
 
-  // Draw twinkling stars in the upper sky
-  drawStars(totalWidth, time);
+  if (theme.showStars) {
+    // Draw twinkling stars in the upper sky
+    drawStars(totalWidth, time, theme.stars);
+  }
 
   // Multiple cloud layers at different speeds for depth
   for (let x = -240; x < totalWidth + 240; x += 240) {
     const drift = x + fastCloudOffset;
-    drawCloud(drift + 10, 12, 0.7, "#ffffff");
+    drawCloud(drift + 10, 12, 0.7, theme.cloudPrimary);
   }
 
   for (let x = -180; x < totalWidth + 180; x += 180) {
     const drift = x + cloudOffset;
-    drawCloud(drift + 20, 26, 0.9, "#ffffff");
-    drawCloud(drift + 70, 20, 1.1, "#f3f6ff");
+    drawCloud(drift + 20, 26, 0.9, theme.cloudPrimary);
+    drawCloud(drift + 70, 20, 1.1, theme.cloudSecondary);
   }
 
   // Occasional shooting star
-  drawShootingStar(time, totalWidth);
+  if (theme.showStars) {
+    drawShootingStar(time, totalWidth, theme.stars);
+  }
 
   for (let x = -220; x < totalWidth + 220; x += 220) {
     const drift = x + farOffset;
-    drawHill(drift, horizonY + 70, 200, 90, "#b7d9ff", "#9bc7ff");
-    drawHill(drift + 50, horizonY + 80, 230, 110, "#9bc7ff", "#7fb2f0");
+    drawHill(drift, horizonY + 70, 200, 90, theme.hillFarA, theme.hillFarB);
+    drawHill(
+      drift + 50,
+      horizonY + 80,
+      230,
+      110,
+      theme.hillFarB,
+      theme.hillNearA
+    );
   }
 
   for (let x = 0; x < totalWidth; x += 260) {
     const sway = Math.sin(time * 1.4 + x * 0.01) * 4;
     const baseX = x + 40;
-    drawWaterfall(baseX + sway, 70, 80);
-    drawHill(baseX - 30, 80, 90, 60, "#78c7f0", "#4aa0d0");
+    drawWaterfall(baseX + sway, 70, 80, theme);
+    drawHill(baseX - 30, 80, 90, 60, theme.hillNearA, theme.hillNearB);
   }
 
   renderer.ctx.restore();
 }
 
-function drawStars(totalWidth: number, time: number) {
+function drawStars(totalWidth: number, time: number, color: string) {
   const ctx = renderer.ctx;
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = color;
   // Use deterministic positions based on time for twinkling effect
   for (let i = 0; i < 15; i++) {
     const x = (i * 137.5) % totalWidth; // Golden ratio distribution
@@ -1070,7 +1194,7 @@ function drawStars(totalWidth: number, time: number) {
   ctx.globalAlpha = 1;
 }
 
-function drawShootingStar(time: number, totalWidth: number) {
+function drawShootingStar(time: number, totalWidth: number, color: string) {
   const ctx = renderer.ctx;
   // Shooting star appears every ~8 seconds, lasts for ~0.4 seconds
   const cycleTime = time % 8;
@@ -1083,8 +1207,8 @@ function drawShootingStar(time: number, totalWidth: number) {
     
     const gradient = ctx.createLinearGradient(x - 30, y - 10, x, y);
     gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-    gradient.addColorStop(0.5, "rgba(255, 255, 255, 0.8)");
-    gradient.addColorStop(1, "rgba(255, 255, 255, 1)");
+    gradient.addColorStop(0.5, color);
+    gradient.addColorStop(1, "#ffffff");
     
     ctx.strokeStyle = gradient;
     ctx.lineWidth = 2;
@@ -1220,7 +1344,8 @@ function renderTitlePreview() {
   renderer.ctx.translate(-scrollX, offsetY);
 
   const drawScene = (camX: number) => {
-    drawBackground(camX, state.backgroundTime);
+    const theme = getBackgroundTheme(0);
+    drawBackground(camX, state.backgroundTime, theme);
     drawLevel(state.level);
     drawPlatforms(state.level.platforms);
     drawCollectibles();
