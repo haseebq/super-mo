@@ -294,6 +294,19 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       app.destroy(true);
     },
 
+    resize() {
+      const rect = canvas.getBoundingClientRect();
+      const nextWidth = Math.max(1, Math.round(rect.width));
+      const nextHeight = Math.max(1, Math.round(rect.height));
+      if (
+        nextWidth !== app.renderer.width ||
+        nextHeight !== app.renderer.height
+      ) {
+        app.renderer.resize(nextWidth, nextHeight);
+      }
+      cameraContainer.scale.set(nextWidth / GAME_WIDTH, nextHeight / GAME_HEIGHT);
+    },
+
     render() {
       // Present the frame - must be called at the end of each render cycle
       app.render();
