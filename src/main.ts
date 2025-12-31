@@ -927,12 +927,25 @@ function drawBackground(camX: number, time: number) {
   const totalWidth = width * tileSize;
   const cloudOffset = (time * 12) % 180;
   const farOffset = (time * 6) % 220;
+  const fastCloudOffset = (time * 20) % 240;
+
+  // Draw twinkling stars in the upper sky
+  drawStars(totalWidth, time);
+
+  // Multiple cloud layers at different speeds for depth
+  for (let x = -240; x < totalWidth + 240; x += 240) {
+    const drift = x + fastCloudOffset;
+    drawCloud(drift + 10, 12, 0.7, "#ffffff");
+  }
 
   for (let x = -180; x < totalWidth + 180; x += 180) {
     const drift = x + cloudOffset;
     drawCloud(drift + 20, 26, 0.9, "#ffffff");
     drawCloud(drift + 70, 20, 1.1, "#f3f6ff");
   }
+
+  // Occasional shooting star
+  drawShootingStar(time, totalWidth);
 
   for (let x = -220; x < totalWidth + 220; x += 220) {
     const drift = x + farOffset;
@@ -948,6 +961,49 @@ function drawBackground(camX: number, time: number) {
   }
 
   renderer.ctx.restore();
+}
+
+function drawStars(totalWidth: number, time: number) {
+  const ctx = renderer.ctx;
+  ctx.fillStyle = "#ffffff";
+  // Use deterministic positions based on time for twinkling effect
+  for (let i = 0; i < 15; i++) {
+    const x = (i * 137.5) % totalWidth; // Golden ratio distribution
+    const y = (i * 23) % 60;
+    const twinkle = Math.sin(time * 3 + i) * 0.5 + 0.5; // 0 to 1
+    if (twinkle > 0.3) {
+      ctx.globalAlpha = twinkle * 0.8;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawShootingStar(time: number, totalWidth: number) {
+  const ctx = renderer.ctx;
+  // Shooting star appears every ~8 seconds, lasts for ~0.4 seconds
+  const cycleTime = time % 8;
+  if (cycleTime < 0.4) {
+    const progress = cycleTime / 0.4;
+    const startX = totalWidth * 0.6;
+    const startY = 20;
+    const x = startX + progress * 200;
+    const y = startY + progress * 60;
+    
+    const gradient = ctx.createLinearGradient(x - 30, y - 10, x, y);
+    gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+    gradient.addColorStop(0.5, "rgba(255, 255, 255, 0.8)");
+    gradient.addColorStop(1, "rgba(255, 255, 255, 1)");
+    
+    ctx.strokeStyle = gradient;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - 30, y - 10);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
 }
 
 function drawCollectibles() {
