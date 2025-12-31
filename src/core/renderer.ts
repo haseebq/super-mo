@@ -16,6 +16,7 @@ export type Renderer = {
   ) => void;
   text: (text: string, x: number, y: number, color: string) => void;
   ctx: CanvasRenderingContext2D;
+  render?: () => void; // Optional: present frame (used by Pixi renderer)
 };
 
 export function createRenderer(canvas: HTMLCanvasElement): Renderer {

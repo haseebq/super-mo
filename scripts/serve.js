@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { transform } from "esbuild";
+import { build } from "esbuild";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const port = 4173;
@@ -16,7 +16,30 @@ const types = {
   ".svg": "image/svg+xml",
 };
 
-const jsCache = new Map();
+// Cache for bundled JS
+let bundleCache = null;
+let bundleCacheTime = 0;
+
+async function bundleMain() {
+  // Check if we need to rebundle (simple cache based on time)
+  const now = Date.now();
+  if (bundleCache && now - bundleCacheTime < 1000) {
+    return bundleCache;
+  }
+
+  const result = await build({
+    entryPoints: [join(root, "src/main.ts")],
+    bundle: true,
+    write: false,
+    format: "esm",
+    target: "es2020",
+    sourcemap: "inline",
+  });
+
+  bundleCache = result.outputFiles[0].text;
+  bundleCacheTime = now;
+  return bundleCache;
+}
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
@@ -25,27 +48,21 @@ const server = createServer(async (req, res) => {
   const ext = extname(filePath);
 
   try {
-    if (ext === ".js" && !existsSync(filePath)) {
-      const tsPath = filePath.replace(/\.js$/, ".ts");
-      if (existsSync(tsPath)) {
-        const cached = jsCache.get(tsPath);
-        if (cached) {
-          res.writeHead(200, { "Content-Type": "text/javascript" });
-          res.end(cached);
-          return;
-        }
-        const tsSource = await readFile(tsPath, "utf-8");
-        const result = await transform(tsSource, {
-          loader: "ts",
-          format: "esm",
-          target: "es2020",
-          sourcefile: tsPath,
-        });
-        jsCache.set(tsPath, result.code);
-        res.writeHead(200, { "Content-Type": "text/javascript" });
-        res.end(result.code);
-        return;
-      }
+    // Special handling for main.js or main.ts - serve bundled version
+    if (pathname === "/src/main.js" || pathname === "/src/main.ts") {
+      const bundled = await bundleMain();
+      res.writeHead(200, { "Content-Type": "text/javascript" });
+      res.end(bundled);
+      return;
+    }
+
+    // Handle HTML - replace .ts with .js
+    if (ext === ".html") {
+      let html = await readFile(filePath, "utf-8");
+      html = html.replace(/src\/main\.ts/g, "src/main.js");
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(html);
+      return;
     }
 
     const data = await readFile(filePath);

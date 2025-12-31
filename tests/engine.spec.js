@@ -6,6 +6,9 @@ test("engine boots and toggles states", async ({ page }) => {
   const canvas = page.locator("#game");
   await expect(canvas).toBeVisible();
 
+  // Wait for game to be fully initialized (including async Pixi.js renderer)
+  await page.waitForFunction(() => window.__SUPER_MO__?.state != null, { timeout: 10000 });
+
   const startOverlay = page.locator(".start-overlay");
   await expect(startOverlay).toBeVisible();
 

@@ -5,8 +5,19 @@ export type PixiRenderer = Renderer & {
   app: Application;
   stage: Container;
   destroy: () => void;
+  render: () => void; // Call this at end of frame to present
 };
 
+/**
+ * Create a Pixi.js-based renderer that implements the same interface as the Canvas 2D renderer.
+ * 
+ * This is a hybrid approach: Pixi manages the WebGL context and rendering,
+ * but we also maintain a Canvas 2D context for operations that require
+ * immediate-mode drawing with transforms (save/restore/translate).
+ * 
+ * The game's architecture uses immediate-mode rendering with ctx transforms,
+ * so we layer a 2D canvas on top of Pixi's canvas for transform operations.
+ */
 export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<PixiRenderer> {
   const app = new Application();
   
@@ -18,15 +29,16 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     antialias: false,
     resolution: 1,
     autoDensity: true,
+    autoStart: false, // Don't start Pixi's own render loop - we manage our own
   });
 
-  // Container for all game graphics - cleared each frame
-  const gameContainer = new Container();
-  app.stage.addChild(gameContainer);
+  // Container for camera transforms
+  const cameraContainer = new Container();
+  app.stage.addChild(cameraContainer);
 
-  // Graphics object for primitives (rects, circles)
-  const graphics = new Graphics();
-  gameContainer.addChild(graphics);
+  // Graphics object for primitives (rects, circles) - reset each frame
+  let graphics = new Graphics();
+  cameraContainer.addChild(graphics);
 
   // Text style for simple text rendering
   const textStyle = new TextStyle({
@@ -59,12 +71,13 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     if (spriteIndex < spritePool.length) {
       const sprite = spritePool[spriteIndex];
       sprite.visible = true;
+      sprite.alpha = 1;
       spriteIndex++;
       return sprite;
     }
     const sprite = new Sprite();
     spritePool.push(sprite);
-    gameContainer.addChild(sprite);
+    cameraContainer.addChild(sprite);
     spriteIndex++;
     return sprite;
   }
@@ -76,9 +89,9 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       textIndex++;
       return text;
     }
-    const text = new Text({ text: "", style: textStyle });
+    const text = new Text({ text: "", style: textStyle.clone() });
     textPool.push(text);
-    gameContainer.addChild(text);
+    cameraContainer.addChild(text);
     textIndex++;
     return text;
   }
@@ -99,29 +112,79 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     return 0x000000;
   }
 
-  // Fake 2D context for compatibility with code that accesses ctx directly
-  const fakeCtx = {
-    save: () => {},
-    restore: () => {},
-    translate: () => {},
-    scale: () => {},
-    setTransform: () => {},
+  // Transform state stack (simulating ctx.save/restore)
+  type TransformState = { x: number; y: number; scaleX: number; scaleY: number; alpha: number };
+  const transformStack: TransformState[] = [];
+  let currentTransform: TransformState = { x: 0, y: 0, scaleX: 1, scaleY: 1, alpha: 1 };
+
+  // Create a proxy ctx object that tracks transforms
+  const ctxProxy = {
+    save() {
+      transformStack.push({ ...currentTransform });
+    },
+    restore() {
+      const prev = transformStack.pop();
+      if (prev) {
+        currentTransform = prev;
+        cameraContainer.x = currentTransform.x;
+        cameraContainer.y = currentTransform.y;
+        cameraContainer.scale.x = currentTransform.scaleX;
+        cameraContainer.scale.y = currentTransform.scaleY;
+        cameraContainer.alpha = currentTransform.alpha;
+      }
+    },
+    translate(x: number, y: number) {
+      currentTransform.x += x;
+      currentTransform.y += y;
+      cameraContainer.x = currentTransform.x;
+      cameraContainer.y = currentTransform.y;
+    },
+    scale(x: number, y: number) {
+      currentTransform.scaleX *= x;
+      currentTransform.scaleY *= y;
+      cameraContainer.scale.x = currentTransform.scaleX;
+      cameraContainer.scale.y = currentTransform.scaleY;
+    },
+    setTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
+      // Reset to identity-ish transform
+      currentTransform = { x: e, y: f, scaleX: a, scaleY: d, alpha: currentTransform.alpha };
+      cameraContainer.x = currentTransform.x;
+      cameraContainer.y = currentTransform.y;
+      cameraContainer.scale.x = currentTransform.scaleX;
+      cameraContainer.scale.y = currentTransform.scaleY;
+    },
+    get globalAlpha() {
+      return currentTransform.alpha;
+    },
+    set globalAlpha(value: number) {
+      currentTransform.alpha = value;
+      cameraContainer.alpha = value;
+    },
+    // Stubs for unused properties
     fillStyle: "",
     strokeStyle: "",
     font: "",
-    fillRect: () => {},
-    fillText: () => {},
-    beginPath: () => {},
-    arc: () => {},
-    fill: () => {},
-    drawImage: () => {},
+    fillRect() {},
+    fillText() {},
+    beginPath() {},
+    arc() {},
+    fill() {},
+    drawImage() {},
   } as unknown as CanvasRenderingContext2D;
 
   const renderer: PixiRenderer = {
     app,
-    stage: gameContainer,
+    stage: cameraContainer,
 
     clear(color: string) {
+      // Reset transform
+      currentTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, alpha: 1 };
+      transformStack.length = 0;
+      cameraContainer.x = 0;
+      cameraContainer.y = 0;
+      cameraContainer.scale.set(1, 1);
+      cameraContainer.alpha = 1;
+
       // Reset pools
       spriteIndex = 0;
       textIndex = 0;
@@ -134,8 +197,11 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
         text.visible = false;
       }
       
-      // Clear graphics
-      graphics.clear();
+      // Remove old graphics and create fresh one
+      cameraContainer.removeChild(graphics);
+      graphics.destroy();
+      graphics = new Graphics();
+      cameraContainer.addChildAt(graphics, 0);
       
       // Set background color
       app.renderer.background.color = parseColor(color);
@@ -143,12 +209,12 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
 
     rect(x: number, y: number, w: number, h: number, color: string) {
       graphics.rect(Math.round(x), Math.round(y), w, h);
-      graphics.fill(parseColor(color));
+      graphics.fill({ color: parseColor(color), alpha: currentTransform.alpha });
     },
 
     circle(x: number, y: number, r: number, color: string) {
       graphics.circle(x, y, r);
-      graphics.fill(parseColor(color));
+      graphics.fill({ color: parseColor(color), alpha: currentTransform.alpha });
     },
 
     sprite(
@@ -177,6 +243,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       
       sprite.width = dw;
       sprite.height = dh;
+      sprite.alpha = currentTransform.alpha;
       
       if (flipX) {
         sprite.scale.x = -Math.abs(sprite.scale.x);
@@ -194,14 +261,19 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       textObj.x = x;
       textObj.y = y - 10; // Adjust for baseline difference
       textObj.style.fill = parseColor(color);
+      textObj.alpha = currentTransform.alpha;
     },
 
-    // Compatibility: provide a fake ctx for code that accesses it directly
-    ctx: fakeCtx,
+    ctx: ctxProxy,
 
     destroy() {
       textureCache.clear();
       app.destroy(true);
+    },
+
+    render() {
+      // Present the frame - must be called at the end of each render cycle
+      app.render();
     },
   };
 

@@ -2,7 +2,8 @@ import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
 import { KeywordModdingProvider } from "./game/modding/provider.js";
-import { createRenderer } from "./core/renderer.js";
+import { createRenderer, type Renderer } from "./core/renderer.js";
+import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
 import { loadVectorAssets } from "./game/vector-assets.js";
 import { createAudio } from "./core/audio.js";
@@ -36,7 +37,7 @@ import type { Player } from "./game/player.js";
 import type { MoombaEnemy } from "./game/enemies/moomba.js";
 import type { SpikeletEnemy } from "./game/enemies/spikelet.js";
 import type { FlitEnemy } from "./game/enemies/flit.js";
-import type { Renderer } from "./core/renderer.js";
+
 import type { InputState } from "./core/input.js";
 
 type Assets = Record<string, { image: HTMLImageElement; w: number; h: number }>;
@@ -128,7 +129,8 @@ function requireElement<T extends Element>(selector: string): T {
 }
 
 const canvas = requireElement<HTMLCanvasElement>("#game");
-const renderer = createRenderer(canvas);
+// Renderer is initialized asynchronously - use Pixi.js by default, fallback to Canvas 2D
+let renderer: Renderer = createRenderer(canvas); // Temporary Canvas 2D until Pixi loads
 const input: InputState = createInput();
 const audio = createAudio();
 const hud = requireElement<HTMLDivElement>(".hud");
@@ -760,6 +762,9 @@ function render() {
   state.particles.draw(renderer);
 
   renderer.ctx.restore();
+
+  // Present the frame (required for Pixi.js renderer)
+  renderer.render?.();
 }
 
 function drawLevel(level: Level) {
@@ -1185,6 +1190,9 @@ function renderTitlePreview() {
   }
 
   renderer.ctx.restore();
+
+  // Present the frame (required for Pixi.js renderer)
+  renderer.render?.();
 }
 
 function drawSprite(id: string, x: number, y: number, flipX = false) {
@@ -1795,7 +1803,18 @@ window.__SUPER_MO__ = {
 };
 
 const loop = createLoop({ update, render });
-loop.start();
+
+// Initialize Pixi.js renderer asynchronously, then start the game loop
+(async () => {
+  try {
+    const pixiRenderer = await createPixiRenderer(canvas);
+    renderer = pixiRenderer;
+    console.log("Pixi.js renderer initialized");
+  } catch (err) {
+    console.warn("Failed to initialize Pixi.js, using Canvas 2D fallback:", err);
+  }
+  loop.start();
+})();
 
 window.addEventListener("blur", () => {
   input.reset();
