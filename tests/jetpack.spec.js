@@ -3,19 +3,20 @@ import { test, expect } from "@playwright/test";
 test("jetpack power-up activates and functions correctly", async ({ page }) => {
   await page.goto("/");
   
-  // Start the game
+  // Wait for game to be fully initialized (including async Pixi.js renderer)
+  await page.waitForFunction(() => window.__SUPER_MO__?.state != null, { timeout: 10000 });
+  
+  // Navigate: title -> intro
+  const startOverlay = page.locator(".start-overlay");
+  await expect(startOverlay).toBeVisible();
   await page.keyboard.press("Enter");
+  await expect(startOverlay).toHaveClass(/is-hidden/);
+  
+  // Navigate: intro -> playing
+  const introOverlay = page.locator(".intro-overlay");
+  await expect(introOverlay).toBeVisible();
   await page.keyboard.press("Enter");
-  
-  // Wait for game to be in playing mode
-  await page.waitForTimeout(500);
-  
-  // Verify game is in playing mode
-  const gameMode = await page.evaluate(() => {
-    return window.__SUPER_MO__?.state.mode;
-  });
-  
-  expect(gameMode).toBe("playing");
+  await expect(introOverlay).toHaveClass(/is-hidden/);
   
   // Activate jetpack via game state
   await page.evaluate(() => {
@@ -44,11 +45,20 @@ test("jetpack power-up activates and functions correctly", async ({ page }) => {
 test("jetpack warning appears at 2 seconds", async ({ page }) => {
   await page.goto("/");
   
-  // Start the game
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter");
+  // Wait for game to be fully initialized (including async Pixi.js renderer)
+  await page.waitForFunction(() => window.__SUPER_MO__?.state != null, { timeout: 10000 });
   
-  await page.waitForTimeout(500);
+  // Navigate: title -> intro
+  const startOverlay = page.locator(".start-overlay");
+  await expect(startOverlay).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(startOverlay).toHaveClass(/is-hidden/);
+  
+  // Navigate: intro -> playing
+  const introOverlay = page.locator(".intro-overlay");
+  await expect(introOverlay).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(introOverlay).toHaveClass(/is-hidden/);
   
   // Set jetpack to 10 seconds first
   await page.evaluate(() => {
@@ -81,11 +91,20 @@ test("jetpack warning appears at 2 seconds", async ({ page }) => {
 test("jetpack power-up can be collected", async ({ page }) => {
   await page.goto("/");
   
-  // Start the game
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Enter");
+  // Wait for game to be fully initialized (including async Pixi.js renderer)
+  await page.waitForFunction(() => window.__SUPER_MO__?.state != null, { timeout: 10000 });
   
-  await page.waitForTimeout(500);
+  // Navigate: title -> intro
+  const startOverlay = page.locator(".start-overlay");
+  await expect(startOverlay).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(startOverlay).toHaveClass(/is-hidden/);
+  
+  // Navigate: intro -> playing
+  const introOverlay = page.locator(".intro-overlay");
+  await expect(introOverlay).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(introOverlay).toHaveClass(/is-hidden/);
   
   // Check that level has jetpack powerups
   const hasJetpack = await page.evaluate(() => {
