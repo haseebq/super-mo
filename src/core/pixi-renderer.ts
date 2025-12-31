@@ -6,6 +6,7 @@ export type PixiRenderer = Renderer & {
   stage: Container;
   destroy: () => void;
   render: () => void; // Call this at end of frame to present
+  resize: () => void; // Call to resize to match CSS display size
 };
 
 /**
@@ -21,20 +22,77 @@ export type PixiRenderer = Renderer & {
 export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<PixiRenderer> {
   const app = new Application();
   
+  // Get the CSS display size for proper scaling
+  const rect = canvas.getBoundingClientRect();
+  const displayWidth = rect.width || canvas.width;
+  const displayHeight = rect.height || canvas.height;
+  
+  // Game's native resolution
+  const GAME_WIDTH = 320;
+  const GAME_HEIGHT = 180;
+  
   await app.init({
     canvas,
-    width: canvas.width,
-    height: canvas.height,
+    width: displayWidth,
+    height: displayHeight,
     backgroundColor: 0x000000,
     antialias: false,
-    resolution: 1,
+    resolution: window.devicePixelRatio || 1,
     autoDensity: true,
     autoStart: false, // Don't start Pixi's own render loop - we manage our own
   });
+  
+  // Root container that scales game content to fit display
+  const rootContainer = new Container();
+  app.stage.addChild(rootContainer);
+  
+  // Update the scale to fit the display size
+  function updateScale() {
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width || GAME_WIDTH;
+    const displayHeight = rect.height || GAME_HEIGHT;
+    
+    // Calculate scale to fit while maintaining aspect ratio
+    const scaleX = displayWidth / GAME_WIDTH;
+    const scaleY = displayHeight / GAME_HEIGHT;
+    const scale = Math.min(scaleX, scaleY);
+    
+    rootContainer.scale.set(scale, scale);
+    
+    // Center the game in the canvas if there's extra space
+    const scaledWidth = GAME_WIDTH * scale;
+    const scaledHeight = GAME_HEIGHT * scale;
+    rootContainer.x = (displayWidth - scaledWidth) / 2;
+    rootContainer.y = (displayHeight - scaledHeight) / 2;
+  }
+  
+  updateScale();
 
-  // Container for camera transforms
+  // Handle window resize events
+  function handleResize() {
+    const rect = canvas.getBoundingClientRect();
+    const newDisplayWidth = rect.width || GAME_WIDTH;
+    const newDisplayHeight = rect.height || GAME_HEIGHT;
+    
+    // Only resize if dimensions actually changed
+    if (app.canvas.width !== newDisplayWidth || app.canvas.height !== newDisplayHeight) {
+      app.renderer.resize(newDisplayWidth, newDisplayHeight);
+      updateScale();
+    }
+  }
+
+  // Listen for window resize
+  const resizeObserver = new ResizeObserver(() => {
+    handleResize();
+  });
+  resizeObserver.observe(canvas);
+
+  // Fallback window resize listener for browsers without ResizeObserver
+  window.addEventListener("resize", handleResize);
+
+  // Container for camera transforms (child of root for proper scaling)
   const cameraContainer = new Container();
-  app.stage.addChild(cameraContainer);
+  rootContainer.addChild(cameraContainer);
 
   // Graphics object for primitives (rects, circles) - reset each frame
   let graphics = new Graphics();
@@ -280,6 +338,8 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     destroy() {
       baseTextureCache.clear();
       frameTextureCache.clear();
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", handleResize);
       app.destroy(true);
     },
 
