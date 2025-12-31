@@ -1679,7 +1679,7 @@ function setMode(mode: Mode) {
 
   if (mode === "playing") {
     audio.unlock();
-    audio.startMusic();
+    audio.startMusic(state.levelIndex);
   } else {
     audio.stopMusic();
   }

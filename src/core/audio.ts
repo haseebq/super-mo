@@ -1,11 +1,25 @@
-type MusicNodes = {
-  intervalId: number;
-};
+const MUSIC_TRACKS = [
+  "assets/audio/music/level1.mp3",
+  "assets/audio/music/level2.mp3",
+  "assets/audio/music/level3.mp3",
+  "assets/audio/music/level4.mp3",
+  "assets/audio/music/level5.mp3",
+  "assets/audio/music/level6.mp3",
+];
+const MUSIC_VOLUME = 0.35;
 
 export function createAudio() {
   let ctx: AudioContext | null = null;
   let master: GainNode | null = null;
-  let music: MusicNodes | null = null;
+  const musicTracks = MUSIC_TRACKS.map((src) => {
+    const track = new Audio(src);
+    track.loop = true;
+    track.preload = "auto";
+    track.volume = MUSIC_VOLUME;
+    return track;
+  });
+  let music: HTMLAudioElement | null = null;
+  let musicIndex = -1;
   let muted = false;
 
   function ensureContext() {
@@ -110,64 +124,44 @@ export function createAudio() {
     setTimeout(() => playTone(150, 0.08, "square", 0.1), 40);
   }
 
-  function startMusic() {
-    if (!ctx || !master || music) {
+  function startMusic(trackIndex = 0) {
+    if (musicTracks.length === 0) {
       return;
     }
-    // Chiptune-style melody (C major pentatonic, upbeat platformer feel)
-    const melody = [
-      523, 587, 659, 784, 659, 587, 523, 0,    // C5 D5 E5 G5 E5 D5 C5 rest
-      659, 784, 880, 784, 659, 587, 523, 392,  // E5 G5 A5 G5 E5 D5 C5 G4
-      523, 659, 784, 880, 784, 659, 523, 0,    // C5 E5 G5 A5 G5 E5 C5 rest
-      880, 784, 659, 523, 587, 659, 523, 392,  // A5 G5 E5 C5 D5 E5 C5 G4
-    ];
-    const bass = [
-      131, 0, 165, 0, 196, 0, 165, 0,  // C3 E3 G3 E3
-      131, 0, 165, 0, 196, 0, 220, 0,  // C3 E3 G3 A3
-      175, 0, 220, 0, 262, 0, 220, 0,  // F3 A3 C4 A3
-      196, 0, 247, 0, 294, 0, 247, 0,  // G3 B3 D4 B3
-    ];
-    let melodyStep = 0;
-    let bassStep = 0;
-    let beat = 0;
-
-    const playBeat = () => {
-      if (!ctx) return;
-      // Play melody note
-      const note = melody[melodyStep];
-      if (note > 0) {
-        playTone(note, 0.12, "square", 0.04);
-      }
-      melodyStep = (melodyStep + 1) % melody.length;
-
-      // Play bass on even beats
-      if (beat % 2 === 0) {
-        const bassNote = bass[bassStep];
-        if (bassNote > 0) {
-          playTone(bassNote, 0.18, "triangle", 0.05);
-        }
-        bassStep = (bassStep + 1) % bass.length;
-      }
-      beat++;
-    };
-
-    playBeat();
-    const intervalId = window.setInterval(playBeat, 150);
-    music = { intervalId };
+    const nextIndex = Math.min(Math.max(trackIndex, 0), musicTracks.length - 1);
+    if (music && musicIndex === nextIndex) {
+      return;
+    }
+    stopMusic();
+    music = musicTracks[nextIndex];
+    musicIndex = nextIndex;
+    music.currentTime = 0;
+    music.muted = muted;
+    music.volume = MUSIC_VOLUME;
+    const playResult = music.play();
+    if (playResult && typeof playResult.catch === "function") {
+      playResult.catch(() => {});
+    }
   }
 
   function stopMusic() {
     if (!music) {
       return;
     }
-    window.clearInterval(music.intervalId);
+    music.pause();
+    music.currentTime = 0;
     music = null;
+    musicIndex = -1;
   }
 
   function setMuted(value: boolean) {
     muted = value;
     if (master) {
       master.gain.value = muted ? 0 : 0.2;
+    }
+    if (music) {
+      music.muted = muted;
+      music.volume = muted ? 0 : MUSIC_VOLUME;
     }
   }
 
