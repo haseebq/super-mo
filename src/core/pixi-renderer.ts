@@ -47,14 +47,32 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     fill: 0xffffff,
   });
 
-  // Cache for textures created from HTMLImageElements
-  const textureCache = new Map<HTMLImageElement, Texture>();
+  // Cache for base textures created from HTMLImageElements
+  const baseTextureCache = new Map<HTMLImageElement, Texture>();
 
-  function getTexture(image: HTMLImageElement): Texture {
-    let texture = textureCache.get(image);
+  // Cache for frame textures (keyed by image + frame coordinates)
+  const frameTextureCache = new Map<string, Texture>();
+
+  function getBaseTexture(image: HTMLImageElement): Texture {
+    let texture = baseTextureCache.get(image);
     if (!texture) {
       texture = Texture.from(image);
-      textureCache.set(image, texture);
+      baseTextureCache.set(image, texture);
+    }
+    return texture;
+  }
+
+  function getFrameTexture(image: HTMLImageElement, sx: number, sy: number, sw: number, sh: number): Texture {
+    const key = `${image.src}:${sx},${sy},${sw},${sh}`;
+    let texture = frameTextureCache.get(key);
+    if (!texture) {
+      const baseTexture = getBaseTexture(image);
+      const frame = new Rectangle(sx, sy, sw, sh);
+      texture = new Texture({
+        source: baseTexture.source,
+        frame,
+      });
+      frameTextureCache.set(key, texture);
     }
     return texture;
   }
@@ -229,17 +247,10 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       dh: number = sh,
       flipX: boolean = false
     ) {
-      const baseTexture = getTexture(image);
       const sprite = getSprite();
       
-      // Create a texture from a region of the base texture
-      const frame = new Rectangle(sx, sy, sw, sh);
-      
-      // Update sprite texture with the correct frame
-      sprite.texture = new Texture({
-        source: baseTexture.source,
-        frame,
-      });
+      // Get cached frame texture (avoids recreating on every draw)
+      sprite.texture = getFrameTexture(image, sx, sy, sw, sh);
       
       sprite.width = dw;
       sprite.height = dh;
@@ -267,7 +278,8 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     ctx: ctxProxy,
 
     destroy() {
-      textureCache.clear();
+      baseTextureCache.clear();
+      frameTextureCache.clear();
       app.destroy(true);
     },
 
