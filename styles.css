@@ -445,6 +445,13 @@ body {
   font-size: 15px;
 }
 
+.touch-btn-rocket {
+  background: rgba(255, 124, 58, 0.85);
+  width: 56px;
+  height: 56px;
+  font-size: 12px;
+}
+
 .touch-btn-dash {
   background: rgba(224, 75, 58, 0.8);
   width: 52px;
@@ -604,6 +611,11 @@ body {
     height: 68px;
   }
 
+  .touch-btn-rocket {
+    width: 52px;
+    height: 52px;
+  }
+
   .touch-btn-dash {
     width: 44px;
     height: 44px;
@@ -660,6 +672,11 @@ body {
   .touch-btn-jump {
     width: 56px;
     height: 56px;
+  }
+
+  .touch-btn-rocket {
+    width: 44px;
+    height: 44px;
   }
 
   .touch-btn-dash {
