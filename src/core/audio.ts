@@ -74,6 +74,14 @@ export function createAudio() {
     });
   }
 
+  function playTriumph() {
+    // Short triumphant arpeggio for special pickups
+    const notes = [659, 784, 988, 1318];
+    notes.forEach((freq, i) => {
+      setTimeout(() => playTone(freq, 0.14, "triangle", 0.1), i * 90);
+    });
+  }
+
   function playDash() {
     // Whoosh sound for dash
     playTone(440, 0.1, "square", 0.15);
@@ -172,6 +180,7 @@ export function createAudio() {
     playPowerup,
     playHurt,
     playGoal,
+    playTriumph,
     playDash,
     playCheckpoint,
     playWallSlide,

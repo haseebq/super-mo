@@ -111,6 +111,7 @@ type GameState = {
   rocketTimer: number;
   rocketCount: number;
   rockets: Rocket[];
+  rocketMessageTimer: number;
 };
 
 declare global {
@@ -152,6 +153,7 @@ const hudShards = requireElement<HTMLSpanElement>("#hud-shards");
 const hudBuffs = requireElement<HTMLSpanElement>("#hud-buffs");
 const hudAudio = requireElement<HTMLSpanElement>("#hud-audio");
 const hudCheckpoint = requireElement<HTMLSpanElement>("#hud-checkpoint");
+const hudMessage = requireElement<HTMLDivElement>("#hud-message");
 const completeScore = requireElement<HTMLParagraphElement>("#complete-score");
 const completeBreakdown = requireElement<HTMLParagraphElement>(
   "#complete-breakdown"
@@ -312,6 +314,7 @@ const state: GameState = {
   rocketTimer: 0,
   rocketCount: 0,
   rockets: [],
+  rocketMessageTimer: 0,
 };
 
 const neutralInput: InputState = {
@@ -491,6 +494,7 @@ function update(dt: number) {
   const prevSpeed = Math.ceil(state.speedTimer);
   const prevShield = Math.ceil(state.shieldTimer);
   const prevJetpack = Math.ceil(state.jetpackTimer);
+  const wasRocketMessageActive = state.rocketMessageTimer > 0;
   if (state.levelTimeRemaining > 0) {
     state.levelTimeRemaining = Math.max(0, state.levelTimeRemaining - dt);
     if (state.levelTimeRemaining === 0) {
@@ -515,13 +519,17 @@ function update(dt: number) {
   } else {
     state.jetpackWarning = false;
   }
+  if (state.rocketMessageTimer > 0) {
+    state.rocketMessageTimer = Math.max(0, state.rocketMessageTimer - dt);
+  }
   const timeChanged = Math.ceil(state.levelTimeRemaining) !== previousTime;
   const buffsChanged =
     Math.ceil(state.powerupTimer) !== prevPower ||
     Math.ceil(state.speedTimer) !== prevSpeed ||
     Math.ceil(state.shieldTimer) !== prevShield ||
     Math.ceil(state.jetpackTimer) !== prevJetpack;
-  if (timeChanged || buffsChanged) {
+  const messageChanged = wasRocketMessageActive !== (state.rocketMessageTimer > 0);
+  if (timeChanged || buffsChanged || messageChanged) {
     updateHud();
   }
   const speedBoost = state.speedTimer > 0 ? 1.35 : 1;
@@ -1387,10 +1395,14 @@ function handleCollectibles() {
       } else if (powerup.kind === "rocket") {
         state.rocketCount = 3;
         state.rocketTimer = 15;
+        state.rocketMessageTimer = 3; // Show message for 3 seconds
+        audio.playTriumph();
       }
       state.hud.score += activeRules.scoring.powerupValue;
       updateHud();
-      audio.playPowerup();
+      if (powerup.kind !== "rocket") {
+        audio.playPowerup();
+      }
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");
     }
   }
@@ -1620,6 +1632,11 @@ function updateHud() {
   hudBuffs.textContent = buffs.length ? buffs.join(" ") : "--";
   hudAudio.textContent = state.audioMuted ? "OFF" : "ON";
   hudCheckpoint.textContent = state.activeCheckpoint ? "✓" : "--";
+  const showRocketMessage = state.rocketMessageTimer > 0;
+  hudMessage.textContent = showRocketMessage
+    ? "Rocket Launcher! Press C to fire"
+    : "";
+  hudMessage.classList.toggle("is-visible", showRocketMessage);
   completeScore.textContent = `Score ${state.hud.score}`;
   updateCompleteSummary();
 }
