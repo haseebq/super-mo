@@ -1394,7 +1394,7 @@ function handleCollectibles() {
         state.jetpackWarning = false;
       } else if (powerup.kind === "rocket") {
         state.rocketCount = 3;
-        state.rocketTimer = 15;
+        state.rocketTimer = 0;
         state.rocketMessageTimer = 3; // Show message for 3 seconds
         audio.playTriumph();
       }
