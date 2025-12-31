@@ -209,10 +209,10 @@ export function createLevel2(): Level {
   coins.push(createCoin(74, 8));
   shards.push(createShard(34, 3));
   shards.push(createShard(58, 4));
+  powerups.push(createPowerup(4, 10, "rocket"));
   powerups.push(createPowerup(24, 6, "speed"));
   powerups.push(createPowerup(52, 5, "spring"));
   powerups.push(createPowerup(40, 6, "jetpack"));
-  powerups.push(createPowerup(30, 12, "rocket"));
   platforms.push(createVerticalPlatform(12, 8, 2.5, 3));
   checkpoints.push(createCheckpoint(44, 9));
 
