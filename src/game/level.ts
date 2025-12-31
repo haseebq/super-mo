@@ -12,7 +12,7 @@ export type Collectible = Rect & {
 
 export type Powerup = Rect & {
   collected: boolean;
-  kind: "spring" | "speed" | "shield";
+  kind: "spring" | "speed" | "shield" | "jetpack";
 };
 
 export type MovingPlatform = Rect & {
@@ -128,6 +128,7 @@ export function createLevel1(): Level {
   powerups.push(createPowerup(28, 5, "spring"));
   powerups.push(createPowerup(34, 9, "speed"));
   powerups.push(createPowerup(60, 5, "shield"));
+  powerups.push(createPowerup(45, 6, "jetpack"));
   platforms.push(createVerticalPlatform(20, 9, 3, 3));
   platforms.push(createCircularPlatform(40, 8, 2.5, 3.5));
   checkpoints.push(createCheckpoint(40, 9));
@@ -210,6 +211,7 @@ export function createLevel2(): Level {
   shards.push(createShard(58, 4));
   powerups.push(createPowerup(24, 6, "speed"));
   powerups.push(createPowerup(52, 5, "spring"));
+  powerups.push(createPowerup(40, 6, "jetpack"));
   platforms.push(createVerticalPlatform(12, 8, 2.5, 3));
   checkpoints.push(createCheckpoint(44, 9));
 

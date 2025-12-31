@@ -75,6 +75,8 @@ type GameState = {
   powerupTimer: number;
   speedTimer: number;
   shieldTimer: number;
+  jetpackTimer: number;
+  jetpackWarning: boolean;
   backgroundTime: number;
   playerSquash: number;
   completeTimeBonus: number;
@@ -270,6 +272,8 @@ const state: GameState = {
   powerupTimer: 0,
   speedTimer: 0,
   shieldTimer: 0,
+  jetpackTimer: 0,
+  jetpackWarning: false,
   backgroundTime: 0,
   playerSquash: 0,
   completeTimeBonus: 0,
@@ -451,6 +455,7 @@ function update(dt: number) {
   const prevPower = Math.ceil(state.powerupTimer);
   const prevSpeed = Math.ceil(state.speedTimer);
   const prevShield = Math.ceil(state.shieldTimer);
+  const prevJetpack = Math.ceil(state.jetpackTimer);
   if (state.levelTimeRemaining > 0) {
     state.levelTimeRemaining = Math.max(0, state.levelTimeRemaining - dt);
     if (state.levelTimeRemaining === 0) {
@@ -464,11 +469,23 @@ function update(dt: number) {
   if (state.shieldTimer > 0) {
     state.shieldTimer = Math.max(0, state.shieldTimer - dt);
   }
+  if (state.jetpackTimer > 0) {
+    state.jetpackTimer = Math.max(0, state.jetpackTimer - dt);
+    // Enable warning when 2 seconds remain
+    if (state.jetpackTimer <= 2 && state.jetpackTimer > 0) {
+      state.jetpackWarning = true;
+    } else {
+      state.jetpackWarning = false;
+    }
+  } else {
+    state.jetpackWarning = false;
+  }
   const timeChanged = Math.ceil(state.levelTimeRemaining) !== previousTime;
   const buffsChanged =
     Math.ceil(state.powerupTimer) !== prevPower ||
     Math.ceil(state.speedTimer) !== prevSpeed ||
-    Math.ceil(state.shieldTimer) !== prevShield;
+    Math.ceil(state.shieldTimer) !== prevShield ||
+    Math.ceil(state.jetpackTimer) !== prevJetpack;
   if (timeChanged || buffsChanged) {
     updateHud();
   }
@@ -508,6 +525,20 @@ function update(dt: number) {
 
   if (state.powerupTimer > 0) {
     state.player.vy -= 40 * dt;
+  }
+
+  // Jetpack provides stronger anti-gravity for flying
+  if (state.jetpackTimer > 0) {
+    state.player.vy -= 180 * dt;
+    // Spawn jetpack exhaust particles
+    if (Math.random() < 0.6) {
+      state.particles.spawn(
+        state.player.x + 8,
+        state.player.y + state.player.height,
+        1,
+        state.jetpackWarning ? "#ff5b4a" : "#78c7f0"
+      );
+    }
   }
 
   handleCollectibles();
@@ -638,6 +669,33 @@ function render() {
           "#ff5b4a"
         );
         renderer.ctx.restore();
+      }
+      // Draw jetpack visual indicator when active
+      if (state.jetpackTimer > 0) {
+        const jetpackColor = state.jetpackWarning ? "#ff5b4a" : "#78c7f0";
+        // Draw jetpack on player's back
+        renderer.rect(
+          state.player.x + 5,
+          state.player.y + 8,
+          6,
+          10,
+          jetpackColor
+        );
+        // Draw jetpack nozzles
+        renderer.rect(
+          state.player.x + 6,
+          state.player.y + 17,
+          2,
+          3,
+          "#2b2b2b"
+        );
+        renderer.rect(
+          state.player.x + 8,
+          state.player.y + 17,
+          2,
+          3,
+          "#2b2b2b"
+        );
       }
     } else {
       renderer.rect(
@@ -927,12 +985,16 @@ function drawCollectibles() {
         ? "#78c7f0"
         : powerup.kind === "speed"
         ? "#f6d44d"
+        : powerup.kind === "jetpack"
+        ? "#ff5b4a"
         : "#5dbb63";
     const inner =
       powerup.kind === "spring"
         ? "#f6d44d"
         : powerup.kind === "speed"
         ? "#e04b3a"
+        : powerup.kind === "jetpack"
+        ? "#78c7f0"
         : "#ffffff";
     renderer.rect(powerup.x + 2, powerup.y + 2 + bob, 12, 12, outer);
     renderer.rect(powerup.x + 5, powerup.y + 5 + bob, 6, 6, inner);
@@ -1197,8 +1259,11 @@ function handleCollectibles() {
         state.powerupTimer = 6;
       } else if (powerup.kind === "speed") {
         state.speedTimer = 6;
-      } else {
+      } else if (powerup.kind === "shield") {
         state.shieldTimer = 6;
+      } else if (powerup.kind === "jetpack") {
+        state.jetpackTimer = 10;
+        state.jetpackWarning = false;
       }
       state.hud.score += activeRules.scoring.powerupValue;
       updateHud();
@@ -1267,6 +1332,8 @@ function resetLevel() {
   state.powerupTimer = 0;
   state.speedTimer = 0;
   state.shieldTimer = 0;
+  state.jetpackTimer = 0;
+  state.jetpackWarning = false;
   state.completeTimeBonus = 0;
   state.completeGoalBonus = 0;
   state.completeCoinScore = 0;
@@ -1394,6 +1461,11 @@ function updateHud() {
   }
   if (state.shieldTimer > 0) {
     buffs.push(`🛡${Math.ceil(state.shieldTimer)}`);
+  }
+  if (state.jetpackTimer > 0) {
+    const timeLeft = Math.ceil(state.jetpackTimer);
+    const icon = state.jetpackWarning ? "🚀⚠" : "🚀";
+    buffs.push(`${icon}${timeLeft}`);
   }
   hudBuffs.textContent = buffs.length ? buffs.join(" ") : "--";
   hudAudio.textContent = state.audioMuted ? "OFF" : "ON";
