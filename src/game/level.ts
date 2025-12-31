@@ -125,6 +125,7 @@ export function createLevel1(): Level {
     coins.push(createCoin(x, 9));
   }
   shards.push(createShard(50, 4));
+  powerups.push(createPowerup(8, 9, "rocket"));
   powerups.push(createPowerup(28, 5, "spring"));
   powerups.push(createPowerup(34, 9, "speed"));
   powerups.push(createPowerup(60, 5, "shield"));
@@ -209,7 +210,6 @@ export function createLevel2(): Level {
   coins.push(createCoin(74, 8));
   shards.push(createShard(34, 3));
   shards.push(createShard(58, 4));
-  powerups.push(createPowerup(4, 10, "rocket"));
   powerups.push(createPowerup(24, 6, "speed"));
   powerups.push(createPowerup(52, 5, "spring"));
   powerups.push(createPowerup(40, 6, "jetpack"));
