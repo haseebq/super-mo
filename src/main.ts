@@ -652,6 +652,11 @@ function update(dt: number) {
   } else {
     state.jetpackWarning = false;
   }
+  if (prevJetpack <= 0 && state.jetpackTimer > 0) {
+    audio.startJetpackLoop();
+  } else if (prevJetpack > 0 && state.jetpackTimer === 0) {
+    audio.stopJetpackLoop();
+  }
   if (state.rocketMessageTimer > 0) {
     state.rocketMessageTimer = Math.max(0, state.rocketMessageTimer - dt);
   }
@@ -1546,9 +1551,7 @@ function handleCollectibles() {
       }
       state.hud.score += activeRules.scoring.powerupValue;
       updateHud();
-      if (powerup.kind === "jetpack") {
-        audio.playJetpack();
-      } else if (powerup.kind !== "rocket") {
+      if (powerup.kind !== "rocket") {
         audio.playPowerup();
       }
       state.particles.spawn(powerup.x + 8, powerup.y + 8, 12, "#78c7f0");

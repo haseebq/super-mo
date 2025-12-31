@@ -46,6 +46,7 @@ const SFX_POOL_SIZE = 4;
 const SFX_COOLDOWNS: Partial<Record<SfxKey, number>> = {
   wallSlide: 200,
 };
+const JETPACK_LOOP_VOLUME = 0.28;
 
 export function createAudio() {
   const musicTracks = MUSIC_TRACKS.map((src) => {
@@ -57,6 +58,10 @@ export function createAudio() {
   });
   const sfxPools = new Map<SfxKey, HTMLAudioElement[]>();
   const sfxLastPlayed = new Map<SfxKey, number>();
+  const jetpackLoop = new Audio(SFX_TRACKS.jetpack);
+  jetpackLoop.loop = true;
+  jetpackLoop.preload = "auto";
+  jetpackLoop.volume = JETPACK_LOOP_VOLUME;
   let music: HTMLAudioElement | null = null;
   let musicIndex = -1;
   let muted = false;
@@ -82,6 +87,7 @@ export function createAudio() {
         track.muted = muted;
       }
     }
+    jetpackLoop.muted = muted;
   }
 
   function playSfx(key: SfxKey) {
@@ -139,6 +145,27 @@ export function createAudio() {
     musicIndex = -1;
   }
 
+  function startJetpackLoop() {
+    if (!jetpackLoop.paused) {
+      return;
+    }
+    jetpackLoop.currentTime = 0;
+    jetpackLoop.muted = muted;
+    jetpackLoop.volume = JETPACK_LOOP_VOLUME;
+    const playResult = jetpackLoop.play();
+    if (playResult && typeof playResult.catch === "function") {
+      playResult.catch(() => {});
+    }
+  }
+
+  function stopJetpackLoop() {
+    if (jetpackLoop.paused) {
+      return;
+    }
+    jetpackLoop.pause();
+    jetpackLoop.currentTime = 0;
+  }
+
   function setMuted(value: boolean) {
     muted = value;
     if (music) {
@@ -151,6 +178,8 @@ export function createAudio() {
         track.volume = muted ? 0 : SFX_VOLUME;
       }
     }
+    jetpackLoop.muted = muted;
+    jetpackLoop.volume = muted ? 0 : JETPACK_LOOP_VOLUME;
   }
 
   return {
@@ -169,6 +198,8 @@ export function createAudio() {
     playWallSlide: () => playSfx("wallSlide"),
     playLanding: () => playSfx("landing"),
     playDamage: () => playSfx("damage"),
+    startJetpackLoop,
+    stopJetpackLoop,
     startMusic,
     stopMusic,
     setMuted,
