@@ -3,7 +3,7 @@
 Goal: provide AI-friendly, license-safe asset inputs the agent can remix into game-ready sprites/animations.
 
 ## Requirements
-- Permissive licenses (prefer CC0/MIT) with clear attribution rules recorded per asset.
+- Permissive licenses only (MIT/BSD/CC0/OFL or similar); record license + attribution rules per asset.
 - Editable sources (SVG/PSD/BLEND/FBX/GLTF) for kitbashing and retargeting.
 - Consistent style families (palette/line weight) to reduce AI harmonization work.
 - Runtime-ready formats achievable via templates (vector slices or 3D-to-2D renders).
