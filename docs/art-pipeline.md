@@ -36,3 +36,5 @@ Define a repeatable workflow for SVG vector assets used by the runtime.
 
 See `docs/spikes/ai-generation-toolchain.md` for a full evaluation and
 recommended stack.
+
+See `docs/spikes/monster-workflow.md` for the end-to-end monster workflow.
