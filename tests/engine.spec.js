@@ -8,6 +8,18 @@ async function pressKey(page, code) {
 }
 
 test("engine boots and toggles states", async ({ page }) => {
+  const consoleErrors = [];
+  const pageErrors = [];
+
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      consoleErrors.push(msg.text());
+    }
+  });
+  page.on("pageerror", (error) => {
+    pageErrors.push(error.message);
+  });
+
   await page.goto("/");
 
   const canvas = page.locator("#game");
@@ -18,6 +30,9 @@ test("engine boots and toggles states", async ({ page }) => {
     timeout: 10000,
   });
   await page.waitForFunction(() => window.__SUPER_MO__?.state?.backgroundTime > 0, {
+    timeout: 10000,
+  });
+  await page.waitForFunction(() => window.__RENDERER_READY__ === true, {
     timeout: 10000,
   });
 
@@ -39,4 +54,10 @@ test("engine boots and toggles states", async ({ page }) => {
 
   const hud = page.locator(".hud");
   await expect(hud).toBeVisible();
+
+  expect(pageErrors, `Page errors: ${pageErrors.join(" | ")}`).toHaveLength(0);
+  expect(
+    consoleErrors,
+    `Console errors: ${consoleErrors.join(" | ")}`
+  ).toHaveLength(0);
 });

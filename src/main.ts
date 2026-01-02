@@ -7,6 +7,7 @@ import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
 import { loadVectorAssets } from "./game/vector-assets.js";
 import { createAudio } from "./core/audio.js";
+import { applyRuntimeCsp } from "./core/csp-utils.js";
 import {
   getCurrentFrame,
   setAnimation,
@@ -136,11 +137,34 @@ function requireElement<T extends Element>(selector: string): T {
 }
 
 const canvas = requireElement<HTMLCanvasElement>("#game");
+applyRuntimeCsp();
 // Start with a no-op renderer until Pixi.js is ready.
+const nullGradient = {
+  addColorStop() {},
+} as CanvasGradient;
+
 const nullCtx = {
+  fillStyle: "",
+  strokeStyle: "",
+  lineWidth: 1,
   save() {},
   restore() {},
   translate() {},
+  scale() {},
+  setTransform() {},
+  beginPath() {},
+  closePath() {},
+  moveTo() {},
+  lineTo() {},
+  quadraticCurveTo() {},
+  arc() {},
+  ellipse() {},
+  fill() {},
+  stroke() {},
+  fillRect() {},
+  createLinearGradient() {
+    return nullGradient;
+  },
   get globalAlpha() {
     return 1;
   },
