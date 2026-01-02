@@ -13,7 +13,7 @@ Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for a
 - Use only permissive licenses (MIT/BSD/CC0/OFL) for code, assets, and dependencies; reject restrictive terms.
 - All work flows through issues: any tangential idea or non-blocking decision gets a new beads issue and is deferred; issues can cover code, planning, or project management.
 - Keep docs current: when architecture/process changes, update the relevant docs the same iteration.
-- Before working, list open issues (`bd ready` / `bd list --status=open`) and choose the highest-priority next step; narrate the choice—do not ask the user what to do next.
+- Before working, list open issues (`bd ready` / `bd list --status=open`), triage if priorities or ordering need updates, and then choose the next step; narrate the decision—do not ask the user what to do next.
 
 When creating new issues, think through the dependency chain and add `bd dep` links (blocks or parent-child) so execution order is explicit.
 
