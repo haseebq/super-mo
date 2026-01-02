@@ -7,6 +7,8 @@ A lightweight, modular HTML5 game built on Pixi.js (WebGL). The core loop is a f
 - **Rendering:** Pixi.js renderer for vector SVG rendering.
 - **Resolution:** Internal fixed resolution (e.g., 320x180) scaled to fit viewport.
 - **Loop:** `requestAnimationFrame` with fixed update step (e.g., 16.67ms).
+- **Scripting:** Core gameplay rules and behaviors live in an AI-editable JS subset;
+  the host kernel only enforces sandbox boundaries and platform safety.
 - **Assets:** Per-sprite SVG files with lightweight metadata.
 - **Audio:** Web Audio API for low-latency SFX and loops.
 

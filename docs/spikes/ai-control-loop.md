@@ -16,6 +16,8 @@ changes to the in-browser engine, assets, or rules without direct code execution
 - Every change is logged for audit and rollback.
 - Changes run inside a sandboxed runtime (Web Worker or sandboxed iframe) with
   capability-scoped APIs and no direct network access.
+- Core gameplay logic lives in the same scripting runtime so AI edits are
+  first-class and broad in scope.
 
 ## Protocol Options
 

@@ -58,6 +58,8 @@ no direct DOM or network access.
 - Fundamental rule changes are implemented by editing scripts and assets.
 - Script edits execute only inside the sandbox runtime with restricted APIs.
 - Apply only if validation passes and no forbidden APIs are used.
+- Core gameplay logic should be authored in the same sandboxed scripting
+  language so the AI can modify nearly all rules and behaviors.
 
 ## Scripting Runtime (AI-Familiar)
 

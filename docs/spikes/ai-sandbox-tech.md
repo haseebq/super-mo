@@ -98,6 +98,8 @@ Primary goal: use a scripting surface any capable AI already knows.
 - **API surface:** capability-scoped host APIs only (no raw globals).
 - **Fallback option:** Lua 5.4 (MIT) via a JS or WASM runtime when we want a
   smaller, more constrained language; AIs typically know Lua as well.
+- **Engine policy:** gameplay rules and engine behaviors should live in the same
+  scripting runtime so the AI can modify nearly all game logic.
 
 ## JS-in-WASM Sandboxes (Potentially MIT)
 
