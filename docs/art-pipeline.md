@@ -33,3 +33,6 @@ Define a repeatable workflow for SVG vector assets used by the runtime.
 - **Tooling stack**: Favor deterministic, template-driven SVG (or 3D-to-2D renders) over prompt-only models; keep assets editable for manual touch-up.
 - **Quality gates**: Palette/outline validation, silhouette/readability checks at game scale, animation sanity (idle/run/jump/hit), and performance budgets before import.
 - **Provenance**: Track source (pack vs. AI remix), license, and applied templates for each exported asset so replacements/rollbacks stay safe.
+
+See `docs/spikes/ai-generation-toolchain.md` for a full evaluation and
+recommended stack.
