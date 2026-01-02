@@ -6,7 +6,7 @@
 
 ## Summary
 
-Migrated Super Mo's rendering layer from vanilla Canvas 2D to **Pixi.js** (~100KB), a lightweight WebGL-accelerated 2D renderer. The migration preserves all existing game logic (physics, input, audio) while gaining GPU acceleration.
+Migrated Super Mo's rendering layer from vanilla Canvas 2D to **Pixi.js** (~100KB), a lightweight WebGL-accelerated 2D renderer. The migration preserves all existing game logic (physics, input, audio) while gaining GPU acceleration. The renderer is now Pixi-only.
 
 ## Why Pixi.js?
 
@@ -25,7 +25,7 @@ Since Super Mo already has solid physics, input, and audio systems, we only need
 - `src/core/pixi-renderer.ts` - Pixi.js renderer adapter implementing our Renderer interface
 
 ### Modified Files
-- `src/main.ts` - Async initialization of Pixi renderer with Canvas 2D fallback
+- `src/main.ts` - Async initialization of Pixi renderer
 - `src/core/renderer.ts` - Added optional `render()` method for frame presentation
 - `scripts/serve.js` - Updated to bundle dependencies with esbuild
 
@@ -43,12 +43,11 @@ Since Super Mo already has solid physics, input, and audio systems, we only need
 │    clear(), rect(), circle(), sprite(), text()              │
 └──────────────────────────┬──────────────────────────────────┘
                            │
-              ┌────────────┴────────────┐
-              ▼                         ▼
-    ┌─────────────────┐      ┌─────────────────┐
-    │  Canvas 2D      │      │  Pixi.js        │
-    │  (fallback)     │      │  (WebGL)        │
-    └─────────────────┘      └─────────────────┘
+                           ▼
+                  ┌─────────────────┐
+                  │  Pixi.js        │
+                  │  (WebGL)        │
+                  └─────────────────┘
 ```
 
 ## Key Implementation Details
@@ -72,17 +71,8 @@ if (!texture) {
 
 ### Async Initialization
 ```typescript
-// Start with Canvas 2D, upgrade to Pixi when ready
-let renderer = createRenderer(canvas);
-
-(async () => {
-  try {
-    renderer = await createPixiRenderer(canvas);
-  } catch {
-    // Canvas 2D fallback
-  }
-  loop.start();
-})();
+let renderer = await createPixiRenderer(canvas);
+loop.start();
 ```
 
 ## Test Results
@@ -103,10 +93,4 @@ All 13 tests pass:
 
 ## Rollback Plan
 
-The Canvas 2D renderer is still in place as a fallback. If Pixi.js fails to initialize, the game automatically uses Canvas 2D. To force Canvas 2D:
-
-```typescript
-// In main.ts, comment out the Pixi initialization:
-// const pixiRenderer = await createPixiRenderer(canvas);
-// renderer = pixiRenderer;
-```
+There is no Canvas 2D fallback. Rollback requires reverting the Pixi migration or reintroducing the Canvas renderer adapter.

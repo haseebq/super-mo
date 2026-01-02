@@ -2,7 +2,7 @@ import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
 import { createDefaultModdingProvider } from "./game/modding/provider.js";
-import { createRenderer, type Renderer } from "./core/renderer.js";
+import type { Renderer } from "./core/renderer.js";
 import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
 import { loadVectorAssets } from "./game/vector-assets.js";
@@ -123,6 +123,7 @@ declare global {
       resetPlayer: () => void;
       setDebug: (flags: { tiles?: boolean; labels?: boolean }) => void;
     };
+    __RENDERER_READY__?: boolean;
   }
 }
 
@@ -135,8 +136,28 @@ function requireElement<T extends Element>(selector: string): T {
 }
 
 const canvas = requireElement<HTMLCanvasElement>("#game");
-// Renderer is initialized asynchronously - use Pixi.js by default, fallback to Canvas 2D
-let renderer: Renderer = createRenderer(canvas); // Temporary Canvas 2D until Pixi loads
+// Start with a no-op renderer until Pixi.js is ready.
+const nullCtx = {
+  save() {},
+  restore() {},
+  translate() {},
+  get globalAlpha() {
+    return 1;
+  },
+  set globalAlpha(_value: number) {},
+} as unknown as CanvasRenderingContext2D;
+
+const nullRenderer: Renderer = {
+  clear() {},
+  rect() {},
+  circle() {},
+  sprite() {},
+  text() {},
+  ctx: nullCtx,
+  render() {},
+};
+
+let renderer: Renderer = nullRenderer;
 const input: InputState = createInput();
 const audio = createAudio();
 const hud = requireElement<HTMLDivElement>(".hud");
@@ -2057,17 +2078,17 @@ window.__SUPER_MO__ = {
 };
 
 const loop = createLoop({ update, render });
+loop.start();
 
-// Initialize Pixi.js renderer asynchronously, then start the game loop
+// Initialize Pixi.js renderer asynchronously and swap it in when ready
 (async () => {
   try {
-    const pixiRenderer = await createPixiRenderer(canvas);
-    renderer = pixiRenderer;
+    renderer = await createPixiRenderer(canvas);
+    window.__RENDERER_READY__ = true;
     console.log("Pixi.js renderer initialized");
   } catch (err) {
-    console.warn("Failed to initialize Pixi.js, using Canvas 2D fallback:", err);
+    console.error("Failed to initialize Pixi.js renderer:", err);
   }
-  loop.start();
 })();
 
 window.addEventListener("blur", () => {

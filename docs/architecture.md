@@ -1,10 +1,10 @@
 # Super Mo - HTML5 Architecture
 
 ## Overview
-A lightweight, modular HTML5 game built on Canvas 2D. The core loop is a fixed-timestep update with variable rendering to keep physics stable and visuals smooth.
+A lightweight, modular HTML5 game built on Pixi.js (WebGL). The core loop is a fixed-timestep update with variable rendering to keep physics stable and visuals smooth.
 
 ## Core Decisions
-- **Rendering:** Canvas 2D for vector SVG rendering.
+- **Rendering:** Pixi.js renderer for vector SVG rendering.
 - **Resolution:** Internal fixed resolution (e.g., 320x180) scaled to fit viewport.
 - **Loop:** `requestAnimationFrame` with fixed update step (e.g., 16.67ms).
 - **Assets:** Per-sprite SVG files with lightweight metadata.
@@ -15,12 +15,13 @@ A lightweight, modular HTML5 game built on Canvas 2D. The core loop is a fixed-t
 /index.html
 /styles.css
 /src/
-  main.js            # Bootstraps game
+  main.ts            # Bootstraps game
   core/
-    loop.js          # Game loop + timing
-    renderer.js      # Canvas scaling + draw helpers
-    input.js         # Keyboard/touch input
-    audio.js         # Web Audio setup
+    loop.ts          # Game loop + timing
+    renderer.ts      # Renderer interface
+    pixi-renderer.ts # Pixi renderer adapter + draw helpers
+    input.ts         # Keyboard/touch input
+    audio.ts         # Web Audio setup
   game/
     world.js         # World/level container
     entity.js        # Base entity
@@ -46,9 +47,9 @@ render(interp)
 ```
 
 ## Rendering Plan
-- Use a single offscreen canvas at internal resolution.
-- Scale to screen with `imageSmoothingEnabled = false`.
-- Precompute tile maps into a cached layer for fast redraws.
+- Render via Pixi.js at internal resolution and scale to the viewport.
+- Use nearest-neighbor scaling to keep pixel-art edges crisp.
+- Cache textures and tile layers to minimize per-frame allocations.
 
 ## Input
 - Keyboard: arrows + Z/X (jump/run), Enter/P (pause).

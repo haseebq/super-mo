@@ -1,16 +1,26 @@
 import { test, expect } from "@playwright/test";
 
+async function pressKey(page, code) {
+  await page.evaluate((keyCode) => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { code: keyCode }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { code: keyCode }));
+  }, code);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(() => window.__SUPER_MO__?.modding != null);
+  await page.waitForFunction(() => window.__SUPER_MO__?.state?.backgroundTime > 0, {
+    timeout: 10000,
+  });
 
   const startOverlay = page.locator(".start-overlay");
   await expect(startOverlay).toBeVisible();
-  await page.keyboard.press("Enter");
+  await pressKey(page, "Enter");
 
   const introOverlay = page.locator(".intro-overlay");
   await expect(introOverlay).toBeVisible();
-  await page.keyboard.press("Enter");
+  await pressKey(page, "Enter");
   await expect(introOverlay).toHaveClass(/is-hidden/);
 });
 
