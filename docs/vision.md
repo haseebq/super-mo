@@ -35,6 +35,16 @@ Casual players and nostalgic platformer fans who want a quick, polished experien
 ## Platforms
 - Desktop and mobile browsers (touch controls optional in Phase 1).
 
+## AI-Driven Modding Vision (Future)
+Enable a secure, browser-contained modding surface that an external AI can live-edit on behalf of the player. The AI runs elsewhere, but only interacts through a tightly scoped, in-browser sandbox that owns all engine code, game content, and assets.
+
+Principles:
+- User-directed, reversible: previews, approvals, and rollbacks guard every AI change.
+- Sandboxed by default: AI-authored code/assets execute in isolated WASM/Worker/SES-style realms with capability-scoped APIs and no raw network access.
+- Whole-stack editable: engine systems, gameplay scripts, scenes, and assets can be patched hot without a full reload; fast state save/restore supports iteration.
+- Safety gates: validation, lint/type checks, and smoke tests run before applying changes; runtime kill-switches and quotas prevent abuse.
+- Clear provenance: every change is attributed to the AI session with diffs and logs visible to the player.
+
 ## References
 - Classic 16-bit platformer pacing and readability.
 - Modern HTML5 indie polish standards (smooth animations, subtle particles).
