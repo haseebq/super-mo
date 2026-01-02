@@ -1,4 +1,14 @@
-import { Application, Graphics, Text, TextStyle, Sprite, Texture, Container, Rectangle } from "pixi.js";
+import {
+  Application,
+  Graphics,
+  Text,
+  TextStyle,
+  Sprite,
+  Texture,
+  Container,
+  Rectangle,
+  FillGradient,
+} from "pixi.js";
 import type { Renderer } from "./renderer.js";
 
 export type PixiRenderer = Renderer & {
@@ -63,6 +73,8 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
 
   // Cache for frame textures (keyed by image + frame coordinates)
   const frameTextureCache = new Map<string, Texture>();
+
+  const frameGradients: FillGradient[] = [];
 
   function getBaseTexture(image: HTMLImageElement): Texture {
     let texture = baseTextureCache.get(image);
@@ -146,8 +158,64 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const transformStack: TransformState[] = [];
   let currentTransform: TransformState = { x: 0, y: 0, scaleX: 1, scaleY: 1, alpha: 1 };
 
-  // Create a proxy ctx object that tracks transforms
+  let fillStyle: string | FillGradient = "#000000";
+  let strokeStyle: string | FillGradient = "#000000";
+  let lineWidth = 1;
+
+  function resolveFillStyle(style: string | FillGradient, alpha: number) {
+    if (style instanceof FillGradient) {
+      return { fill: style, alpha };
+    }
+    return { color: parseColor(style), alpha };
+  }
+
+  function resolveStrokeStyle(
+    style: string | FillGradient,
+    alpha: number,
+    width: number
+  ) {
+    if (style instanceof FillGradient) {
+      return { fill: style, alpha, width };
+    }
+    return { color: parseColor(style), alpha, width };
+  }
+
+  function createLinearGradient(
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number
+  ) {
+    const gradient = new FillGradient({
+      type: "linear",
+      start: { x: x0, y: y0 },
+      end: { x: x1, y: y1 },
+      textureSpace: "global",
+    });
+    frameGradients.push(gradient);
+    return gradient;
+  }
+
+  // Create a proxy ctx object that tracks transforms and paths
   const ctxProxy = {
+    get fillStyle() {
+      return fillStyle;
+    },
+    set fillStyle(value: string | FillGradient) {
+      fillStyle = value;
+    },
+    get strokeStyle() {
+      return strokeStyle;
+    },
+    set strokeStyle(value: string | FillGradient) {
+      strokeStyle = value;
+    },
+    get lineWidth() {
+      return lineWidth;
+    },
+    set lineWidth(value: number) {
+      lineWidth = value;
+    },
     save() {
       transformStack.push({ ...currentTransform });
     },
@@ -189,15 +257,50 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       currentTransform.alpha = value;
       cameraContainer.alpha = value;
     },
-    // Stubs for unused properties
-    fillStyle: "",
-    strokeStyle: "",
     font: "",
-    fillRect() {},
+    createLinearGradient,
+    fillRect(x: number, y: number, w: number, h: number) {
+      graphics.rect(x, y, w, h);
+      graphics.fill(resolveFillStyle(fillStyle, currentTransform.alpha));
+    },
+    beginPath() {
+      graphics.beginPath();
+    },
+    closePath() {
+      graphics.closePath();
+    },
+    moveTo(x: number, y: number) {
+      graphics.moveTo(x, y);
+    },
+    lineTo(x: number, y: number) {
+      graphics.lineTo(x, y);
+    },
+    quadraticCurveTo(cpx: number, cpy: number, x: number, y: number) {
+      graphics.quadraticCurveTo(cpx, cpy, x, y);
+    },
+    arc(x: number, y: number, r: number, start: number, end: number) {
+      graphics.arc(x, y, r, start, end);
+    },
+    ellipse(
+      x: number,
+      y: number,
+      radiusX: number,
+      radiusY: number,
+      _rotation: number,
+      _startAngle: number,
+      _endAngle: number
+    ) {
+      graphics.ellipse(x, y, radiusX, radiusY);
+    },
+    fill() {
+      graphics.fill(resolveFillStyle(fillStyle, currentTransform.alpha));
+    },
+    stroke() {
+      graphics.stroke(
+        resolveStrokeStyle(strokeStyle, currentTransform.alpha, lineWidth)
+      );
+    },
     fillText() {},
-    beginPath() {},
-    arc() {},
-    fill() {},
     drawImage() {},
   } as unknown as CanvasRenderingContext2D;
 
@@ -206,6 +309,11 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     stage: cameraContainer,
 
     clear(color: string) {
+      for (const gradient of frameGradients) {
+        gradient.destroy();
+      }
+      frameGradients.length = 0;
+
       // Reset transform
       currentTransform = { x: 0, y: 0, scaleX: 1, scaleY: 1, alpha: 1 };
       transformStack.length = 0;
