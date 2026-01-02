@@ -45,6 +45,8 @@ Principles:
 - Safety gates: validation, lint/type checks, and smoke tests run before applying changes; runtime kill-switches and quotas prevent abuse.
 - Clear provenance: every change is attributed to the AI session with diffs and logs visible to the player.
 
+See `docs/spikes/ai-sandbox-tech.md` for a survey of candidate sandbox tech.
+
 ## References
 - Classic 16-bit platformer pacing and readability.
 - Modern HTML5 indie polish standards (smooth animations, subtle particles).

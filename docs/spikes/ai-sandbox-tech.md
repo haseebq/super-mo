@@ -1,0 +1,68 @@
+# AI Sandbox Tech Survey
+
+Goal: identify reusable, permissive-licensed building blocks for an AI-in-browser
+sandbox (runtime + FS + collab + hot-reload) and note gaps that need new work.
+
+## Constraints
+
+- Must run in the browser; no native extensions or server-side execution.
+- Must not allow raw network access from untrusted code by default.
+- Must work under the project's license policy (MIT/BSD/CC0/OFL only).
+- Must be capable of deterministic replay or snapshotting for safe rollback.
+
+## Isolation Primitives (Web Platform)
+
+- Web Workers: baseline isolation, message-passing only.
+- sandboxed iframes: stricter origin isolation; combine with CSP to block network.
+- Service Worker: optional guardrail for network mediation (still needs careful design).
+
+These are standards, so licensing is not a concern. They provide process-level
+isolation, but not capability scoping by themselves.
+
+## Capability Runtimes / SES-Style Guards
+
+- SES/Endo: strong capability model, but Apache-2.0 (not in the allowed list).
+  This is a non-starter unless the license policy changes.
+- Realms proposal: not broadly available; would still need a shim.
+
+## JS-in-WASM Sandboxes (Potentially MIT)
+
+- QuickJS (WASM builds exist): small and embeddable; can run untrusted JS with a
+  host-defined API surface. Verify wrapper license is MIT/BSD/CC0/OFL.
+- WASM interpreters (ex: wasm3): useful for deterministic execution, but not a
+  full JS environment. Verify license fit and browser suitability.
+
+## In-Browser File Systems
+
+- OPFS (Origin Private File System): built-in, permissioned, per-origin storage.
+- BrowserFS / LightningFS / memfs: common in-browser FS shims (often MIT; verify).
+
+## CRDT / Collaboration
+
+- Yjs: commonly MIT; verify license before adoption.
+- Automerge: commonly MIT; verify license before adoption.
+- Liveblocks / Replicache: commercial/proprietary; not allowed under policy.
+
+## Bundling / Hot-Reload
+
+- esbuild + Vite: commonly MIT; verify license before adoption.
+- Sandpack: possible runtime bundling; verify license and dependency terms.
+- WebContainers: proprietary; not allowed under policy.
+
+## Gaps Needing New Work
+
+- Capability enforcement: Workers/iframes do not restrict access to globals on
+  their own; we need a hardened host API and explicit denylist/allowlist model.
+- Resource control: no strong CPU/memory limits; must add timeouts, watchdogs,
+  and cooperative yields for safe preemption.
+- Deterministic replay: need snapshot/patch logging for rollback and audits.
+- Tooling UX: live reload + state diffs + approvals are not provided by any one
+  library under the current license constraints.
+
+## Suggested Path (Within Policy)
+
+1. Start with Web Worker isolation + strict message API + CSP to block network.
+2. Evaluate QuickJS-in-WASM as a runtime sandbox (license check required).
+3. Use OPFS + a lightweight FS shim for snapshotting (license check required).
+4. Use Yjs or Automerge for collaborative state diffs (license check required).
+5. Build a minimal patch log + approval UI for deterministic rollback.
