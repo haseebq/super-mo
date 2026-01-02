@@ -46,6 +46,7 @@ Principles:
 - Clear provenance: every change is attributed to the AI session with diffs and logs visible to the player.
 
 See `docs/spikes/ai-sandbox-tech.md` for a survey of candidate sandbox tech.
+See `docs/spikes/ai-control-loop.md` for the external AI control loop design.
 
 ## References
 - Classic 16-bit platformer pacing and readability.
