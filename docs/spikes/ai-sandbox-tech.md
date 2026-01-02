@@ -19,6 +19,68 @@ sandbox (runtime + FS + collab + hot-reload) and note gaps that need new work.
 These are standards, so licensing is not a concern. They provide process-level
 isolation, but not capability scoping by themselves.
 
+## Options: Pros / Cons
+
+### Origin-Partitioned Workers
+
+Pros:
+- Strong isolation, no DOM access, easy to terminate.
+- Natural message boundary for capability gating.
+
+Cons:
+- Network access still exists unless explicitly blocked.
+- No hard CPU/memory limits; requires watchdogs/timeouts.
+
+### Sandboxed iframes + postMessage
+
+Pros:
+- Strong origin isolation with sandbox flags.
+- Can render UI inside the sandbox if needed.
+
+Cons:
+- Network access still exists unless CSP blocks it.
+- Heavier than Workers; more complex lifecycle.
+
+### WASM Sandboxes
+
+Pros:
+- Deterministic execution with explicit memory sizing.
+- Easy to expose a minimal host API surface.
+
+Cons:
+- Requires language/runtime embedding (QuickJS/Lua/etc).
+- Tooling/debugging overhead vs native JS.
+
+### Realms / SES-Style Guards
+
+Pros:
+- Fine-grained capability control in JS.
+- Easier to integrate with existing JS code.
+
+Cons:
+- SES/Endo is Apache-2.0 (not allowed by policy).
+- Realms are not broadly available; shims required.
+
+### FS Emulation (OPFS + shim)
+
+Pros:
+- Snapshot-friendly storage for sandboxed edits.
+- Works offline and can be per-origin isolated.
+
+Cons:
+- Quota limits and async access add complexity.
+- Performance varies by browser.
+
+### Capability Scoping
+
+Pros:
+- Explicitly auditable surface area for AI actions.
+- Works with Workers, iframes, or WASM.
+
+Cons:
+- Requires discipline and a robust review model.
+- Needs guardrails to prevent accidental privilege leaks.
+
 ## Capability Runtimes / SES-Style Guards
 
 - SES/Endo: strong capability model, but Apache-2.0 (not in the allowed list).
@@ -66,3 +128,12 @@ isolation, but not capability scoping by themselves.
 3. Use OPFS + a lightweight FS shim for snapshotting (license check required).
 4. Use Yjs or Automerge for collaborative state diffs (license check required).
 5. Build a minimal patch log + approval UI for deterministic rollback.
+
+## Recommended Stack (Policy-Compliant, Minimal Viable)
+
+- Host isolation: Web Worker per AI session.
+- API boundary: capability-scoped message protocol (no raw fetch).
+- Runtime: QuickJS-in-WASM (only if license verified as MIT/BSD/CC0/OFL).
+- Storage: OPFS + small MIT-licensed FS shim (verify license).
+- Collab: Yjs or Automerge (verify license).
+- Safety: timeouts, op rate limits, and patch validation on every apply.
