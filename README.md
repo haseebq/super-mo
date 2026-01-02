@@ -96,4 +96,4 @@ Reference:
 
 ## License
 
-MIT
+MIT. All third-party code, tools, and art/asset sources must also be permissively licensed (MIT/BSD/CC0/OFL or similar).
