@@ -1,18 +1,18 @@
 # External AI Control Loop Architecture
 
-Goal: design a safe, user-approved flow where a remote AI service proposes
+Goal: design a safe, fast flow where a remote AI service proposes
 changes to the in-browser engine, assets, or rules without direct code execution.
 
 ## Actors
 
-- **Client (Game UI)**: owns state, renders previews, applies patches.
+- **Client (Game UI)**: owns state, applies patches, surfaces rollback.
 - **AI Gateway (Cloudflare Functions)**: rate limits + policy enforcement.
 - **AI Model (Remote)**: returns tool calls and explanations.
 
 ## Core Principles
 
 - No client secrets, no system prompts on the client.
-- All AI changes are proposals until the user approves.
+- All AI changes are validated before apply.
 - Every change is logged and reversible.
 
 ## Protocol Options
@@ -21,7 +21,7 @@ changes to the in-browser engine, assets, or rules without direct code execution
 
 Pros:
 - Early feedback in UI, faster perceived latency.
-- Enables progressive previews.
+- Enables progress updates.
 
 Cons:
 - More complex to secure and replay.
@@ -35,7 +35,7 @@ Pros:
 
 Cons:
 - Slower perceived response time.
-- No partial preview until complete.
+- No partial feedback until complete.
 
 Recommendation: start with bundled JSON responses; add streaming later only if
 latency becomes a UX blocker.
@@ -77,8 +77,8 @@ No system prompts or tool schemas accepted from the client.
 - Client logs stored locally and optionally exported.
 - Server logs include rate-limit hits, failures, and model latency.
 
-## User Approval UX
+## Minimal UX
 
-- Show a plain-language change summary (rules changed, entities removed, assets added).
-- Offer "Preview", "Apply", and "Undo" buttons.
-- Show model explanation plus any validation warnings.
+- Show a brief explanation and any validation warnings.
+- Changes apply immediately after validation.
+- Rollbacks are requested via prompt (with optional undo shortcut).
