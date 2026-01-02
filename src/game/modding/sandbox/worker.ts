@@ -7,6 +7,23 @@ const ctx = self;
 let quickjs: QuickJSModule | null = null;
 let initPromise: Promise<void> | null = null;
 
+function disableNetworkAccess(): void {
+  const blocked = ["fetch", "XMLHttpRequest", "WebSocket", "EventSource"];
+  for (const key of blocked) {
+    try {
+      Object.defineProperty(ctx, key, {
+        value: undefined,
+        configurable: false,
+        writable: false,
+      });
+    } catch {
+      (ctx as unknown as Record<string, unknown>)[key] = undefined;
+    }
+  }
+}
+
+disableNetworkAccess();
+
 function ensureQuickJS(): Promise<void> {
   if (initPromise) return initPromise;
   initPromise = getQuickJS().then((module) => {
