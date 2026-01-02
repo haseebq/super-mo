@@ -25,7 +25,7 @@ validation, and rollback happens on request.
    - Rollback is prompt-driven (optional undo shortcut).
 
 4. **Practical stack**
-   - Default runtime: QuickJS-in-WASM in a Web Worker.
+   - Default runtime: QuickJS-in-WASM in a Web Worker (`quickjs-emscripten`).
    - JS subset validated via AST allowlist (Acorn/Esprima).
    - Asset safety: SVG sanitation (SVGO) + JSON schema validation.
    - Storage: OPFS with hash manifest for scripts/assets.

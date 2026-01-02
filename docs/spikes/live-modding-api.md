@@ -64,7 +64,8 @@ no direct DOM or network access.
 ## Scripting Runtime (AI-Familiar)
 
 - Default: JavaScript subset (strict mode, no dynamic code execution).
-- Recommended runtime: QuickJS-in-WASM in a Web Worker with capability-scoped APIs.
+- Recommended runtime: QuickJS-in-WASM in a Web Worker with capability-scoped APIs
+  (wrapper: `quickjs-emscripten`, MIT).
 - Optional fallback: Lua 5.4 via JS/WASM runtime when we want a smaller surface.
 
 ## Minimal UX

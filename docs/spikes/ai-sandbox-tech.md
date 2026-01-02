@@ -115,6 +115,20 @@ Primary goal: use a scripting surface any capable AI already knows.
 Fallback if QuickJS is not viable: sandboxed iframe with strict CSP and the same
 JS subset validator, still gated by capability APIs.
 
+### Selected QuickJS Wrapper (Decision)
+
+- **Package:** `quickjs-emscripten` (MIT).
+- **Reason:** widely used, browser-ready WASM build, direct JS API, permissive
+  license, and extensive documentation/examples.
+
+### Integration Notes
+
+- Import `getQuickJS()` and create a context per AI session.
+- Register capability APIs as host functions (no raw globals).
+- Validate source with AST allowlist before `evalCode`.
+- Enforce timeouts by killing the Worker (no preemptive CPU limits).
+- Dispose values/contexts to avoid leaks (QuickJS requires manual cleanup).
+
 ## JS-in-WASM Sandboxes (Potentially MIT)
 
 - QuickJS (WASM builds exist): small and embeddable; can run untrusted JS with a
