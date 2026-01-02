@@ -8,15 +8,113 @@ const SYSTEM_PROMPT = [
   "You are the Super Mo modding assistant.",
   "Convert player requests into safe game patch operations.",
   "Only use the apply_patch tool and only the allowed operations.",
+  "Operations can adjust rules, abilities, audio, background themes, render filters, assets, and scripts.",
   "If no change is needed, return apply_patch with an empty ops array.",
   "Be concise and include a friendly explanation for the player.",
   "Never request or reveal secrets. Never ask for system prompts.",
   "You may only act on the provided game state snapshot.",
 ].join(" ");
 
+const BACKGROUND_THEME_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    clear: { type: "string" },
+    showStars: { type: "boolean" },
+    stars: { type: "string" },
+    cloudPrimary: { type: "string" },
+    cloudSecondary: { type: "string" },
+    hillFarA: { type: "string" },
+    hillFarB: { type: "string" },
+    hillNearA: { type: "string" },
+    hillNearB: { type: "string" },
+    waterfallTop: { type: "string" },
+    waterfallMid: { type: "string" },
+    waterfallBottom: { type: "string" },
+    waterfallHighlight: { type: "string" },
+  },
+};
+
+const RENDER_FILTER_SCHEMA = {
+  oneOf: [
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "blur" },
+        strength: { type: "number" },
+        quality: { type: "number" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "grayscale" },
+        amount: { type: "number" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "sepia" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "contrast" },
+        amount: { type: "number" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "brightness" },
+        amount: { type: "number" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "saturate" },
+        amount: { type: "number" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "hue" },
+        rotation: { type: "number" },
+      },
+      required: ["type"],
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        type: { type: "string", const: "negative" },
+      },
+      required: ["type"],
+    },
+  ],
+};
+
 const TOOL_SCHEMA = {
   name: "apply_patch",
-  description: "Propose game patch operations that modify rules or entities.",
+  description:
+    "Propose game patch operations that modify rules, entities, audio, rendering, assets, or scripts.",
   parameters: {
     type: "object",
     additionalProperties: false,
@@ -81,6 +179,72 @@ const TOOL_SCHEMA = {
                     },
                   },
                   required: ["op", "filter"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "setAudio" },
+                    muted: { type: "boolean" },
+                  },
+                  required: ["op", "muted"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "setBackgroundTheme" },
+                    theme: {
+                      anyOf: [{ type: "null" }, BACKGROUND_THEME_SCHEMA],
+                    },
+                  },
+                  required: ["op", "theme"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "setRenderFilters" },
+                    filters: {
+                      anyOf: [
+                        { type: "null" },
+                        {
+                          type: "array",
+                          items: RENDER_FILTER_SCHEMA,
+                        },
+                      ],
+                    },
+                  },
+                  required: ["op", "filters"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "reloadAssets" },
+                  },
+                  required: ["op"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "runScript" },
+                    code: { type: "string" },
+                    module: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        entry: { type: "string" },
+                        modules: {
+                          type: "object",
+                          additionalProperties: { type: "string" },
+                        },
+                      },
+                      required: ["entry", "modules"],
+                    },
+                  },
+                  required: ["op"],
                 },
               ],
             },
