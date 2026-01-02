@@ -4,9 +4,10 @@ A Mario-style platformer game with vector SVG art authored by the coding agent.
 
 ## 🎮 Play Online
 
-**[Play Super Mo Now!](https://haseebq.github.io/super-mo/)**
+**[Play Super Mo Now!](https://super-mo.pages.dev/)**
 
-The game is automatically deployed via GitHub Pages on every commit to master.
+The game is automatically deployed via Cloudflare Pages on pushes to the main
+branch.
 
 ## 100% Vibe Coded
 
@@ -74,6 +75,21 @@ npm test
 
 # Visual test debugging
 npm run test:headed
+```
+
+## Cloudflare Pages
+
+Deployments use Wrangler + Cloudflare Pages. Configure these CI secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `OPENROUTER_API_KEY`
+
+For local Pages Functions testing:
+
+```bash
+npm run build
+OPENROUTER_API_KEY=your_key npm run pages:dev
 ```
 
 ## Tech Stack

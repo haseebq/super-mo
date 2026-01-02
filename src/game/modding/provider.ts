@@ -23,6 +23,147 @@ export interface ModdingProvider {
   ): Promise<PromptResult>;
 }
 
+type ChatResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string | null;
+      tool_calls?: Array<{
+        function?: { name?: string; arguments?: string | Record<string, unknown> };
+      }>;
+    };
+  }>;
+};
+
+const DEFAULT_API_ENDPOINT = "/api/chat";
+const DEFAULT_TIMEOUT_MS = 10_000;
+
+function parseToolArguments(
+  args: string | Record<string, unknown> | undefined
+): Record<string, unknown> | null {
+  if (!args) return null;
+  if (typeof args === "string") {
+    try {
+      return JSON.parse(args) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof args === "object") return args;
+  return null;
+}
+
+function parseChatResponse(payload: ChatResponse): PromptResult {
+  const message = payload.choices?.[0]?.message;
+  const toolCalls = Array.isArray(message?.tool_calls)
+    ? message?.tool_calls
+    : [];
+
+  let patch: GamePatch = { ops: [] };
+  let explanation = "";
+
+  for (const call of toolCalls) {
+    if (call?.function?.name !== "apply_patch") continue;
+    const args = parseToolArguments(call.function.arguments);
+    if (!args) continue;
+
+    const argsPatch = (args.patch as GamePatch | undefined) ?? undefined;
+    if (argsPatch?.ops && Array.isArray(argsPatch.ops)) {
+      patch = { ops: argsPatch.ops };
+    } else if (Array.isArray(args.ops)) {
+      patch = { ops: args.ops as GamePatch["ops"] };
+    }
+
+    if (typeof args.explanation === "string") {
+      explanation = args.explanation;
+    }
+  }
+
+  if (!explanation && typeof message?.content === "string") {
+    explanation = message.content;
+  }
+
+  return {
+    patch,
+    explanation: explanation || "No response from AI.",
+  };
+}
+
+export class ApiModdingProvider implements ModdingProvider {
+  constructor(
+    private options: {
+      endpoint?: string;
+      model?: string;
+      timeoutMs?: number;
+    } = {}
+  ) {}
+
+  async processPrompt(
+    prompt: string,
+    snapshot: GameStateSnapshot
+  ): Promise<PromptResult> {
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+    );
+
+    try {
+      const response = await fetch(this.options.endpoint ?? DEFAULT_API_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          state: snapshot,
+          model: this.options.model,
+        }),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`AI service error (${response.status})`);
+      }
+
+      const payload = (await response.json()) as ChatResponse;
+      return parseChatResponse(payload);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+}
+
+export class FallbackModdingProvider implements ModdingProvider {
+  constructor(
+    private primary: ModdingProvider,
+    private fallback: ModdingProvider
+  ) {}
+
+  async processPrompt(
+    prompt: string,
+    snapshot: GameStateSnapshot
+  ): Promise<PromptResult> {
+    try {
+      return await this.primary.processPrompt(prompt, snapshot);
+    } catch (error: any) {
+      const result = await this.fallback.processPrompt(prompt, snapshot);
+      const reason =
+        error?.name === "AbortError"
+          ? "Timed out."
+          : "AI service unavailable.";
+      return {
+        patch: result.patch,
+        explanation: `${result.explanation}\n(${reason} Using offline rules.)`,
+      };
+    }
+  }
+}
+
+export function createDefaultModdingProvider(): ModdingProvider {
+  return new FallbackModdingProvider(
+    new ApiModdingProvider(),
+    new KeywordModdingProvider()
+  );
+}
+
 /**
  * Simple keyword-based modding provider for offline development.
  * Matches keywords in the user prompt to predefined patch operations.

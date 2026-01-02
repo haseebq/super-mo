@@ -129,6 +129,14 @@ The runtime ships with a keyword-based provider for local development:
 - It maps phrases like "gravity off" or "remove all coins" into patch operations.
 - Providers implement `ModdingProvider` and can be swapped without changing the patch schema.
 
+For production, the runtime uses an API-backed provider:
+
+- `src/game/modding/provider.ts` implements `ApiModdingProvider`.
+- It POSTs `{ prompt, state }` to `/api/chat` and expects a tool call response.
+- The Cloudflare Pages function at `functions/api/chat.ts` owns the system prompt and tool schema.
+- Client requests may only send user prompts + serialized game state; system messages are ignored.
+- The server forwards assistant responses/tool calls verbatim; the SPA interprets and applies patches.
+
 ## Safety Model
 
 The runtime validates patches through a small, explicit set of allowed operations and rule-path checks.

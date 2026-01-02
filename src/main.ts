@@ -1,7 +1,7 @@
 import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
-import { KeywordModdingProvider } from "./game/modding/provider.js";
+import { createDefaultModdingProvider } from "./game/modding/provider.js";
 import { createRenderer, type Renderer } from "./core/renderer.js";
 import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
@@ -2040,7 +2040,7 @@ const moddingAPI = new ModdingAPI({
 });
 
 // AI/Agent provider for translating prompts to patch operations
-const moddingProvider = new KeywordModdingProvider();
+const moddingProvider = createDefaultModdingProvider();
 
 window.__SUPER_MO__ = {
   state,
