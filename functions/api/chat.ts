@@ -15,86 +15,82 @@ const SYSTEM_PROMPT = [
 ].join(" ");
 
 const TOOL_SCHEMA = {
-  type: "function",
-  function: {
-    name: "apply_patch",
-    description:
-      "Propose game patch operations that modify rules or entities.",
-    parameters: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        patch: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            ops: {
-              type: "array",
-              items: {
-                oneOf: [
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      op: { type: "string", const: "setRule" },
-                      path: { type: "string" },
-                      value: { type: "number" },
-                    },
-                    required: ["op", "path", "value"],
+  name: "apply_patch",
+  description: "Propose game patch operations that modify rules or entities.",
+  parameters: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      patch: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          ops: {
+            type: "array",
+            items: {
+              oneOf: [
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "setRule" },
+                    path: { type: "string" },
+                    value: { type: "number" },
                   },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      op: { type: "string", const: "setAbility" },
-                      ability: {
-                        type: "string",
-                        enum: ["fly", "noclip", "invincible"],
-                      },
-                      active: { type: "boolean" },
+                  required: ["op", "path", "value"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "setAbility" },
+                    ability: {
+                      type: "string",
+                      enum: ["fly", "noclip", "invincible"],
                     },
-                    required: ["op", "ability", "active"],
+                    active: { type: "boolean" },
                   },
-                  {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      op: { type: "string", const: "removeEntities" },
-                      filter: {
-                        type: "object",
-                        additionalProperties: false,
-                        properties: {
-                          kind: {
-                            type: "string",
-                            enum: ["coin", "enemy", "projectile"],
-                          },
-                          area: {
-                            type: "object",
-                            additionalProperties: false,
-                            properties: {
-                              x: { type: "number" },
-                              y: { type: "number" },
-                              w: { type: "number" },
-                              h: { type: "number" },
-                            },
-                            required: ["x", "y", "w", "h"],
-                          },
+                  required: ["op", "ability", "active"],
+                },
+                {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    op: { type: "string", const: "removeEntities" },
+                    filter: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        kind: {
+                          type: "string",
+                          enum: ["coin", "enemy", "projectile"],
                         },
-                        required: ["kind"],
+                        area: {
+                          type: "object",
+                          additionalProperties: false,
+                          properties: {
+                            x: { type: "number" },
+                            y: { type: "number" },
+                            w: { type: "number" },
+                            h: { type: "number" },
+                          },
+                          required: ["x", "y", "w", "h"],
+                        },
                       },
+                      required: ["kind"],
                     },
-                    required: ["op", "filter"],
                   },
-                ],
-              },
+                  required: ["op", "filter"],
+                },
+              ],
             },
           },
-          required: ["ops"],
         },
-        explanation: { type: "string" },
+        required: ["ops"],
       },
-      required: ["patch", "explanation"],
+      explanation: { type: "string" },
     },
+    required: ["patch", "explanation"],
   },
 };
 
@@ -158,6 +154,72 @@ function checkRateLimit(ip: string) {
     limited: false,
     retryAfter: Math.ceil((entry.resetAt - now) / 1000),
   };
+}
+
+function buildPrompt(messages: Array<{ role: "user"; content: string }>) {
+  const toolSchema = JSON.stringify(TOOL_SCHEMA, null, 2);
+  const lines = [
+    SYSTEM_PROMPT,
+    "Tool schema (JSON):",
+    toolSchema,
+    "Return a JSON object with keys: tool_calls (array) and response (string).",
+    'Example: {"tool_calls":[{"name":"apply_patch","arguments":{"patch":{"ops":[]},\"explanation\":\"...\"}}],"response":"..."}',
+  ];
+
+  for (const message of messages) {
+    lines.push(`User: ${message.content}`);
+  }
+
+  return lines.join("\n\n");
+}
+
+function extractOutputText(payload: unknown) {
+  if (!payload || typeof payload !== "object") return null;
+  const outputs = (payload as { output?: unknown }).output;
+  if (!Array.isArray(outputs)) return null;
+  for (const output of outputs) {
+    if (!output || typeof output !== "object") continue;
+    const contents = (output as { content?: unknown }).content;
+    if (!Array.isArray(contents)) continue;
+    for (const item of contents) {
+      if (!item || typeof item !== "object") continue;
+      const type = (item as { type?: unknown }).type;
+      const text = (item as { text?: unknown }).text;
+      if (type === "output_text" && typeof text === "string") {
+        return text;
+      }
+    }
+  }
+  return null;
+}
+
+function parseModelResponse(payload: unknown) {
+  let raw: string | null = null;
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "response" in payload &&
+    typeof (payload as { response?: unknown }).response === "string"
+  ) {
+    raw = (payload as { response: string }).response;
+  }
+
+  if (!raw) {
+    raw = extractOutputText(payload);
+  }
+
+  if (!raw) return payload;
+  const trimmed = raw.trim();
+  if (!trimmed) return payload;
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+  } catch {
+    return { response: trimmed };
+  }
+  return { response: trimmed };
 }
 
 type AiBinding = {
@@ -259,12 +321,7 @@ export async function onRequest(context: {
   });
 
   const payload = {
-    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...userMessages],
-    tools: [TOOL_SCHEMA],
-    tool_choice: {
-      type: "function",
-      function: { name: "apply_patch" },
-    },
+    input: buildPrompt(userMessages),
     max_tokens: MAX_TOKENS,
     temperature: 0.2,
   };
@@ -282,5 +339,5 @@ export async function onRequest(context: {
     );
   }
 
-  return jsonResponse(result);
+  return jsonResponse(parseModelResponse(result));
 }

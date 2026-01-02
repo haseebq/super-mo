@@ -46,6 +46,7 @@ type ChatResponse = {
 
 const DEFAULT_API_ENDPOINT = "/api/chat";
 const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_MODEL = "gpt-oss-120b";
 
 function parseToolArguments(
   args: string | Record<string, unknown> | undefined
@@ -133,7 +134,7 @@ export class ApiModdingProvider implements ModdingProvider {
         body: JSON.stringify({
           prompt,
           state: snapshot,
-          model: this.options.model,
+          model: this.options.model ?? DEFAULT_MODEL,
         }),
         signal: controller.signal,
       });

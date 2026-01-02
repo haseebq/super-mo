@@ -135,6 +135,7 @@ For production, the runtime uses an API-backed provider:
 - It POSTs `{ prompt, state }` to `/api/chat` and expects a tool call response.
 - The Cloudflare Pages function at `functions/api/chat.ts` owns the system prompt and tool schema.
 - The function calls Cloudflare Workers AI (gpt-oss-120b) via the `AI` binding.
+- Workers AI returns a text response; the function prompts it to return JSON with `tool_calls` and parses that payload before returning it to the client.
 - Client requests may only send user prompts + serialized game state; system messages are ignored.
 - The server forwards assistant responses/tool calls verbatim; the SPA interprets and applies patches.
 
