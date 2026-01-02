@@ -79,17 +79,17 @@ npm run test:headed
 
 ## Cloudflare Pages
 
-Deployments use Wrangler + Cloudflare Pages. Configure these CI secrets:
+Deployments use Wrangler + Cloudflare Pages with Workers AI (gpt-oss-120b).
+Configure these CI secrets:
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `OPENROUTER_API_KEY`
 
-For local Pages Functions testing:
+For local Pages Functions testing (Workers AI requires Cloudflare credentials):
 
 ```bash
 npm run build
-OPENROUTER_API_KEY=your_key npm run pages:dev
+CLOUDFLARE_API_TOKEN=your_token CLOUDFLARE_ACCOUNT_ID=your_account npm run pages:dev
 ```
 
 ## Tech Stack

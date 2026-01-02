@@ -1,4 +1,8 @@
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL_ID = "@cf/openai/gpt-oss-120b";
+const MODEL_ALIASES = new Map([
+  ["gpt-oss-120b", MODEL_ID],
+  [MODEL_ID, MODEL_ID],
+]);
 
 const SYSTEM_PROMPT = [
   "You are the Super Mo modding assistant.",
@@ -94,12 +98,7 @@ const TOOL_SCHEMA = {
   },
 };
 
-const ALLOWED_MODELS = new Set([
-  "openai/gpt-4o-mini",
-  "anthropic/claude-3.5-sonnet",
-  "google/gemini-1.5-flash",
-]);
-const DEFAULT_MODEL = "openai/gpt-4o-mini";
+const DEFAULT_MODEL = "gpt-oss-120b";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_STATE_CHARS = 10_000;
@@ -161,9 +160,13 @@ function checkRateLimit(ip: string) {
   };
 }
 
+type AiBinding = {
+  run: (model: string, options: Record<string, unknown>) => Promise<unknown>;
+};
+
 export async function onRequest(context: {
   request: Request;
-  env: { OPENROUTER_API_KEY?: string };
+  env: { AI?: AiBinding };
 }) {
   const { request, env } = context;
 
@@ -203,12 +206,14 @@ export async function onRequest(context: {
     return jsonResponse({ error: "Invalid request body" }, 400);
   }
 
-  if (!env.OPENROUTER_API_KEY) {
-    return jsonResponse({ error: "Server missing API key" }, 500);
+  if (!env.AI) {
+    return jsonResponse({ error: "AI binding unavailable" }, 500);
   }
 
-  const model = typeof body.model === "string" ? body.model : DEFAULT_MODEL;
-  if (!ALLOWED_MODELS.has(model)) {
+  const requestedModel =
+    typeof body.model === "string" ? body.model : DEFAULT_MODEL;
+  const model = MODEL_ALIASES.get(requestedModel);
+  if (!model) {
     return jsonResponse({ error: "Model not allowed" }, 400);
   }
 
@@ -254,7 +259,6 @@ export async function onRequest(context: {
   });
 
   const payload = {
-    model,
     messages: [{ role: "system", content: SYSTEM_PROMPT }, ...userMessages],
     tools: [TOOL_SCHEMA],
     tool_choice: {
@@ -265,36 +269,18 @@ export async function onRequest(context: {
     temperature: 0.2,
   };
 
-  const host = request.headers.get("host");
-  const referer = host ? `https://${host}` : "https://super-mo.local";
-  const upstream = await fetch(OPENROUTER_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": referer,
-      "X-Title": "Super Mo",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const responseText = await upstream.text();
-  if (!upstream.ok) {
+  let result: unknown;
+  try {
+    result = await env.AI.run(model, payload);
+  } catch (error: any) {
     return jsonResponse(
       {
-        error: "Upstream request failed",
-        status: upstream.status,
-        detail: responseText.slice(0, 300),
+        error: "Workers AI request failed",
+        detail: String(error?.message ?? error).slice(0, 300),
       },
       502
     );
   }
 
-  return new Response(responseText, {
-    status: upstream.status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
+  return jsonResponse(result);
 }

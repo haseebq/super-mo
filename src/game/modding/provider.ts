@@ -23,15 +23,25 @@ export interface ModdingProvider {
   ): Promise<PromptResult>;
 }
 
+type ToolCall = {
+  function?: { name?: string; arguments?: string | Record<string, unknown> };
+  name?: string;
+  arguments?: string | Record<string, unknown>;
+};
+
 type ChatResponse = {
   choices?: Array<{
     message?: {
       content?: string | null;
-      tool_calls?: Array<{
-        function?: { name?: string; arguments?: string | Record<string, unknown> };
-      }>;
+      tool_calls?: ToolCall[];
     };
   }>;
+  response?: string | null;
+  tool_calls?: ToolCall[];
+  result?: {
+    response?: string | null;
+    tool_calls?: ToolCall[];
+  };
 };
 
 const DEFAULT_API_ENDPOINT = "/api/chat";
@@ -54,16 +64,21 @@ function parseToolArguments(
 
 function parseChatResponse(payload: ChatResponse): PromptResult {
   const message = payload.choices?.[0]?.message;
-  const toolCalls = Array.isArray(message?.tool_calls)
-    ? message?.tool_calls
-    : [];
+  const toolCalls: ToolCall[] = [
+    ...(Array.isArray(message?.tool_calls) ? message.tool_calls : []),
+    ...(Array.isArray(payload.tool_calls) ? payload.tool_calls : []),
+    ...(Array.isArray(payload.result?.tool_calls)
+      ? payload.result.tool_calls
+      : []),
+  ];
 
   let patch: GamePatch = { ops: [] };
   let explanation = "";
 
   for (const call of toolCalls) {
-    if (call?.function?.name !== "apply_patch") continue;
-    const args = parseToolArguments(call.function.arguments);
+    const toolName = call?.function?.name ?? call?.name;
+    if (toolName !== "apply_patch") continue;
+    const args = parseToolArguments(call?.function?.arguments ?? call?.arguments);
     if (!args) continue;
 
     const argsPatch = (args.patch as GamePatch | undefined) ?? undefined;
@@ -80,6 +95,10 @@ function parseChatResponse(payload: ChatResponse): PromptResult {
 
   if (!explanation && typeof message?.content === "string") {
     explanation = message.content;
+  } else if (!explanation && typeof payload.response === "string") {
+    explanation = payload.response;
+  } else if (!explanation && typeof payload.result?.response === "string") {
+    explanation = payload.result.response;
   }
 
   return {
