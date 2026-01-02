@@ -34,7 +34,11 @@ function disableNetworkAccess(): void {
         writable: false,
       });
     } catch {
-      (ctx as unknown as Record<string, unknown>)[key] = undefined;
+      try {
+        (ctx as unknown as Record<string, unknown>)[key] = undefined;
+      } catch {
+        // Ignore if the host environment forbids overriding the property.
+      }
     }
   }
 }
@@ -209,26 +213,32 @@ async function runCode(
   const vm = quickjs.newContext();
   const ops: SandboxOp[] = [];
   const logs: string[] = [];
-
-  disableNetworkAccess();
-  registerCapabilities(vm, ops);
-  registerConsole(vm, logs);
-
   let output: unknown;
   let error: string | null = null;
+  let evalResult: ReturnType<typeof vm.evalCode> | null = null;
 
-  const evalResult = vm.evalCode(code, "sandbox.js");
-  if (evalResult.error) {
-    error = safeString(vm.dump(evalResult.error));
-    evalResult.error.dispose();
-  } else if (evalResult.value) {
-    output = vm.dump(evalResult.value);
-    evalResult.value.dispose();
-    collectOpsFromOutput(output, ops);
+  try {
+    disableNetworkAccess();
+    registerCapabilities(vm, ops);
+    registerConsole(vm, logs);
+
+    evalResult = vm.evalCode(code, "sandbox.js");
+    if (evalResult.error) {
+      error = safeString(vm.dump(evalResult.error));
+    } else if (evalResult.value) {
+      output = vm.dump(evalResult.value);
+      collectOpsFromOutput(output, ops);
+    }
+  } catch (err) {
+    error = err instanceof Error ? err.message : safeString(err);
+  } finally {
+    try {
+      evalResult?.dispose();
+    } catch {
+      // Ignore disposal failures.
+    }
+    vm.dispose();
   }
-  evalResult.dispose();
-
-  vm.dispose();
 
   if (error) {
     return {
@@ -294,27 +304,33 @@ async function runModule(
   const vm = runtime.newContext();
   const ops: SandboxOp[] = [];
   const logs: string[] = [];
-
-  disableNetworkAccess();
-  registerCapabilities(vm, ops);
-  registerConsole(vm, logs);
-
   let output: unknown;
   let error: string | null = null;
+  let evalResult: ReturnType<typeof vm.evalCode> | null = null;
 
-  const evalResult = vm.evalCode(entrySource, entryName, { type: "module" });
-  if (evalResult.error) {
-    error = safeString(vm.dump(evalResult.error));
-    evalResult.error.dispose();
-  } else if (evalResult.value) {
-    output = vm.dump(evalResult.value);
-    evalResult.value.dispose();
-    collectOpsFromOutput(output, ops);
+  try {
+    disableNetworkAccess();
+    registerCapabilities(vm, ops);
+    registerConsole(vm, logs);
+
+    evalResult = vm.evalCode(entrySource, entryName, { type: "module" });
+    if (evalResult.error) {
+      error = safeString(vm.dump(evalResult.error));
+    } else if (evalResult.value) {
+      output = vm.dump(evalResult.value);
+      collectOpsFromOutput(output, ops);
+    }
+  } catch (err) {
+    error = err instanceof Error ? err.message : safeString(err);
+  } finally {
+    try {
+      evalResult?.dispose();
+    } catch {
+      // Ignore disposal failures.
+    }
+    vm.dispose();
+    runtime.dispose();
   }
-  evalResult.dispose();
-
-  vm.dispose();
-  runtime.dispose();
 
   if (error) {
     return {

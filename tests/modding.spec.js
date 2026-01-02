@@ -61,12 +61,15 @@ test("modding prompt updates gravity", async ({ page }) => {
   );
 });
 
-test("sandbox runScript applies ops", async ({ page }, testInfo) => {
+test("sandbox runScript applies ops", async ({ page }) => {
   const status = await page.evaluate(() => ({
     ready: window.__SANDBOX_READY__ === true,
     error: window.__SANDBOX_ERROR__ || null,
   }));
-  testInfo.skip(!status.ready, `Sandbox not ready: ${status.error ?? "unknown"}`);
+  expect(
+    status.ready,
+    `Sandbox not ready: ${status.error ?? "unknown"}`
+  ).toBeTruthy();
   const result = await page.evaluate(async () => {
     return await window.__SUPER_MO__.modding.applyPatch({
       ops: [

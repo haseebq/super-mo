@@ -41,7 +41,19 @@ export class SandboxRuntime {
   private readyState = false;
   private initError: string | null = null;
 
-  constructor(workerUrl: URL = new URL("./worker.js", import.meta.url)) {
+  private rejectPending(message: string): void {
+    for (const pending of this.pending.values()) {
+      pending.reject(new Error(message));
+    }
+    this.pending.clear();
+  }
+
+  constructor(
+    workerUrl: URL = new URL(
+      "/src/game/modding/sandbox/worker.js",
+      self.location?.href ?? window.location.href
+    )
+  ) {
     this.worker = new Worker(workerUrl);
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve;
@@ -74,10 +86,12 @@ export class SandboxRuntime {
     this.worker.addEventListener("error", (event) => {
       this.initError = event.message || "Sandbox worker failed to load.";
       this.resolveReady?.();
+      this.rejectPending(this.initError);
     });
     this.worker.addEventListener("messageerror", () => {
       this.initError = "Sandbox worker message error.";
       this.resolveReady?.();
+      this.rejectPending(this.initError);
     });
 
     const initMessage: SandboxRequest = { type: "init" };
