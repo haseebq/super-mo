@@ -11,15 +11,19 @@ export type SandboxValidationResult = {
   errors: string[];
 };
 
-const DISALLOWED_NODES = new Set([
-  "ImportDeclaration",
-  "ExportNamedDeclaration",
-  "ExportDefaultDeclaration",
-  "ExportAllDeclaration",
+const BASE_DISALLOWED_NODES = new Set([
   "ImportExpression",
   "WithStatement",
   "DebuggerStatement",
   "MetaProperty",
+]);
+
+const SCRIPT_DISALLOWED_NODES = new Set([
+  ...BASE_DISALLOWED_NODES,
+  "ImportDeclaration",
+  "ExportNamedDeclaration",
+  "ExportDefaultDeclaration",
+  "ExportAllDeclaration",
 ]);
 
 const FORBIDDEN_CALLEES = new Set(["eval", "Function", "AsyncFunction"]);
@@ -56,14 +60,23 @@ function walk(node: Node, visit: (node: Node) => void): void {
   }
 }
 
-export function validateSandboxScript(code: string): SandboxValidationResult {
+type ValidationOptions = {
+  sourceType: "script" | "module";
+  requireUseStrict: boolean;
+  disallowedNodes: Set<string>;
+};
+
+function validateSandboxCode(
+  code: string,
+  options: ValidationOptions
+): SandboxValidationResult {
   const errors: string[] = [];
   let ast: Node;
 
   try {
     ast = parse(code, {
       ecmaVersion: "latest",
-      sourceType: "script",
+      sourceType: options.sourceType,
       locations: true,
     }) as unknown as Node;
   } catch (error) {
@@ -72,12 +85,12 @@ export function validateSandboxScript(code: string): SandboxValidationResult {
     return { ok: false, errors: [`Parse error: ${message}`] };
   }
 
-  if (!hasUseStrict(ast)) {
+  if (options.requireUseStrict && !hasUseStrict(ast)) {
     errors.push("Missing 'use strict' directive at top of script.");
   }
 
   walk(ast, (node) => {
-    if (DISALLOWED_NODES.has(node.type)) {
+    if (options.disallowedNodes.has(node.type)) {
       errors.push(`Disallowed syntax: ${node.type}${formatLoc(node)}`);
       return;
     }
@@ -94,4 +107,20 @@ export function validateSandboxScript(code: string): SandboxValidationResult {
   });
 
   return { ok: errors.length === 0, errors };
+}
+
+export function validateSandboxScript(code: string): SandboxValidationResult {
+  return validateSandboxCode(code, {
+    sourceType: "script",
+    requireUseStrict: true,
+    disallowedNodes: SCRIPT_DISALLOWED_NODES,
+  });
+}
+
+export function validateSandboxModule(code: string): SandboxValidationResult {
+  return validateSandboxCode(code, {
+    sourceType: "module",
+    requireUseStrict: false,
+    disallowedNodes: BASE_DISALLOWED_NODES,
+  });
 }

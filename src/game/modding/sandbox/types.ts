@@ -9,9 +9,12 @@ export type SandboxResult = {
   output?: unknown;
 };
 
+export type SandboxModuleMap = Record<string, string>;
+
 export type SandboxRequest =
   | { type: "init" }
-  | { type: "eval"; id: string; code: string };
+  | { type: "eval"; id: string; code: string }
+  | { type: "evalModule"; id: string; entry: string; modules: SandboxModuleMap };
 
 export type SandboxResponse =
   | { type: "ready" }

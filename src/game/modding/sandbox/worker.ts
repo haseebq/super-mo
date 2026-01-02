@@ -1,5 +1,10 @@
 import { getQuickJS } from "quickjs-emscripten";
-import type { SandboxOp, SandboxRequest, SandboxResponse } from "./types.js";
+import type {
+  SandboxModuleMap,
+  SandboxOp,
+  SandboxRequest,
+  SandboxResponse,
+} from "./types.js";
 
 type QuickJSModule = Awaited<ReturnType<typeof getQuickJS>>;
 
@@ -47,6 +52,26 @@ function normalizeOp(op: unknown): SandboxOp | null {
   const record = op as Record<string, unknown>;
   if (typeof record.op !== "string") return null;
   return record as SandboxOp;
+}
+
+function collectOpsFromOutput(output: unknown, ops: SandboxOp[]): void {
+  if (!output || typeof output !== "object") return;
+  const record = output as { ops?: unknown; default?: unknown };
+  if (Array.isArray(record.ops)) {
+    for (const op of record.ops) {
+      const normalized = normalizeOp(op);
+      if (normalized) ops.push(normalized);
+    }
+  }
+  if (record.default && typeof record.default === "object") {
+    const maybeOps = (record.default as { ops?: unknown }).ops;
+    if (Array.isArray(maybeOps)) {
+      for (const op of maybeOps) {
+        const normalized = normalizeOp(op);
+        if (normalized) ops.push(normalized);
+      }
+    }
+  }
 }
 
 function registerCapabilities(
@@ -116,6 +141,43 @@ function registerConsole(
   consoleHandle.dispose();
 }
 
+function normalizeModuleKey(name: string): string {
+  const normalized = name.replace(/\\/g, "/");
+  if (normalized.startsWith("./")) return normalized.slice(2);
+  if (normalized.startsWith("/")) return normalized.slice(1);
+  return normalized;
+}
+
+function resolveModuleName(baseName: string, requestName: string): string {
+  const normalizedRequest = requestName.replace(/\\/g, "/");
+  if (
+    !normalizedRequest.startsWith(".") &&
+    !normalizedRequest.startsWith("/")
+  ) {
+    return normalizeModuleKey(normalizedRequest);
+  }
+
+  const baseParts = baseName.replace(/\\/g, "/").split("/");
+  baseParts.pop();
+
+  const requestParts = normalizedRequest.split("/");
+  const combined = normalizedRequest.startsWith("/")
+    ? requestParts
+    : baseParts.concat(requestParts);
+
+  const resolved: string[] = [];
+  for (const part of combined) {
+    if (!part || part === ".") continue;
+    if (part === "..") {
+      if (resolved.length > 0) resolved.pop();
+      continue;
+    }
+    resolved.push(part);
+  }
+
+  return normalizeModuleKey(resolved.join("/"));
+}
+
 async function runCode(
   code: string
 ): Promise<{ result?: SandboxResponse; error?: SandboxResponse }> {
@@ -143,17 +205,91 @@ async function runCode(
   } else if (evalResult.value) {
     output = vm.dump(evalResult.value);
     evalResult.value.dispose();
-    const maybeOps = (output as { ops?: unknown })?.ops;
-    if (Array.isArray(maybeOps)) {
-      for (const op of maybeOps) {
-        const normalized = normalizeOp(op);
-        if (normalized) ops.push(normalized);
-      }
-    }
+    collectOpsFromOutput(output, ops);
   }
   evalResult.dispose();
 
   vm.dispose();
+
+  if (error) {
+    return {
+      error: { type: "error", id: "", error, logs },
+    };
+  }
+
+  return {
+    result: {
+      type: "result",
+      id: "",
+      result: { ops, logs, output },
+    },
+  };
+}
+
+async function runModule(
+  entry: string,
+  modules: SandboxModuleMap
+): Promise<{ result?: SandboxResponse; error?: SandboxResponse }> {
+  await ensureQuickJS();
+  if (!quickjs) {
+    return {
+      error: { type: "error", id: "", error: "QuickJS failed to initialize." },
+    };
+  }
+
+  const moduleSources = new Map<string, string>();
+  for (const [name, source] of Object.entries(modules)) {
+    moduleSources.set(normalizeModuleKey(name), source);
+  }
+
+  const entryName = normalizeModuleKey(entry);
+  const entrySource = moduleSources.get(entryName);
+  if (!entrySource) {
+    return {
+      error: {
+        type: "error",
+        id: "",
+        error: `Entry module not found: ${entryName}`,
+      },
+    };
+  }
+
+  const runtime = quickjs.newRuntime();
+  runtime.setModuleLoader(
+    (moduleName) => {
+      const normalized = normalizeModuleKey(moduleName);
+      const source = moduleSources.get(normalized);
+      if (source == null) {
+        return { error: new Error(`Sandbox module not found: ${normalized}`) };
+      }
+      return source;
+    },
+    (baseName, requestName) => resolveModuleName(baseName, requestName)
+  );
+
+  const vm = runtime.newContext();
+  const ops: SandboxOp[] = [];
+  const logs: string[] = [];
+
+  registerCapabilities(vm, ops);
+  registerConsole(vm, logs);
+
+  let output: unknown;
+  let error: string | null = null;
+
+  const evalResult = vm.evalCode(entrySource, entryName, { type: "module" });
+  if (evalResult.error) {
+    error = safeString(vm.dump(evalResult.error));
+    evalResult.error.dispose();
+  } else if (evalResult.value) {
+    output = vm.dump(evalResult.value);
+    evalResult.value.dispose();
+    collectOpsFromOutput(output, ops);
+  }
+  evalResult.dispose();
+
+  vm.dispose();
+  runtime.dispose();
 
   if (error) {
     return {
@@ -183,6 +319,15 @@ ctx.addEventListener("message", async (event: MessageEvent<SandboxRequest>) => {
 
   if (message.type === "eval") {
     const { result, error } = await runCode(message.code);
+    if (result) {
+      ctx.postMessage({ ...result, id: message.id });
+    } else if (error) {
+      ctx.postMessage({ ...error, id: message.id });
+    }
+  }
+
+  if (message.type === "evalModule") {
+    const { result, error } = await runModule(message.entry, message.modules);
     if (result) {
       ctx.postMessage({ ...result, id: message.id });
     } else if (error) {
