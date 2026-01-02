@@ -2266,11 +2266,38 @@ function appendModdingMessage(
   moddingHistory.scrollTop = moddingHistory.scrollHeight;
 }
 
+function isRollbackRequest(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  return (
+    normalized === "undo" ||
+    normalized === "undo last" ||
+    normalized === "rollback" ||
+    normalized === "roll back" ||
+    normalized === "rollback last" ||
+    normalized === "revert" ||
+    normalized === "revert last"
+  );
+}
+
 async function handleModdingRequest(text: string) {
   appendModdingMessage(text, "user");
   moddingInput.value = "";
 
   try {
+    if (isRollbackRequest(text)) {
+      const rollback = moddingAPI.rollbackLastPatch();
+      if (rollback.success) {
+        updateHud();
+        appendModdingMessage("Rolled back the last change.", "system");
+      } else {
+        appendModdingMessage(
+          rollback.errors?.join(" ") ?? "Nothing to rollback.",
+          "error"
+        );
+      }
+      return;
+    }
+
     const snapshot = moddingAPI.getSnapshot();
     const result = await moddingProvider.processPrompt(text, snapshot);
 
@@ -2279,7 +2306,10 @@ async function handleModdingRequest(text: string) {
       appendModdingMessage(result.explanation, "system");
     } else {
       // Apply the patch and show the result
-      const applyResult = await moddingAPI.applyPatch(result.patch);
+      const applyResult = await moddingAPI.applyPatch(result.patch, {
+        prompt: text,
+        explanation: result.explanation,
+      });
       if (applyResult.success) {
         appendModdingMessage(result.explanation, "agent");
       } else {

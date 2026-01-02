@@ -9,6 +9,7 @@ import type {
   OpSetRenderFilters,
 } from "./types.js";
 import { activeRules, updateRule } from "./rules.js";
+import type { ModdingRules } from "./rules.js";
 
 export interface GameEngineAdapter {
   getState: () => any;
@@ -21,7 +22,48 @@ export interface GameEngineAdapter {
   runScript?: (request: OpRunScript) => Promise<{ ops: Array<Record<string, unknown>> }>;
 }
 
+type ModdingSnapshot = {
+  rules: ModdingRules;
+  audioMuted: boolean;
+  backgroundOverride: BackgroundThemePatch | null;
+  renderFilters: OpSetRenderFilters["filters"];
+  invulnerableTimer: number;
+  coins: boolean[];
+  enemies: boolean[];
+  hud: {
+    coins: number;
+    shards: number;
+    score: number;
+    lives: number;
+  };
+};
+
+type PatchLogEntry = {
+  id: string;
+  timestamp: number;
+  prompt: string;
+  explanation: string;
+  ops: ModOperation[];
+  appliedOps: number;
+  snapshot: ModdingSnapshot;
+};
+
+type PatchLogMeta = {
+  prompt?: string;
+  explanation?: string;
+};
+
+function createPatchId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `patch_${Math.random().toString(36).slice(2)}${Date.now()}`;
+}
+
 export class ModdingAPI {
+  private patchLog: PatchLogEntry[] = [];
+  private readonly maxLogEntries = 25;
+
   constructor(private adapter: GameEngineAdapter) {}
 
   getSnapshot(): GameStateSnapshot {
@@ -61,13 +103,36 @@ export class ModdingAPI {
     };
   }
 
-  async applyPatch(patch: GamePatch): Promise<ModdingResult> {
+  async applyPatch(patch: GamePatch, meta: PatchLogMeta = {}): Promise<ModdingResult> {
+    const snapshot = this.captureSnapshot();
     const result = await this.applyOps(patch.ops, 0);
+
+    if (result.applied > 0) {
+      this.recordPatch(patch, snapshot, meta, result.applied);
+    }
+
     return {
       success: result.errors.length === 0,
       appliedOps: result.applied,
       errors: result.errors.length > 0 ? result.errors : undefined,
     };
+  }
+
+  getPatchLog(): PatchLogEntry[] {
+    return this.patchLog.slice();
+  }
+
+  rollbackLastPatch(): ModdingResult {
+    const entry = this.patchLog.pop();
+    if (!entry) {
+      return {
+        success: false,
+        appliedOps: 0,
+        errors: ["No patch history to rollback."],
+      };
+    }
+    this.restoreSnapshot(entry.snapshot);
+    return { success: true, appliedOps: 0 };
   }
 
   private async applyOps(
@@ -170,5 +235,93 @@ export class ModdingAPI {
     }
 
     return { applied, errors };
+  }
+
+  private captureSnapshot(): ModdingSnapshot {
+    const state = this.adapter.getState();
+    return {
+      rules: JSON.parse(JSON.stringify(activeRules)) as ModdingRules,
+      audioMuted: Boolean(state.audioMuted),
+      backgroundOverride: state.backgroundOverride
+        ? (JSON.parse(JSON.stringify(state.backgroundOverride)) as BackgroundThemePatch)
+        : null,
+      renderFilters: Array.isArray(state.renderFilters)
+        ? state.renderFilters.map((filter: Record<string, unknown>) => ({ ...filter }))
+        : null,
+      invulnerableTimer:
+        typeof state.invulnerableTimer === "number" ? state.invulnerableTimer : 0,
+      coins: Array.isArray(state.level?.coins)
+        ? state.level.coins.map((coin: { collected?: boolean }) => Boolean(coin.collected))
+        : [],
+      enemies: Array.isArray(state.enemies)
+        ? state.enemies.map((enemy: { alive?: boolean }) => Boolean(enemy.alive))
+        : [],
+      hud: {
+        coins: typeof state.hud?.coins === "number" ? state.hud.coins : 0,
+        shards: typeof state.hud?.shards === "number" ? state.hud.shards : 0,
+        score: typeof state.hud?.score === "number" ? state.hud.score : 0,
+        lives: typeof state.hud?.lives === "number" ? state.hud.lives : 0,
+      },
+    };
+  }
+
+  private restoreSnapshot(snapshot: ModdingSnapshot): void {
+    Object.assign(activeRules, JSON.parse(JSON.stringify(snapshot.rules)));
+
+    if (this.adapter.setAudioMuted) {
+      this.adapter.setAudioMuted(snapshot.audioMuted);
+    }
+    if (this.adapter.setBackgroundTheme) {
+      this.adapter.setBackgroundTheme(snapshot.backgroundOverride);
+    }
+    if (this.adapter.setRenderFilters) {
+      this.adapter.setRenderFilters(snapshot.renderFilters);
+    }
+
+    const state = this.adapter.getState();
+    if (state && typeof state.invulnerableTimer === "number") {
+      state.invulnerableTimer = snapshot.invulnerableTimer;
+    }
+    if (Array.isArray(state?.level?.coins)) {
+      state.level.coins.forEach((coin: { collected?: boolean }, index: number) => {
+        if (typeof snapshot.coins[index] === "boolean") {
+          coin.collected = snapshot.coins[index];
+        }
+      });
+    }
+    if (Array.isArray(state?.enemies)) {
+      state.enemies.forEach((enemy: { alive?: boolean }, index: number) => {
+        if (typeof snapshot.enemies[index] === "boolean") {
+          enemy.alive = snapshot.enemies[index];
+        }
+      });
+    }
+    if (state?.hud) {
+      state.hud.coins = snapshot.hud.coins;
+      state.hud.shards = snapshot.hud.shards;
+      state.hud.score = snapshot.hud.score;
+      state.hud.lives = snapshot.hud.lives;
+    }
+  }
+
+  private recordPatch(
+    patch: GamePatch,
+    snapshot: ModdingSnapshot,
+    meta: PatchLogMeta,
+    appliedOps: number
+  ): void {
+    const entry: PatchLogEntry = {
+      id: createPatchId(),
+      timestamp: Date.now(),
+      prompt: meta.prompt ?? "",
+      explanation: meta.explanation ?? "",
+      ops: JSON.parse(JSON.stringify(patch.ops)) as ModOperation[],
+      appliedOps,
+      snapshot,
+    };
+    this.patchLog.push(entry);
+    if (this.patchLog.length > this.maxLogEntries) {
+      this.patchLog.shift();
+    }
   }
 }
