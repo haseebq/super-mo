@@ -1,3 +1,5 @@
+import type { RenderFilterSpec } from "../../core/renderer.js";
+
 export type GameStateSnapshot = {
   version: number;
   frame: number;
@@ -33,6 +35,7 @@ export type GameStateSnapshot = {
   };
   rendering: {
     backgroundOverride: BackgroundThemePatch | null;
+    filters: RenderFilterSpec[] | null;
   };
   assets: {
     ready: boolean;
@@ -85,6 +88,11 @@ export type OpSetBackgroundTheme = {
   theme: BackgroundThemePatch | null;
 };
 
+export type OpSetRenderFilters = {
+  op: "setRenderFilters";
+  filters: RenderFilterSpec[] | null;
+};
+
 export type OpReloadAssets = {
   op: "reloadAssets";
 };
@@ -106,6 +114,7 @@ export type ModOperation =
   | OpRemoveEntities
   | OpSetAudio
   | OpSetBackgroundTheme
+  | OpSetRenderFilters
   | OpReloadAssets
   | OpRunScript;
 

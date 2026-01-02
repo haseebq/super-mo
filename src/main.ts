@@ -4,7 +4,7 @@ import { ModdingAPI } from "./game/modding/api.js";
 import { createDefaultModdingProvider } from "./game/modding/provider.js";
 import { SandboxRuntime } from "./game/modding/sandbox/host.js";
 import type { BackgroundThemePatch } from "./game/modding/types.js";
-import type { Renderer } from "./core/renderer.js";
+import type { RenderFilterSpec, Renderer } from "./core/renderer.js";
 import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
 import { loadVectorAssets } from "./game/vector-assets.js";
@@ -85,6 +85,7 @@ type GameState = {
   jetpackWarning: boolean;
   backgroundTime: number;
   backgroundOverride: BackgroundThemePatch | null;
+  renderFilters: RenderFilterSpec[] | null;
   playerSquash: number;
   completeTimeBonus: number;
   completeGoalBonus: number;
@@ -452,6 +453,7 @@ const state: GameState = {
   jetpackWarning: false,
   backgroundTime: 0,
   backgroundOverride: null,
+  renderFilters: null,
   playerSquash: 0,
   completeTimeBonus: 0,
   completeGoalBonus: 0,
@@ -2103,6 +2105,12 @@ const moddingAPI = new ModdingAPI({
   setBackgroundTheme: (theme) => {
     state.backgroundOverride = theme;
   },
+  setRenderFilters: (filters) => {
+    state.renderFilters = filters
+      ? filters.map((filter) => ({ ...filter }))
+      : null;
+    renderer.setFilters?.(state.renderFilters);
+  },
   reloadAssets: async () => {
     state.assetsReady = false;
     await loadAssets();
@@ -2145,6 +2153,7 @@ loop.start();
 (async () => {
   try {
     renderer = await createPixiRenderer(canvas);
+    renderer.setFilters?.(state.renderFilters ?? null);
     window.__RENDERER_READY__ = true;
     console.log("Pixi.js renderer initialized");
   } catch (err) {

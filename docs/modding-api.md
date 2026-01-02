@@ -59,6 +59,7 @@ type GameStateSnapshot = {
 
   rendering: {
     backgroundOverride: BackgroundThemePatch | null;
+    filters: RenderFilterSpec[] | null;
   };
 
   assets: {
@@ -82,6 +83,7 @@ type ModOperation =
   | OpRemoveEntities
   | OpSetAudio
   | OpSetBackgroundTheme
+  | OpSetRenderFilters
   | OpReloadAssets
   | OpRunScript
   | OpSpawnEntity; // Future extension
@@ -176,6 +178,28 @@ type BackgroundThemePatch = {
 type OpSetBackgroundTheme = {
   op: "setBackgroundTheme";
   theme: BackgroundThemePatch | null;
+};
+```
+
+#### `setRenderFilters`
+
+Apply post-processing filters to the Pixi renderer. Use `null` or an empty
+array to clear the active filters.
+
+```typescript
+type RenderFilterSpec =
+  | { type: "blur"; strength?: number; quality?: number }
+  | { type: "grayscale"; amount?: number }
+  | { type: "sepia" }
+  | { type: "contrast"; amount?: number }
+  | { type: "brightness"; amount?: number }
+  | { type: "saturate"; amount?: number }
+  | { type: "hue"; rotation?: number }
+  | { type: "negative" };
+
+type OpSetRenderFilters = {
+  op: "setRenderFilters";
+  filters: RenderFilterSpec[] | null;
 };
 ```
 

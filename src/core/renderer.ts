@@ -1,3 +1,13 @@
+export type RenderFilterSpec =
+  | { type: "blur"; strength?: number; quality?: number }
+  | { type: "grayscale"; amount?: number }
+  | { type: "sepia" }
+  | { type: "contrast"; amount?: number }
+  | { type: "brightness"; amount?: number }
+  | { type: "saturate"; amount?: number }
+  | { type: "hue"; rotation?: number }
+  | { type: "negative" };
+
 export type Renderer = {
   clear: (color: string) => void;
   rect: (x: number, y: number, w: number, h: number, color: string) => void;
@@ -17,6 +27,7 @@ export type Renderer = {
   text: (text: string, x: number, y: number, color: string) => void;
   ctx: CanvasRenderingContext2D;
   render?: () => void; // Optional: present frame (used by Pixi renderer)
+  setFilters?: (filters: RenderFilterSpec[] | null) => void;
 };
 
 export function createRenderer(canvas: HTMLCanvasElement): Renderer {

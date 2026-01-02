@@ -9,8 +9,11 @@ import {
   Container,
   Rectangle,
   FillGradient,
+  Filter,
+  BlurFilter,
+  ColorMatrixFilter,
 } from "pixi.js";
-import type { Renderer } from "./renderer.js";
+import type { RenderFilterSpec, Renderer } from "./renderer.js";
 
 export type PixiRenderer = Renderer & {
   app: Application;
@@ -18,6 +21,7 @@ export type PixiRenderer = Renderer & {
   destroy: () => void;
   render: () => void; // Call this at end of frame to present
   resize: () => void; // Call to resize to match CSS display size
+  setFilters: (filters: RenderFilterSpec[] | null) => void;
 };
 
 /**
@@ -76,6 +80,8 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const frameTextureCache = new Map<string, Texture>();
 
   const frameGradients: FillGradient[] = [];
+  const filterContainer = rootContainer;
+  let activeFilters: Filter[] = [];
 
   function getBaseTexture(image: HTMLImageElement): Texture {
     let texture = baseTextureCache.get(image);
@@ -152,6 +158,89 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       }
     }
     return 0x000000;
+  }
+
+  function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function buildFilter(spec: RenderFilterSpec): Filter | null {
+    switch (spec.type) {
+      case "blur": {
+        const strength = clamp(spec.strength ?? 4, 0, 32);
+        const quality = clamp(Math.round(spec.quality ?? 2), 1, 8);
+        const filter = new BlurFilter({ strength, quality });
+        filter.padding = Math.max(filter.padding, strength * 2);
+        return filter;
+      }
+      case "grayscale": {
+        const amount = clamp(spec.amount ?? 1, 0, 1);
+        const filter = new ColorMatrixFilter();
+        filter.grayscale(amount, false);
+        return filter;
+      }
+      case "sepia": {
+        const filter = new ColorMatrixFilter();
+        filter.sepia(false);
+        return filter;
+      }
+      case "contrast": {
+        const amount = clamp(spec.amount ?? 0.5, 0, 1);
+        const filter = new ColorMatrixFilter();
+        filter.contrast(amount, false);
+        return filter;
+      }
+      case "brightness": {
+        const amount = clamp(spec.amount ?? 1, 0, 2);
+        const filter = new ColorMatrixFilter();
+        filter.brightness(amount, false);
+        return filter;
+      }
+      case "saturate": {
+        const amount = clamp(spec.amount ?? 1, 0, 2);
+        const filter = new ColorMatrixFilter();
+        filter.saturate(amount, false);
+        return filter;
+      }
+      case "hue": {
+        const rotation = clamp(spec.rotation ?? 0, -180, 180);
+        const filter = new ColorMatrixFilter();
+        filter.hue(rotation, false);
+        return filter;
+      }
+      case "negative": {
+        const filter = new ColorMatrixFilter();
+        filter.negative(false);
+        return filter;
+      }
+      default:
+        return null;
+    }
+  }
+
+  function clearFilters() {
+    filterContainer.filters = null;
+    for (const filter of activeFilters) {
+      filter.destroy?.();
+    }
+    activeFilters = [];
+  }
+
+  function setFilters(specs: RenderFilterSpec[] | null) {
+    clearFilters();
+    if (!specs || specs.length === 0) return;
+
+    const nextFilters: Filter[] = [];
+    for (const spec of specs) {
+      const filter = buildFilter(spec);
+      if (filter) nextFilters.push(filter);
+    }
+
+    activeFilters = nextFilters;
+    if (activeFilters.length > 0) {
+      filterContainer.filters = activeFilters;
+      filterContainer.filterArea = app.screen;
+    }
   }
 
   // Transform state stack (simulating ctx.save/restore)
@@ -398,6 +487,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     ctx: ctxProxy,
 
     destroy() {
+      clearFilters();
       baseTextureCache.clear();
       frameTextureCache.clear();
       app.destroy(true);
@@ -414,12 +504,17 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
         app.renderer.resize(nextWidth, nextHeight);
       }
       cameraContainer.scale.set(nextWidth / GAME_WIDTH, nextHeight / GAME_HEIGHT);
+      if (activeFilters.length > 0) {
+        filterContainer.filterArea = app.screen;
+      }
     },
 
     render() {
       // Present the frame - must be called at the end of each render cycle
       app.render();
     },
+
+    setFilters,
   };
 
   return renderer;

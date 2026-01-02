@@ -6,6 +6,7 @@ import type {
   ModdingResult,
   OpRemoveEntities,
   OpRunScript,
+  OpSetRenderFilters,
 } from "./types.js";
 import { activeRules, updateRule } from "./rules.js";
 
@@ -15,6 +16,7 @@ export interface GameEngineAdapter {
   setPlayerAbility: (ability: string, active: boolean) => void;
   setAudioMuted?: (muted: boolean) => void;
   setBackgroundTheme?: (theme: BackgroundThemePatch | null) => void;
+  setRenderFilters?: (filters: OpSetRenderFilters["filters"]) => void;
   reloadAssets?: () => void | Promise<void>;
   runScript?: (request: OpRunScript) => Promise<{ ops: Array<Record<string, unknown>> }>;
 }
@@ -51,6 +53,7 @@ export class ModdingAPI {
         backgroundOverride: (state.backgroundOverride ?? null) as
           | BackgroundThemePatch
           | null,
+        filters: (state.renderFilters ?? null) as OpSetRenderFilters["filters"],
       },
       assets: {
         ready: Boolean(state.assetsReady),
@@ -115,6 +118,18 @@ export class ModdingAPI {
           continue;
         }
         this.adapter.setBackgroundTheme(op.theme ?? null);
+        applied++;
+      } else if (op.op === "setRenderFilters") {
+        if (!this.adapter.setRenderFilters) {
+          errors.push("Render filter control not available.");
+          continue;
+        }
+        const filters = op.filters ?? null;
+        if (filters !== null && !Array.isArray(filters)) {
+          errors.push("Render filters must be an array or null.");
+          continue;
+        }
+        this.adapter.setRenderFilters(filters);
         applied++;
       } else if (op.op === "reloadAssets") {
         if (!this.adapter.reloadAssets) {
