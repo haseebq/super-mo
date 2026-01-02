@@ -1,7 +1,5 @@
 name = "super-mo"
 compatibility_date = "2024-11-01"
-
-[pages]
 pages_build_output_dir = "dist"
 
 [ai]
