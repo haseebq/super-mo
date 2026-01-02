@@ -14,7 +14,9 @@ no direct DOM or network access.
 - `entities`: remove/spawn entities.
 - `assets`: add/replace sprites and rigs (with validation).
 - `scenes`: edit level layouts or triggers.
-- `scripts`: propose logic changes (restricted, not executable by default).
+- `rendering`: change shaders or post-processing.
+- `audio`: toggle/mix SFX and music behavior.
+- `scripts`: edit gameplay logic and engine behaviors within the sandbox.
 
 ## Request Lifecycle
 
@@ -22,6 +24,15 @@ no direct DOM or network access.
 2. **Validate**: client runs schema + bounds checks.
 3. **Apply**: patch applied in a transaction inside the sandbox; log created.
 4. **Rollback**: user can request revert via prompt.
+
+## Intent Examples (Fundamental Changes)
+
+- "Create an enemy helicopter that I can shoot down."
+- "Change the background to depict an 1800s motif."
+- "Change the artwork to look like a cartoon."
+- "I want sound to be turned off."
+- "Change the main character to look like a pony."
+- "Unlimited bullets."
 
 ## Patch Schema (High-Level)
 
@@ -44,9 +55,9 @@ no direct DOM or network access.
 
 ## Scripts and Engine Changes
 
-- AI may only propose script diffs, not execute them.
-- Script diffs require explicit approval and a sandboxed test run.
-- Apply only if tests pass and no forbidden APIs are used.
+- Fundamental rule changes are implemented by editing scripts and assets.
+- Script edits execute only inside the sandbox runtime with restricted APIs.
+- Apply only if validation passes and no forbidden APIs are used.
 
 ## Minimal UX
 

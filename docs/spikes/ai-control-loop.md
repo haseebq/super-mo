@@ -53,6 +53,9 @@ Server response:
 - `tool_calls`: list of patch operations
 - `response`: user-facing explanation
 
+Tool calls must support flexible script and asset edits so the AI can change
+fundamental game rules, not just tweak predefined variables.
+
 No system prompts or tool schemas accepted from the client.
 
 ## Auth + Abuse Protection
@@ -66,6 +69,15 @@ No system prompts or tool schemas accepted from the client.
 - Apply patches in a transaction with validation inside the sandbox boundary.
 - Log every patch (with timestamp, prompt, model, internal diff).
 - Support undo/redo with a bounded patch history.
+
+## Intent Examples
+
+- "Create an enemy helicopter that I can shoot down."
+- "Change the background to depict an 1800s motif."
+- "Change the artwork to look like a cartoon."
+- "I want sound to be turned off."
+- "Change the main character to look like a pony."
+- "Unlimited bullets."
 
 ## Testing Hooks
 

@@ -9,6 +9,20 @@ minimal UI, telemetry, and sandboxed safety.
 2. AI applies the patch in a sandboxed runtime and returns a short explanation.
 3. Applied changes appear immediately.
 
+## Example Prompts (Fundamental Changes)
+
+- "Create an enemy helicopter that I can shoot down."
+- "Change the background to depict an 1800s motif."
+- "Change the artwork to look like a cartoon."
+- "I want sound to be turned off."
+- "Change the main character to look like a pony."
+- "Unlimited bullets."
+
+## Design Principle
+
+We are not limited to tuning predefined variables. The AI must be able to
+change underlying scripts and assets to alter fundamental game rules.
+
 ## UI Elements
 
 - **Prompt Panel**: text input + presets (gravity, coins, enemies).
