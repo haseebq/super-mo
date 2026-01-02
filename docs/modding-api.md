@@ -3,6 +3,8 @@
 This document defines the schema and safety model for the Runtime Modding API.
 The API allows an AI agent (or other inputs) to modify the game state and rules safely at runtime without executing arbitrary code.
 
+For sandbox runtime boundaries and JS subset rules, see `docs/ai-sandbox-runtime.md`.
+
 ## Core Concepts
 
 1.  **Game State Snapshot**: A readonly, versioned view of the current game state provided to the agent.
