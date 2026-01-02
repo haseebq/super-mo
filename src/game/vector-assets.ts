@@ -1,4 +1,5 @@
 import { loadImage } from "../core/assets.js";
+import { loadAssetManifest, loadSvgOverride } from "./asset-store.js";
 
 export type VectorSprite = {
   image: HTMLImageElement;
@@ -79,9 +80,28 @@ const VECTOR_SPRITES: VectorSpriteDef[] = [
 
 export async function loadVectorAssets(): Promise<Record<string, VectorSprite>> {
   const imageCache = new Map<string, HTMLImageElement>();
+  const overrideCache = new Map<string, HTMLImageElement>();
   const assets: Record<string, VectorSprite> = {};
+  const manifest = await loadAssetManifest();
 
   for (const sprite of VECTOR_SPRITES) {
+    const overrideSvg = await loadSvgOverride(sprite.id, manifest);
+    if (overrideSvg) {
+      let image = overrideCache.get(sprite.id);
+      if (!image) {
+        const blob = new Blob([overrideSvg], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        try {
+          image = await loadImage(url);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+        overrideCache.set(sprite.id, image);
+      }
+      assets[sprite.id] = { image, w: sprite.w, h: sprite.h };
+      continue;
+    }
+
     let image = imageCache.get(sprite.path);
     if (!image) {
       image = await loadImage(sprite.path);
