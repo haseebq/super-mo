@@ -10,6 +10,7 @@ Run `bd prime` for workflow context, or install hooks (`bd hooks install`) for a
 - `bd create "Title" --type task --priority 2` - Create issue
 - `bd close <id>` - Complete work
 - `bd sync` - Sync with git (run at session end)
+- All work flows through issues: any tangential idea or non-blocking decision gets a new beads issue and is deferred; issues can cover code, planning, or project management.
 
 When creating new issues, think through the dependency chain and add `bd dep` links (blocks or parent-child) so execution order is explicit.
 
