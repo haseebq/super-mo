@@ -38,3 +38,4 @@ See `docs/spikes/ai-generation-toolchain.md` for a full evaluation and
 recommended stack.
 
 See `docs/spikes/monster-workflow.md` for the end-to-end monster workflow.
+See `docs/spikes/ai-asset-pipeline.md` for AI-authored asset pipeline planning.
