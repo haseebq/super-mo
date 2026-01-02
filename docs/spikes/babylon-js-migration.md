@@ -6,7 +6,7 @@
 
 ## Summary
 
-This document evaluates whether migrating Super Mo from the current Canvas 2D renderer to Babylon.js would be beneficial.
+This document evaluates whether migrating Super Mo from the current Pixi.js renderer to Babylon.js would be beneficial.
 
 **Recommendation: Do NOT migrate to Babylon.js.**
 
@@ -18,15 +18,15 @@ The current vanilla Canvas 2D approach was the original choice for this 2D platf
 
 Super Mo uses a lightweight, custom-built rendering stack:
 
-- **Renderer:** Canvas 2D API (`src/core/renderer.ts`) - ~60 lines
+- **Renderer:** Pixi.js renderer adapter (`src/core/pixi-renderer.ts`)
 - **Game Loop:** Custom requestAnimationFrame loop (`src/core/loop.ts`)
 - **Physics:** Hand-rolled tile-based collision and platformer physics
 - **Assets:** Vector-based sprites rendered to canvas
-- **Dependencies:** Zero runtime dependencies (only dev: esbuild, TypeScript, Playwright)
+- **Dependencies:** Pixi.js runtime dependency (dev: esbuild, TypeScript, Playwright)
 
 ### Current Bundle Size
-- **Runtime dependencies:** 0 KB
-- **Total game code:** ~50KB minified (estimate)
+- **Runtime dependencies:** ~100KB (Pixi.js)
+- **Total game code:** ~50KB minified (estimate, excluding Pixi.js)
 
 ---
 
@@ -40,7 +40,7 @@ Babylon.js is a powerful, full-featured **3D game engine** backed by Microsoft. 
 
 | Option | Minified + Gzipped |
 |--------|-------------------|
-| Current (vanilla Canvas) | ~0 KB runtime deps |
+| Current (Pixi.js) | ~100KB |
 | Babylon.js (core) | ~800KB - 1.5MB |
 | Babylon.js (full) | 6MB+ |
 | Pixi.js v8 | ~100KB |
@@ -53,7 +53,7 @@ Babylon.js is a powerful, full-featured **3D game engine** backed by Microsoft. 
 According to benchmarks (js-game-rendering-benchmark), Babylon.js actually performs well for 2D sprites (56 FPS at 10K sprites). However:
 
 - Super Mo renders <100 sprites per frame
-- Current Canvas 2D runs at solid 60 FPS on all targets
+- Current Pixi.js runs at solid 60 FPS on all targets
 - There is no performance problem to solve
 
 ### Suitability for 2D Platformers
@@ -73,8 +73,8 @@ Babylon.js:
 
 Babylon.js has good mobile support, but:
 - Larger bundle = slower load times on mobile
-- WebGL context has higher battery drain than Canvas 2D
-- Current approach already works perfectly on mobile
+- WebGL context has higher battery drain than minimal 2D
+- Current Pixi.js approach already works well on mobile
 
 ---
 
@@ -91,10 +91,10 @@ Babylon.js has good mobile support, but:
 
 ### Recommendation Rankings
 
-1. **Stay with Vanilla Canvas 2D** (current) - Best fit
+1. **Stay with Pixi.js** (current) - Best fit
 2. **Phaser 3** - If game complexity grows significantly
-3. **Pixi.js** - If only rendering upgrades needed
-4. **LittleJS** - If staying lightweight matters
+3. **Vanilla Canvas 2D** - If dropping WebGL is required
+4. **LittleJS** - If staying ultra-lightweight matters
 5. **Babylon.js** - Only if pivoting to 3D gameplay
 
 ---
@@ -116,17 +116,18 @@ Babylon.js has good mobile support, but:
 - ❌ More complex architecture
 - ❌ No meaningful benefit for current game
 
-### Staying with Vanilla Canvas
+### Staying with Pixi.js
 
 **Pros:**
-- ✅ Zero dependencies
+- ✅ Small renderer dependency (~100KB)
 - ✅ Full control over rendering
-- ✅ Minimal bundle size
+- ✅ GPU acceleration for sprites/effects
 - ✅ Already works well
 - ✅ Easy to understand and modify
 - ✅ Perfect for 2D platformer
 
 **Cons:**
+- Requires WebGL context (heavier than Canvas 2D)
 - Manual implementation of advanced effects
 - No built-in physics engine (we have custom physics already)
 
@@ -137,11 +138,11 @@ Babylon.js has good mobile support, but:
 Babylon.js is an excellent engine for **3D web games**, but it's the wrong tool for Super Mo:
 
 1. **Scope mismatch:** 3D engine for a 2D platformer
-2. **Bundle bloat:** 800KB-6MB vs 0KB runtime deps
+2. **Bundle bloat:** 800KB-6MB vs ~100KB runtime deps
 3. **No benefit:** Current renderer performs perfectly
 4. **Complexity:** Would add unnecessary architecture overhead
 
-The current vanilla Canvas 2D approach is elegant, performant, and purpose-built for this game. No migration is recommended.
+The current Pixi.js approach is elegant, performant, and purpose-built for this game. No migration is recommended.
 
 ---
 
