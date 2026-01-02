@@ -48,6 +48,7 @@ Principles:
 See `docs/spikes/ai-sandbox-tech.md` for a survey of candidate sandbox tech.
 See `docs/spikes/ai-control-loop.md` for the external AI control loop design.
 See `docs/spikes/ai-threat-model.md` for abuse cases and mitigations.
+See `docs/spikes/hot-reload-scaffolding.md` for patchability assessment.
 
 ## References
 - Classic 16-bit platformer pacing and readability.
