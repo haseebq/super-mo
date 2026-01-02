@@ -101,6 +101,20 @@ Primary goal: use a scripting surface any capable AI already knows.
 - **Engine policy:** gameplay rules and engine behaviors should live in the same
   scripting runtime so the AI can modify nearly all game logic.
 
+## Practical Tech Stack Recommendation (Decision)
+
+- **Language:** JavaScript subset (strict mode, no dynamic code execution).
+- **Runtime:** QuickJS-in-WASM (MIT) running inside a Web Worker.
+- **Sandbox boundary:** Worker + capability-scoped host APIs; no DOM or network.
+- **Validation:** Acorn (MIT) AST parse + allowlist rules before execution.
+- **Storage:** OPFS for scripts/assets + a hash-based manifest (no third-party).
+- **Rendering hooks:** Pixi.js filter pipeline for shader-style changes.
+- **Assets:** SVGO (MIT) for SVG sanitation + JSON schema for data.
+- **Build:** esbuild (MIT) for bundling script modules.
+
+Fallback if QuickJS is not viable: sandboxed iframe with strict CSP and the same
+JS subset validator, still gated by capability APIs.
+
 ## JS-in-WASM Sandboxes (Potentially MIT)
 
 - QuickJS (WASM builds exist): small and embeddable; can run untrusted JS with a
