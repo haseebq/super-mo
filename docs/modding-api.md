@@ -224,3 +224,6 @@ _(Agent might choose to disable gravity 0 to simulate flight if the game engine 
 2.  **Extend Rules**: Add tunables in `src/game/modding/rules.ts`.
 3.  **Apply Operations**: Add handling in `src/game/modding/api.ts`.
 4.  **Teach the Provider**: Update `src/game/modding/provider.ts` to map prompts to new ops.
+
+For a broader live-edit permission model, see
+`docs/spikes/live-modding-api.md`.
