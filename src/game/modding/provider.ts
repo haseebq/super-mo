@@ -195,6 +195,34 @@ export class KeywordModdingProvider implements ModdingProvider {
   ): Promise<PromptResult> {
     const lower = prompt.toLowerCase();
 
+    // Audio toggles
+    if (
+      lower.includes("sound") ||
+      lower.includes("audio") ||
+      lower.includes("music")
+    ) {
+      const disable =
+        lower.includes("off") ||
+        lower.includes("mute") ||
+        lower.includes("silence") ||
+        lower.includes("quiet");
+      const enable =
+        lower.includes("on") ||
+        lower.includes("unmute") ||
+        lower.includes("enable");
+
+      if (disable || enable) {
+        return {
+          patch: {
+            ops: [{ op: "setAudio", muted: disable }],
+          },
+          explanation: disable
+            ? "Audio muted."
+            : "Audio enabled.",
+        };
+      }
+    }
+
     // Gravity modifications
     if (lower.includes("gravity")) {
       const disable =

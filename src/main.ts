@@ -2,6 +2,8 @@ import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
 import { createDefaultModdingProvider } from "./game/modding/provider.js";
+import { SandboxRuntime } from "./game/modding/sandbox/host.js";
+import type { BackgroundThemePatch } from "./game/modding/types.js";
 import type { Renderer } from "./core/renderer.js";
 import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
@@ -82,6 +84,7 @@ type GameState = {
   jetpackTimer: number;
   jetpackWarning: boolean;
   backgroundTime: number;
+  backgroundOverride: BackgroundThemePatch | null;
   playerSquash: number;
   completeTimeBonus: number;
   completeGoalBonus: number;
@@ -349,8 +352,15 @@ const BACKGROUND_THEMES: BackgroundTheme[] = [
   },
 ];
 
-function getBackgroundTheme(levelIndex: number): BackgroundTheme {
-  return BACKGROUND_THEMES[levelIndex % BACKGROUND_THEMES.length];
+function getBackgroundTheme(
+  levelIndex: number,
+  override: BackgroundThemePatch | null
+): BackgroundTheme {
+  const base = BACKGROUND_THEMES[levelIndex % BACKGROUND_THEMES.length];
+  if (!override) {
+    return base;
+  }
+  return { ...base, ...override };
 }
 
 function syncDebugToggle() {
@@ -441,6 +451,7 @@ const state: GameState = {
   jetpackTimer: 0,
   jetpackWarning: false,
   backgroundTime: 0,
+  backgroundOverride: null,
   playerSquash: 0,
   completeTimeBonus: 0,
   completeGoalBonus: 0,
@@ -864,7 +875,7 @@ function handleSpikeCollisions() {
 }
 
 function render() {
-  const theme = getBackgroundTheme(state.levelIndex);
+  const theme = getBackgroundTheme(state.levelIndex, state.backgroundOverride);
   renderer.clear(theme.clear);
 
   if (state.mode === "title") {
@@ -1394,7 +1405,7 @@ function renderTitlePreview() {
   renderer.ctx.translate(-scrollX, offsetY);
 
   const drawScene = (camX: number) => {
-    const theme = getBackgroundTheme(0);
+    const theme = getBackgroundTheme(0, state.backgroundOverride);
     drawBackground(camX, state.backgroundTime, theme);
     drawLevel(state.level);
     drawPlatforms(state.level.platforms);
@@ -2055,6 +2066,8 @@ async function loadAssets() {
   }
 }
 
+const sandboxRuntime = new SandboxRuntime();
+
 const moddingAPI = new ModdingAPI({
   getState: () => state,
   removeEntities: (filter) => {
@@ -2081,6 +2094,30 @@ const moddingAPI = new ModdingAPI({
     if (ability === "invincible") {
       state.invulnerableTimer = active ? 3600 : 0;
     }
+  },
+  setAudioMuted: (muted) => {
+    state.audioMuted = muted;
+    audio.setMuted(muted);
+    updateHud();
+  },
+  setBackgroundTheme: (theme) => {
+    state.backgroundOverride = theme;
+  },
+  reloadAssets: async () => {
+    state.assetsReady = false;
+    await loadAssets();
+  },
+  runScript: async (request) => {
+    if (request.module) {
+      return sandboxRuntime.evaluateModule(
+        request.module.entry,
+        request.module.modules
+      );
+    }
+    if (request.code) {
+      return sandboxRuntime.evaluate(request.code);
+    }
+    throw new Error("Script request missing code or module.");
   },
 });
 
@@ -2233,7 +2270,7 @@ async function handleModdingRequest(text: string) {
       appendModdingMessage(result.explanation, "system");
     } else {
       // Apply the patch and show the result
-      const applyResult = moddingAPI.applyPatch(result.patch);
+      const applyResult = await moddingAPI.applyPatch(result.patch);
       if (applyResult.success) {
         appendModdingMessage(result.explanation, "agent");
       } else {

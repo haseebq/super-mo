@@ -52,6 +52,18 @@ type GameStateSnapshot = {
     coins: number; // Count of active coins
     enemies: number;
   };
+
+  audio: {
+    muted: boolean;
+  };
+
+  rendering: {
+    backgroundOverride: BackgroundThemePatch | null;
+  };
+
+  assets: {
+    ready: boolean;
+  };
 };
 ```
 
@@ -64,7 +76,15 @@ type GamePatch = {
   ops: ModOperation[];
 };
 
-type ModOperation = OpSetRule | OpSetAbility | OpRemoveEntities | OpSpawnEntity; // Future extension
+type ModOperation =
+  | OpSetRule
+  | OpSetAbility
+  | OpRemoveEntities
+  | OpSetAudio
+  | OpSetBackgroundTheme
+  | OpReloadAssets
+  | OpRunScript
+  | OpSpawnEntity; // Future extension
 ```
 
 ### 3. Operations
@@ -121,6 +141,69 @@ type OpRemoveEntities = {
 
 - `kind` must be valid.
 
+#### `setAudio`
+
+Toggle game audio.
+
+```typescript
+type OpSetAudio = {
+  op: "setAudio";
+  muted: boolean;
+};
+```
+
+#### `setBackgroundTheme`
+
+Override background palette values. Use `null` to clear overrides.
+
+```typescript
+type BackgroundThemePatch = {
+  clear?: string;
+  showStars?: boolean;
+  stars?: string;
+  cloudPrimary?: string;
+  cloudSecondary?: string;
+  hillFarA?: string;
+  hillFarB?: string;
+  hillNearA?: string;
+  hillNearB?: string;
+  waterfallTop?: string;
+  waterfallMid?: string;
+  waterfallBottom?: string;
+  waterfallHighlight?: string;
+};
+
+type OpSetBackgroundTheme = {
+  op: "setBackgroundTheme";
+  theme: BackgroundThemePatch | null;
+};
+```
+
+#### `reloadAssets`
+
+Reload vector assets from disk (useful after asset edits).
+
+```typescript
+type OpReloadAssets = {
+  op: "reloadAssets";
+};
+```
+
+#### `runScript`
+
+Execute JS subset code in the sandbox and apply returned operations.
+
+```typescript
+type OpRunScript = {
+  op: "runScript";
+  code?: string;
+  module?: {
+    entry: string;
+    modules: Record<string, string>;
+  };
+};
+```
+
 ## Prompting Layer
 
 The runtime ships with a keyword-based provider for local development:
@@ -147,9 +230,9 @@ The runtime validates patches through a small, explicit set of allowed operation
 
 1.  **Schema Validation**: Patch structure is validated by TypeScript types and the `ModdingAPI` operation handlers.
 2.  **Path Validation**: `setRule` checks against known rules via `updateRule`.
-3.  **Operation Whitelist**: Only explicit operations (`setRule`, `setAbility`, `removeEntities`) are allowed.
+3.  **Operation Whitelist**: Only explicit operations (`setRule`, `setAbility`, `removeEntities`, `setAudio`, `setBackgroundTheme`, `reloadAssets`, `runScript`) are allowed.
 
-**Why no arbitrary code execution?** Allowing code execution would expose the runtime to security and stability risks. The patch model keeps changes scoped, auditable, and safe to reject.
+**Why no arbitrary code execution?** Script edits run only inside the sandboxed runtime with validation and capability APIs. The patch model keeps changes scoped, auditable, and safe to reject.
 
 ### Current Gaps
 

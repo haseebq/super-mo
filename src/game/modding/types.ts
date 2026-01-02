@@ -28,6 +28,31 @@ export type GameStateSnapshot = {
     coins: number;
     enemies: number;
   };
+  audio: {
+    muted: boolean;
+  };
+  rendering: {
+    backgroundOverride: BackgroundThemePatch | null;
+  };
+  assets: {
+    ready: boolean;
+  };
+};
+
+export type BackgroundThemePatch = {
+  clear?: string;
+  showStars?: boolean;
+  stars?: string;
+  cloudPrimary?: string;
+  cloudSecondary?: string;
+  hillFarA?: string;
+  hillFarB?: string;
+  hillNearA?: string;
+  hillNearB?: string;
+  waterfallTop?: string;
+  waterfallMid?: string;
+  waterfallBottom?: string;
+  waterfallHighlight?: string;
 };
 
 export type OpSetRule = {
@@ -50,7 +75,39 @@ export type OpRemoveEntities = {
   };
 };
 
-export type ModOperation = OpSetRule | OpSetAbility | OpRemoveEntities;
+export type OpSetAudio = {
+  op: "setAudio";
+  muted?: boolean;
+};
+
+export type OpSetBackgroundTheme = {
+  op: "setBackgroundTheme";
+  theme: BackgroundThemePatch | null;
+};
+
+export type OpReloadAssets = {
+  op: "reloadAssets";
+};
+
+export type SandboxModulePatch = {
+  entry: string;
+  modules: Record<string, string>;
+};
+
+export type OpRunScript = {
+  op: "runScript";
+  code?: string;
+  module?: SandboxModulePatch;
+};
+
+export type ModOperation =
+  | OpSetRule
+  | OpSetAbility
+  | OpRemoveEntities
+  | OpSetAudio
+  | OpSetBackgroundTheme
+  | OpReloadAssets
+  | OpRunScript;
 
 export type GamePatch = {
   ops: ModOperation[];
