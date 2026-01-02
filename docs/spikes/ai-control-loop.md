@@ -17,11 +17,11 @@ changes to the in-browser engine, assets, or rules without direct code execution
 
 ## Protocol Options
 
-### Streaming Diffs (SSE/WebSocket)
+### Streaming Patches (SSE/WebSocket)
 
 Pros:
 - Early feedback in UI, faster perceived latency.
-- Enables progressive diffs and partial previews.
+- Enables progressive previews.
 
 Cons:
 - More complex to secure and replay.
@@ -62,7 +62,7 @@ No system prompts or tool schemas accepted from the client.
 ## Patch Application + Rollback
 
 - Apply patches in a transaction with validation.
-- Log every patch (with timestamp, prompt, model, diff).
+- Log every patch (with timestamp, prompt, model, internal diff).
 - Support undo/redo with a bounded patch history.
 
 ## Testing Hooks
@@ -79,6 +79,6 @@ No system prompts or tool schemas accepted from the client.
 
 ## User Approval UX
 
-- Show a diff summary (rules changed, entities removed, assets added).
+- Show a plain-language change summary (rules changed, entities removed, assets added).
 - Offer "Preview", "Apply", and "Undo" buttons.
 - Show model explanation plus any validation warnings.

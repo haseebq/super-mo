@@ -1,20 +1,20 @@
 # Co-Creation UX (AI Edits)
 
 Goal: outline the player-facing UX for AI-proposed edits with clear approval,
-diffs, telemetry, and recovery.
+plain-language change summaries, previews, telemetry, and recovery.
 
 ## Core Flow
 
 1. User enters a prompt.
 2. AI proposes a patch + explanation.
-3. UI shows a diff summary and preview.
+3. UI shows a change summary and visual preview.
 4. User approves or rejects.
 5. Applied changes appear with an easy undo.
 
 ## UI Elements
 
 - **Prompt Panel**: text input + presets (gravity, coins, enemies).
-- **Diff Summary**: rules changed, entities removed, assets updated.
+- **Change Summary**: plain-language list of what changes and why.
 - **Preview Toggle**: apply in a temporary sandbox before commit.
 - **Approval Buttons**: Apply / Reject / Undo.
 

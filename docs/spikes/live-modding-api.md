@@ -18,7 +18,7 @@ capability it needs, and the client decides whether to approve it.
 
 1. **Propose**: AI sends a patch with `capability` + `ops`.
 2. **Validate**: client runs schema + bounds checks.
-3. **Preview**: client renders a diff summary.
+3. **Preview**: client renders a change summary and preview.
 4. **Approve**: user accepts or rejects.
 5. **Apply**: patch applied in a transaction; log created.
 
@@ -49,7 +49,8 @@ capability it needs, and the client decides whether to approve it.
 
 ## User Approval UX
 
-- Show human-readable summary + diff.
+- Show human-readable summary + visual preview.
+- Keep diffs internal for audit and rollback.
 - Provide "Preview", "Apply", "Undo".
 - Surface warnings (performance, missing assets, invalid ops).
 
