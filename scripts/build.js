@@ -11,11 +11,15 @@ const dist = join(root, "dist");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-// Bundle TypeScript
+// Bundle TypeScript (main + worker)
 await build({
-  entryPoints: [join(root, "src/main.ts")],
+  entryPoints: [
+    join(root, "src/main.ts"),
+    join(root, "src/game/modding/sandbox/worker.ts"),
+  ],
   bundle: true,
-  outfile: join(dist, "src/main.js"),
+  outdir: dist,
+  outbase: root,
   format: "esm",
   target: "es2020",
   minify: true,

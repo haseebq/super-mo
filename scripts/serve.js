@@ -17,18 +17,17 @@ const types = {
 };
 
 // Cache for bundled JS
-let bundleCache = null;
-let bundleCacheTime = 0;
+const bundleCache = new Map();
 
-async function bundleMain() {
-  // Check if we need to rebundle (simple cache based on time)
+async function bundleEntry(entryPoint, cacheKey) {
   const now = Date.now();
-  if (bundleCache && now - bundleCacheTime < 1000) {
-    return bundleCache;
+  const cached = bundleCache.get(cacheKey);
+  if (cached && now - cached.time < 1000) {
+    return cached.text;
   }
 
   const result = await build({
-    entryPoints: [join(root, "src/main.ts")],
+    entryPoints: [entryPoint],
     bundle: true,
     write: false,
     format: "esm",
@@ -36,9 +35,9 @@ async function bundleMain() {
     sourcemap: "inline",
   });
 
-  bundleCache = result.outputFiles[0].text;
-  bundleCacheTime = now;
-  return bundleCache;
+  const text = result.outputFiles[0].text;
+  bundleCache.set(cacheKey, { text, time: now });
+  return text;
 }
 
 const server = createServer(async (req, res) => {
@@ -48,9 +47,22 @@ const server = createServer(async (req, res) => {
   const ext = extname(filePath);
 
   try {
-    // Special handling for main.js or main.ts - serve bundled version
-    if (pathname === "/src/main.js" || pathname === "/src/main.ts") {
-      const bundled = await bundleMain();
+    const bundleTargets = new Map([
+      ["/src/main.js", join(root, "src/main.ts")],
+      ["/src/main.ts", join(root, "src/main.ts")],
+      [
+        "/src/game/modding/sandbox/worker.js",
+        join(root, "src/game/modding/sandbox/worker.ts"),
+      ],
+      [
+        "/src/game/modding/sandbox/worker.ts",
+        join(root, "src/game/modding/sandbox/worker.ts"),
+      ],
+    ]);
+
+    const entryPoint = bundleTargets.get(pathname);
+    if (entryPoint) {
+      const bundled = await bundleEntry(entryPoint, pathname);
       res.writeHead(200, { "Content-Type": "text/javascript" });
       res.end(bundled);
       return;
