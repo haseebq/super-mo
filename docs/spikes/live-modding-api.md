@@ -59,6 +59,11 @@ no direct DOM or network access.
 - Script edits execute only inside the sandbox runtime with restricted APIs.
 - Apply only if validation passes and no forbidden APIs are used.
 
+## Scripting Runtime (AI-Familiar)
+
+- Default: JavaScript subset (strict mode, no dynamic code execution).
+- Optional fallback: Lua 5.4 via JS/WASM runtime when we want a smaller surface.
+
 ## Minimal UX
 
 - Show brief explanation and any warnings.

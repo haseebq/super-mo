@@ -87,6 +87,18 @@ Cons:
   This is a non-starter unless the license policy changes.
 - Realms proposal: not broadly available; would still need a shim.
 
+## AI-Familiar Scripting Runtime (Decision)
+
+Primary goal: use a scripting surface any capable AI already knows.
+
+- **Default language:** JavaScript subset (strict mode, no `eval`/`Function`).
+- **Execution:** sandboxed Web Worker or sandboxed iframe with CSP blocking
+  network and no direct DOM access.
+- **Validation:** AST parse + allowlist rules (ex: Acorn/Esprima; MIT/BSD).
+- **API surface:** capability-scoped host APIs only (no raw globals).
+- **Fallback option:** Lua 5.4 (MIT) via a JS or WASM runtime when we want a
+  smaller, more constrained language; AIs typically know Lua as well.
+
 ## JS-in-WASM Sandboxes (Potentially MIT)
 
 - QuickJS (WASM builds exist): small and embeddable; can run untrusted JS with a
@@ -124,7 +136,7 @@ Cons:
 ## Suggested Path (Within Policy)
 
 1. Start with Web Worker isolation + strict message API + CSP to block network.
-2. Evaluate QuickJS-in-WASM as a runtime sandbox (license check required).
+2. Choose a JS subset runtime (QuickJS-in-WASM or iframe/Worker + validator).
 3. Use OPFS + a lightweight FS shim for snapshotting (license check required).
 4. Use Yjs or Automerge for collaborative state diffs (license check required).
 5. Build a minimal patch log + approval UI for deterministic rollback.
@@ -133,7 +145,8 @@ Cons:
 
 - Host isolation: Web Worker per AI session.
 - API boundary: capability-scoped message protocol (no raw fetch).
-- Runtime: QuickJS-in-WASM (only if license verified as MIT/BSD/CC0/OFL).
+- Runtime: JS subset (QuickJS-in-WASM or sandboxed iframe/Worker + validator).
+- Language: JavaScript subset by default; Lua as an optional fallback.
 - Storage: OPFS + small MIT-licensed FS shim (verify license).
 - Collab: Yjs or Automerge (verify license).
 - Safety: timeouts, op rate limits, and patch validation on every apply.
