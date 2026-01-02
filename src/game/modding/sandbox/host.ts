@@ -1,4 +1,5 @@
 import type { SandboxRequest, SandboxResponse, SandboxResult } from "./types.js";
+import { validateSandboxScript } from "./validator.js";
 
 type PendingRequest = {
   resolve: (result: SandboxResult) => void;
@@ -52,6 +53,11 @@ export class SandboxRuntime {
   }
 
   async evaluate(code: string): Promise<SandboxResult> {
+    const validation = validateSandboxScript(code);
+    if (!validation.ok) {
+      throw new Error(`Sandbox validation failed: ${validation.errors.join(" ")}`);
+    }
+
     await this.ready;
     return new Promise((resolve, reject) => {
       const id = createRequestId();
