@@ -14,14 +14,16 @@ const types = {
   ".js": "text/javascript",
   ".json": "application/json",
   ".svg": "image/svg+xml",
+  ".wasm": "application/wasm",
 };
 
 // Cache for bundled JS
 const bundleCache = new Map();
 
-async function bundleEntry(entryPoint, cacheKey) {
+async function bundleEntry(entryPoint, cacheKey, format = "esm") {
   const now = Date.now();
-  const cached = bundleCache.get(cacheKey);
+  const cacheId = `${cacheKey}:${format}`;
+  const cached = bundleCache.get(cacheId);
   if (cached && now - cached.time < 1000) {
     return cached.text;
   }
@@ -30,13 +32,13 @@ async function bundleEntry(entryPoint, cacheKey) {
     entryPoints: [entryPoint],
     bundle: true,
     write: false,
-    format: "esm",
+    format,
     target: "es2020",
     sourcemap: "inline",
   });
 
   const text = result.outputFiles[0].text;
-  bundleCache.set(cacheKey, { text, time: now });
+  bundleCache.set(cacheId, { text, time: now });
   return text;
 }
 
@@ -47,22 +49,37 @@ const server = createServer(async (req, res) => {
   const ext = extname(filePath);
 
   try {
+    if (pathname === "/vendor/quickjs/emscripten-module.wasm") {
+      const wasmPath = join(
+        root,
+        "node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm"
+      );
+      const data = await readFile(wasmPath);
+      res.writeHead(200, { "Content-Type": "application/wasm" });
+      res.end(data);
+      return;
+    }
+
     const bundleTargets = new Map([
-      ["/src/main.js", join(root, "src/main.ts")],
-      ["/src/main.ts", join(root, "src/main.ts")],
+      ["/src/main.js", { entry: join(root, "src/main.ts"), format: "esm" }],
+      ["/src/main.ts", { entry: join(root, "src/main.ts"), format: "esm" }],
       [
         "/src/game/modding/sandbox/worker.js",
-        join(root, "src/game/modding/sandbox/worker.ts"),
+        { entry: join(root, "src/game/modding/sandbox/worker.ts"), format: "iife" },
       ],
       [
         "/src/game/modding/sandbox/worker.ts",
-        join(root, "src/game/modding/sandbox/worker.ts"),
+        { entry: join(root, "src/game/modding/sandbox/worker.ts"), format: "iife" },
       ],
     ]);
 
-    const entryPoint = bundleTargets.get(pathname);
-    if (entryPoint) {
-      const bundled = await bundleEntry(entryPoint, pathname);
+    const entryTarget = bundleTargets.get(pathname);
+    if (entryTarget) {
+      const bundled = await bundleEntry(
+        entryTarget.entry,
+        pathname,
+        entryTarget.format
+      );
       res.writeHead(200, { "Content-Type": "text/javascript" });
       res.end(bundled);
       return;

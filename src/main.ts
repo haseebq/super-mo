@@ -129,6 +129,8 @@ declare global {
       setDebug: (flags: { tiles?: boolean; labels?: boolean }) => void;
     };
     __RENDERER_READY__?: boolean;
+    __SANDBOX_READY__?: boolean;
+    __SANDBOX_ERROR__?: string;
   }
 }
 
@@ -2069,6 +2071,13 @@ async function loadAssets() {
 }
 
 const sandboxRuntime = new SandboxRuntime();
+sandboxRuntime.whenReady().then(() => {
+  window.__SANDBOX_READY__ = sandboxRuntime.isReady();
+  if (!sandboxRuntime.isReady()) {
+    window.__SANDBOX_ERROR__ =
+      sandboxRuntime.getInitError() ?? "Sandbox failed to initialize.";
+  }
+});
 
 const moddingAPI = new ModdingAPI({
   getState: () => state,

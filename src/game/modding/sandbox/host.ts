@@ -38,9 +38,11 @@ export class SandboxRuntime {
   private pending = new Map<string, PendingRequest>();
   private ready: Promise<void>;
   private resolveReady?: () => void;
+  private readyState = false;
+  private initError: string | null = null;
 
   constructor(workerUrl: URL = new URL("./worker.js", import.meta.url)) {
-    this.worker = new Worker(workerUrl, { type: "module" });
+    this.worker = new Worker(workerUrl);
     this.ready = new Promise((resolve) => {
       this.resolveReady = resolve;
     });
@@ -49,6 +51,7 @@ export class SandboxRuntime {
       const message = event.data;
       if (!message) return;
       if (message.type === "ready") {
+        this.readyState = true;
         this.resolveReady?.();
         return;
       }
@@ -68,8 +71,29 @@ export class SandboxRuntime {
       }
     });
 
+    this.worker.addEventListener("error", (event) => {
+      this.initError = event.message || "Sandbox worker failed to load.";
+      this.resolveReady?.();
+    });
+    this.worker.addEventListener("messageerror", () => {
+      this.initError = "Sandbox worker message error.";
+      this.resolveReady?.();
+    });
+
     const initMessage: SandboxRequest = { type: "init" };
     this.worker.postMessage(initMessage);
+  }
+
+  isReady(): boolean {
+    return this.readyState && !this.initError;
+  }
+
+  whenReady(): Promise<void> {
+    return this.ready;
+  }
+
+  getInitError(): string | null {
+    return this.initError;
   }
 
   async evaluate(code: string): Promise<SandboxResult> {

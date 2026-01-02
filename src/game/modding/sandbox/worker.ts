@@ -1,4 +1,4 @@
-import { getQuickJS } from "quickjs-emscripten";
+import { newQuickJSWASMModule, newVariant, RELEASE_SYNC } from "quickjs-emscripten";
 import type {
   SandboxModuleMap,
   SandboxOp,
@@ -6,11 +6,23 @@ import type {
   SandboxResponse,
 } from "./types.js";
 
-type QuickJSModule = Awaited<ReturnType<typeof getQuickJS>>;
+type QuickJSModule = Awaited<ReturnType<typeof newQuickJSWASMModule>>;
 
 const ctx = self;
+if (typeof (ctx as unknown as { window?: unknown }).window === "undefined") {
+  (ctx as unknown as { window: typeof self }).window = ctx;
+}
+const wasmUrl = new URL(
+  "/vendor/quickjs/emscripten-module.wasm",
+  ctx.location.href
+).toString();
+const quickjsVariant = newVariant(RELEASE_SYNC, {
+  wasmLocation: wasmUrl,
+  wasmBinary: () => fetch(wasmUrl).then((response) => response.arrayBuffer()),
+});
 let quickjs: QuickJSModule | null = null;
 let initPromise: Promise<void> | null = null;
+let initError: string | null = null;
 
 function disableNetworkAccess(): void {
   const blocked = ["fetch", "XMLHttpRequest", "WebSocket", "EventSource"];
@@ -27,12 +39,13 @@ function disableNetworkAccess(): void {
   }
 }
 
-disableNetworkAccess();
-
 function ensureQuickJS(): Promise<void> {
   if (initPromise) return initPromise;
-  initPromise = getQuickJS().then((module) => {
+  initPromise = newQuickJSWASMModule(quickjsVariant).then((module) => {
     quickjs = module;
+  }).catch((error) => {
+    initError = error instanceof Error ? error.message : String(error);
+    console.error("QuickJS init failed:", initError);
   });
   return initPromise;
 }
@@ -182,6 +195,11 @@ async function runCode(
   code: string
 ): Promise<{ result?: SandboxResponse; error?: SandboxResponse }> {
   await ensureQuickJS();
+  if (initError) {
+    return {
+      error: { type: "error", id: "", error: `QuickJS init failed: ${initError}` },
+    };
+  }
   if (!quickjs) {
     return {
       error: { type: "error", id: "", error: "QuickJS failed to initialize." },
@@ -192,6 +210,7 @@ async function runCode(
   const ops: SandboxOp[] = [];
   const logs: string[] = [];
 
+  disableNetworkAccess();
   registerCapabilities(vm, ops);
   registerConsole(vm, logs);
 
@@ -231,6 +250,11 @@ async function runModule(
   modules: SandboxModuleMap
 ): Promise<{ result?: SandboxResponse; error?: SandboxResponse }> {
   await ensureQuickJS();
+  if (initError) {
+    return {
+      error: { type: "error", id: "", error: `QuickJS init failed: ${initError}` },
+    };
+  }
   if (!quickjs) {
     return {
       error: { type: "error", id: "", error: "QuickJS failed to initialize." },
@@ -271,6 +295,7 @@ async function runModule(
   const ops: SandboxOp[] = [];
   const logs: string[] = [];
 
+  disableNetworkAccess();
   registerCapabilities(vm, ops);
   registerConsole(vm, logs);
 

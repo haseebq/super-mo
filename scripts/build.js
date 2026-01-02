@@ -11,12 +11,9 @@ const dist = join(root, "dist");
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-// Bundle TypeScript (main + worker)
+// Bundle TypeScript (main)
 await build({
-  entryPoints: [
-    join(root, "src/main.ts"),
-    join(root, "src/game/modding/sandbox/worker.ts"),
-  ],
+  entryPoints: [join(root, "src/main.ts")],
   bundle: true,
   outdir: dist,
   outbase: root,
@@ -25,6 +22,27 @@ await build({
   minify: true,
   sourcemap: false,
 });
+
+// Bundle sandbox worker as classic script
+await build({
+  entryPoints: [join(root, "src/game/modding/sandbox/worker.ts")],
+  bundle: true,
+  outdir: dist,
+  outbase: root,
+  format: "iife",
+  target: "es2020",
+  minify: true,
+  sourcemap: false,
+});
+
+// Copy QuickJS wasm binary for sandbox runtime
+const quickjsWasm = join(
+  root,
+  "node_modules/@jitl/quickjs-wasmfile-release-sync/dist/emscripten-module.wasm"
+);
+const vendorDir = join(dist, "vendor/quickjs");
+mkdirSync(vendorDir, { recursive: true });
+cpSync(quickjsWasm, join(vendorDir, "emscripten-module.wasm"));
 
 // Copy static assets
 cpSync(join(root, "assets"), join(dist, "assets"), { recursive: true });
