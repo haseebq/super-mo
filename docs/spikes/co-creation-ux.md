@@ -1,19 +1,19 @@
 # Co-Creation UX (AI Edits)
 
 Goal: outline the player-facing UX for AI-proposed edits with fast application,
-minimal UI, telemetry, and recovery.
+minimal UI, telemetry, and sandboxed safety.
 
 ## Core Flow
 
 1. User enters a prompt.
-2. AI applies the patch and returns a short explanation.
+2. AI applies the patch in a sandboxed runtime and returns a short explanation.
 3. Applied changes appear immediately.
-4. User can ask the AI to roll back if needed.
 
 ## UI Elements
 
 - **Prompt Panel**: text input + presets (gravity, coins, enemies).
 - **Status Line**: brief explanation and error feedback.
+- **Sandbox Indicator**: shows that changes are isolated and gated by capabilities.
 
 ## Safety + Telemetry
 

@@ -5,7 +5,7 @@ changes to the in-browser engine, assets, or rules without direct code execution
 
 ## Actors
 
-- **Client (Game UI)**: owns state, applies patches, surfaces rollback.
+- **Client (Game UI)**: owns state, applies patches inside a sandbox boundary.
 - **AI Gateway (Cloudflare Functions)**: rate limits + policy enforcement.
 - **AI Model (Remote)**: returns tool calls and explanations.
 
@@ -13,7 +13,9 @@ changes to the in-browser engine, assets, or rules without direct code execution
 
 - No client secrets, no system prompts on the client.
 - All AI changes are validated before apply.
-- Every change is logged and reversible.
+- Every change is logged for audit and rollback.
+- Changes run inside a sandboxed runtime (Web Worker or sandboxed iframe) with
+  capability-scoped APIs and no direct network access.
 
 ## Protocol Options
 
@@ -61,7 +63,7 @@ No system prompts or tool schemas accepted from the client.
 
 ## Patch Application + Rollback
 
-- Apply patches in a transaction with validation.
+- Apply patches in a transaction with validation inside the sandbox boundary.
 - Log every patch (with timestamp, prompt, model, internal diff).
 - Support undo/redo with a bounded patch history.
 
