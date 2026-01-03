@@ -12,4 +12,5 @@ export * from "./expressions.js";
 export * from "./actions.js";
 export * from "./systems.js";
 export * from "./collisions.js";
+export * from "./events.js";
 export * from "./tools.js";

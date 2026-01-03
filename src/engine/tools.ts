@@ -45,6 +45,15 @@ import {
   detectCollisions,
   getCollisionsLog,
 } from "./collisions.js";
+import {
+  defineEvent,
+  removeEvent,
+  getEventHandlers,
+  getEventHandler,
+  triggerEvent,
+  processEvents,
+  getEventsLog,
+} from "./events.js";
 import { Action, System, CollisionHandler } from "./state.js";
 
 export interface ToolResult<T = unknown> {
@@ -298,6 +307,55 @@ export class ToolExecutor {
       {
         name: "get_collisions_log",
         description: "Get log of current collisions",
+        parameters: {},
+      },
+
+      // Event tools
+      {
+        name: "define_event",
+        description: "Define an event handler (event name + actions)",
+        parameters: {
+          event: { type: "string", description: "Event name", required: true },
+          actions: { type: "array", description: "Actions to execute when event fires", required: true },
+        },
+      },
+      {
+        name: "remove_event",
+        description: "Remove an event handler",
+        parameters: {
+          event: { type: "string", description: "Event name", required: true },
+        },
+      },
+      {
+        name: "get_event",
+        description: "Get an event handler by name",
+        parameters: {
+          event: { type: "string", description: "Event name", required: true },
+        },
+      },
+      {
+        name: "get_events",
+        description: "Get all event handlers",
+        parameters: {},
+      },
+      {
+        name: "trigger_event",
+        description: "Trigger an event and execute its handler",
+        parameters: {
+          event: { type: "string", description: "Event name", required: true },
+          data: { type: "object", description: "Event data passed to handler", required: false },
+        },
+      },
+      {
+        name: "process_events",
+        description: "Process multiple events with chaining support",
+        parameters: {
+          events: { type: "array", description: "Array of {event, data} objects", required: true },
+        },
+      },
+      {
+        name: "get_events_log",
+        description: "Get log of event handlers",
         parameters: {},
       },
     ];
@@ -620,6 +678,75 @@ export class ToolExecutor {
         case "get_collisions_log": {
           const state = this.engine.getState();
           return { success: true, data: getCollisionsLog(state) };
+        }
+
+        // Event tools
+        case "define_event": {
+          const event = args.event as string;
+          const actions = args.actions as Action[];
+          if (!event) {
+            return { success: false, error: "event parameter required" };
+          }
+          if (!actions || !Array.isArray(actions)) {
+            return { success: false, error: "actions parameter required (array)" };
+          }
+          const state = this.engine.getStateMutable();
+          defineEvent(state, event, actions);
+          return { success: true };
+        }
+
+        case "remove_event": {
+          const event = args.event as string;
+          if (!event) {
+            return { success: false, error: "event parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          const removed = removeEvent(state, event);
+          return { success: removed, error: removed ? undefined : "Event handler not found" };
+        }
+
+        case "get_event": {
+          const event = args.event as string;
+          if (!event) {
+            return { success: false, error: "event parameter required" };
+          }
+          const state = this.engine.getState();
+          const handler = getEventHandler(state, event);
+          if (!handler) {
+            return { success: false, error: "Event handler not found" };
+          }
+          return { success: true, data: handler };
+        }
+
+        case "get_events": {
+          const state = this.engine.getState();
+          return { success: true, data: getEventHandlers(state) };
+        }
+
+        case "trigger_event": {
+          const event = args.event as string;
+          if (!event) {
+            return { success: false, error: "event parameter required" };
+          }
+          const data = args.data as Record<string, unknown> | undefined;
+          const state = this.engine.getStateMutable();
+          const result = triggerEvent(state, event, data);
+          return { success: true, data: result };
+        }
+
+        case "process_events": {
+          const events = args.events as Array<{ event: string; data?: Record<string, unknown> }>;
+          if (!events || !Array.isArray(events)) {
+            return { success: false, error: "events parameter required (array)" };
+          }
+          const state = this.engine.getStateMutable();
+          const result = processEvents(state, events);
+          return { success: true, data: result };
+        }
+
+        case "get_events_log": {
+          const state = this.engine.getState();
+          return { success: true, data: getEventsLog(state) };
         }
 
         default:

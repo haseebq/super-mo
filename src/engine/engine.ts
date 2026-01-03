@@ -12,11 +12,13 @@ import {
 } from "./state.js";
 import { runSystems } from "./systems.js";
 import { detectCollisions } from "./collisions.js";
+import { processEvents } from "./events.js";
 
 export interface StepResult {
   frame: number;
   time: number;
   eventsEmitted: string[];
+  eventsProcessed: number;
   systemsRun: number;
   collisionsDetected: number;
 }
@@ -50,19 +52,27 @@ export class GameEngine {
     // Run collision detection
     const collisionResult = detectCollisions(this.state);
 
-    // Combine events from systems and collisions
-    const allEvents = [
-      ...systemsResult.eventsEmitted,
-      ...collisionResult.eventsEmitted.map((e) => e.event),
+    // Collect all emitted events from systems and collisions
+    const emittedEvents: Array<{ event: string; data?: Record<string, unknown> }> = [
+      ...systemsResult.eventsEmitted.map((e) => ({ event: e })),
+      ...collisionResult.eventsEmitted,
     ];
 
-    // Future phases will add:
-    // - Event handling (Phase 7)
+    // Process events (with chaining support)
+    const eventResult = processEvents(this.state, emittedEvents);
+
+    // Collect all unique event names
+    const allEventNames = [
+      ...systemsResult.eventsEmitted,
+      ...collisionResult.eventsEmitted.map((e) => e.event),
+      ...eventResult.eventsProcessed.flatMap((e) => e.eventsEmitted),
+    ];
 
     return {
       frame: this.state.frame,
       time: this.state.time,
-      eventsEmitted: allEvents,
+      eventsEmitted: allEventNames,
+      eventsProcessed: eventResult.eventsProcessed.length,
       systemsRun: systemsResult.systemsRun.length,
       collisionsDetected: collisionResult.collisionsDetected.length,
     };
