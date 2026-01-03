@@ -136,3 +136,81 @@ test("rollback restores last patch", async ({ page }) => {
   );
   expect(restored).toBe(original);
 });
+
+test("setEntityScript applies sine wave to enemies", async ({ page }) => {
+  const status = await page.evaluate(() => ({
+    ready: window.__SANDBOX_READY__ === true,
+    error: window.__SANDBOX_ERROR__ || null,
+  }));
+  expect(
+    status.ready,
+    `Sandbox not ready: ${status.error ?? "unknown"}`
+  ).toBeTruthy();
+
+  // Get initial enemy positions
+  const initialPositions = await page.evaluate(() =>
+    window.__SUPER_MO__.state.enemies.map((e) => ({ x: e.x, y: e.y }))
+  );
+  expect(initialPositions.length).toBeGreaterThan(0);
+
+  // Apply setEntityScript via sandbox runScript
+  const result = await page.evaluate(async () => {
+    return await window.__SUPER_MO__.modding.applyPatch({
+      ops: [
+        {
+          op: "runScript",
+          code: `"use strict";
+            capabilities.setEntityScript(
+              "enemy",
+              "if (!entity.baseY) entity.baseY = entity.y; entity.y = entity.baseY + Math.sin(time * 2) * 20;"
+            );`,
+        },
+      ],
+    });
+  });
+
+  expect(result.success).toBeTruthy();
+  // runScript counts as 1, plus the nested setEntityScript should make it 2
+  expect(result.appliedOps).toBeGreaterThanOrEqual(2);
+
+  // Check that entityScripts.enemy is now set
+  const hasScript = await page.evaluate(
+    () => window.__SUPER_MO__.state.entityScripts.enemy !== null
+  );
+  expect(hasScript).toBeTruthy();
+
+  // Wait a bit for the script to execute during game updates
+  await page.waitForTimeout(200);
+
+  // Verify enemies have moved (sine wave should have affected their Y position)
+  const finalPositions = await page.evaluate(() =>
+    window.__SUPER_MO__.state.enemies.map((e) => ({ x: e.x, y: e.y, baseY: e.baseY }))
+  );
+
+  // At least one enemy should have baseY set by the script
+  const hasBaseY = finalPositions.some((e) => e.baseY !== undefined);
+  expect(hasBaseY).toBeTruthy();
+});
+
+test("setEntityScript can be applied directly without sandbox", async ({ page }) => {
+  // Apply setEntityScript directly via applyPatch (no sandbox)
+  const result = await page.evaluate(async () => {
+    return await window.__SUPER_MO__.modding.applyPatch({
+      ops: [
+        {
+          op: "setEntityScript",
+          target: "enemy",
+          script: "entity.y += Math.sin(time) * 0.5;",
+        },
+      ],
+    });
+  });
+
+  expect(result.success).toBeTruthy();
+  expect(result.appliedOps).toBe(1);
+
+  const hasScript = await page.evaluate(
+    () => window.__SUPER_MO__.state.entityScripts.enemy !== null
+  );
+  expect(hasScript).toBeTruthy();
+});

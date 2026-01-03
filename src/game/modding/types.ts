@@ -97,6 +97,12 @@ export type OpReloadAssets = {
   op: "reloadAssets";
 };
 
+export type OpSetEntityScript = {
+  op: "setEntityScript";
+  target: "enemy" | "coin" | "player";
+  script: string;
+};
+
 export type SandboxModulePatch = {
   entry: string;
   modules: Record<string, string>;
@@ -116,6 +122,7 @@ export type ModOperation =
   | OpSetBackgroundTheme
   | OpSetRenderFilters
   | OpReloadAssets
+  | OpSetEntityScript
   | OpRunScript;
 
 export type GamePatch = {

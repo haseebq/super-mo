@@ -117,6 +117,11 @@ type GameState = {
   rocketCount: number;
   rockets: Rocket[];
   rocketMessageTimer: number;
+  entityScripts: {
+    enemy: ((entity: any, time: number, dt: number) => void) | null;
+    coin: ((entity: any, time: number, dt: number) => void) | null;
+    player: ((entity: any, time: number, dt: number) => void) | null;
+  };
 };
 
 declare global {
@@ -489,6 +494,11 @@ const state: GameState = {
   rocketCount: 0,
   rockets: [],
   rocketMessageTimer: 0,
+  entityScripts: {
+    enemy: null,
+    coin: null,
+    player: null,
+  },
 };
 
 const neutralInput: InputState = {
@@ -833,6 +843,18 @@ function update(dt: number) {
     }
     if (enemy.kind === "flit") {
       updateFlit(enemy, dt);
+    }
+  }
+
+  if (state.entityScripts.enemy) {
+    for (const enemy of state.enemies) {
+      if (enemy.alive) {
+        try {
+          state.entityScripts.enemy(enemy, state.time, dt);
+        } catch (error) {
+          console.error("Entity script error:", error);
+        }
+      }
     }
   }
 
@@ -2138,6 +2160,22 @@ const moddingAPI = new ModdingAPI({
       return sandboxRuntime.evaluate(request.code);
     }
     throw new Error("Script request missing code or module.");
+  },
+  setEntityScript: (target, script) => {
+    if (!target || !["enemy", "coin", "player"].includes(target)) {
+      console.error(`[setEntityScript] Invalid target: ${target}`);
+      return;
+    }
+    try {
+      const fn = new Function("entity", "time", "dt", script) as (
+        entity: any,
+        time: number,
+        dt: number
+      ) => void;
+      state.entityScripts[target] = fn;
+    } catch (error) {
+      console.error(`Failed to compile entity script for ${target}:`, error);
+    }
   },
 });
 

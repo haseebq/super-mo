@@ -6,6 +6,7 @@ import type {
   ModdingResult,
   OpRemoveEntities,
   OpRunScript,
+  OpSetEntityScript,
   OpSetRenderFilters,
 } from "./types.js";
 import { activeRules, updateRule } from "./rules.js";
@@ -20,6 +21,7 @@ export interface GameEngineAdapter {
   setRenderFilters?: (filters: OpSetRenderFilters["filters"]) => void;
   reloadAssets?: () => void | Promise<void>;
   runScript?: (request: OpRunScript) => Promise<{ ops: Array<Record<string, unknown>> }>;
+  setEntityScript?: (target: OpSetEntityScript["target"], script: string) => void;
 }
 
 type ModdingSnapshot = {
@@ -202,6 +204,17 @@ export class ModdingAPI {
           continue;
         }
         await this.adapter.reloadAssets();
+        applied++;
+      } else if (op.op === "setEntityScript") {
+        if (!this.adapter.setEntityScript) {
+          errors.push("Entity script not available.");
+          continue;
+        }
+        if (!op.script || typeof op.script !== "string") {
+          errors.push("Entity script missing script payload.");
+          continue;
+        }
+        this.adapter.setEntityScript(op.target, op.script);
         applied++;
       } else if (op.op === "runScript") {
         if (!this.adapter.runScript) {

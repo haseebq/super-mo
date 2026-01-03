@@ -25,7 +25,8 @@ When a session begins, **automatically start working on open issues**:
 2. Run `bd ready` to see available work
 3. Pick issues in priority order (P0 → P1 → P2 → P3)
 4. For same-priority issues, use your judgment on logical order (e.g., fix blockers first, group related work)
-5. Mark the issue as in-progress: `bd update <id> --status in_progress`
+5. Mark the issue as in-progress and sync immediately: `bd update <id> --status in_progress && bd sync`
+   - This ensures other AIs know you're working on this issue and prevents duplicate work
 6. Complete the work, commit, and close: `bd close <id>`
 7. Move to the next issue
 

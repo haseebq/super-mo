@@ -128,15 +128,32 @@ function registerCapabilities(
     }
   });
 
+  const setEntityScriptHandle = vm.newFunction(
+    "setEntityScript",
+    (targetHandle, scriptHandle) => {
+      const target = vm.dump(targetHandle);
+      const script = vm.dump(scriptHandle);
+      if (
+        typeof target === "string" &&
+        (target === "enemy" || target === "coin" || target === "player") &&
+        typeof script === "string"
+      ) {
+        ops.push({ op: "setEntityScript", target, script });
+      }
+    }
+  );
+
   vm.setProp(capHandle, "emit", emitHandle);
   vm.setProp(capHandle, "setRule", setRuleHandle);
   vm.setProp(capHandle, "setAbility", setAbilityHandle);
   vm.setProp(capHandle, "removeEntities", removeEntitiesHandle);
+  vm.setProp(capHandle, "setEntityScript", setEntityScriptHandle);
 
   emitHandle.dispose();
   setRuleHandle.dispose();
   setAbilityHandle.dispose();
   removeEntitiesHandle.dispose();
+  setEntityScriptHandle.dispose();
 
   vm.setProp(vm.global, "capabilities", capHandle);
   capHandle.dispose();
