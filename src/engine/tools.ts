@@ -20,6 +20,11 @@ import {
   defineTemplate,
   getTemplate,
 } from "./entities.js";
+import {
+  evaluate,
+  isValidExpression,
+  ExpressionContext,
+} from "./expressions.js";
 
 export interface ToolResult<T = unknown> {
   success: boolean;
@@ -171,6 +176,23 @@ export class ToolExecutor {
         description: "Get a template by name",
         parameters: {
           name: { type: "string", description: "Template name", required: true },
+        },
+      },
+
+      // Expression tools
+      {
+        name: "evaluate_expression",
+        description: "Evaluate a safe expression with context",
+        parameters: {
+          expression: { type: "string", description: "Expression to evaluate", required: true },
+          context: { type: "object", description: "Context variables (entity, rules, time, dt, input, data)", required: false },
+        },
+      },
+      {
+        name: "validate_expression",
+        description: "Check if an expression is valid and safe",
+        parameters: {
+          expression: { type: "string", description: "Expression to validate", required: true },
         },
       },
     ];
@@ -345,6 +367,34 @@ export class ToolExecutor {
             return { success: false, error: "Template not found" };
           }
           return { success: true, data: template };
+        }
+
+        // Expression tools
+        case "evaluate_expression": {
+          const expression = args.expression as string;
+          if (!expression) {
+            return { success: false, error: "expression parameter required" };
+          }
+          const context = (args.context as ExpressionContext) ?? {};
+          // Merge engine state into context if not provided
+          const state = this.engine.getState();
+          const fullContext: ExpressionContext = {
+            rules: state.rules,
+            time: state.time,
+            dt: 1 / 60,
+            ...context,
+          };
+          const result = evaluate(expression, fullContext);
+          return { success: true, data: result };
+        }
+
+        case "validate_expression": {
+          const expression = args.expression as string;
+          if (!expression) {
+            return { success: false, error: "expression parameter required" };
+          }
+          const valid = isValidExpression(expression);
+          return { success: true, data: { valid } };
         }
 
         default:
