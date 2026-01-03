@@ -3,7 +3,7 @@ import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
 import { createDefaultModdingProvider } from "./game/modding/provider.js";
 import { SandboxRuntime } from "./game/modding/sandbox/host.js";
-import type { BackgroundThemePatch } from "./game/modding/types.js";
+import type { BackgroundThemePatch, ModOperation } from "./game/modding/types.js";
 import type { RenderFilterSpec, Renderer } from "./core/renderer.js";
 import { createPixiRenderer } from "./core/pixi-renderer.js";
 import { createInput } from "./core/input.js";
@@ -2259,6 +2259,40 @@ const moddingCapabilityHint =
   "(grayscale/blur/sepia), reload assets, and run scripts.";
 let moddingHintShown = false;
 
+function formatModOperation(op: ModOperation): string {
+  switch (op.op) {
+    case "setRule":
+      return `setRule ${op.path}=${op.value}`;
+    case "setAbility":
+      return `setAbility ${op.ability}=${op.active}`;
+    case "removeEntities": {
+      const area = op.filter.area ? " in area" : "";
+      return `remove ${op.filter.kind}${area}`;
+    }
+    case "setAudio":
+      return `setAudio muted=${op.muted === true}`;
+    case "setBackgroundTheme":
+      return op.theme ? "setBackgroundTheme (custom)" : "setBackgroundTheme (reset)";
+    case "setRenderFilters":
+      return op.filters && op.filters.length > 0
+        ? `setRenderFilters ${op.filters.map((filter) => filter.type).join(", ")}`
+        : "setRenderFilters (clear)";
+    case "reloadAssets":
+      return "reloadAssets";
+    case "runScript":
+      return op.module ? `runScript module ${op.module.entry}` : "runScript inline";
+  }
+  const fallback = op as { op?: string };
+  return fallback.op ? `op ${fallback.op}` : "op";
+}
+
+function summarizeOperations(ops: ModOperation[]): string {
+  if (!Array.isArray(ops) || ops.length === 0) {
+    return "AI patch: (no ops)";
+  }
+  return `AI patch: ${ops.map(formatModOperation).join("; ")}`;
+}
+
 function toggleModdingUI() {
   const isHidden = moddingOverlay.classList.contains("is-hidden");
   if (isHidden) {
@@ -2274,7 +2308,7 @@ function toggleModdingUI() {
 
 function appendModdingMessage(
   text: string,
-  type: "user" | "agent" | "system" | "error"
+  type: "user" | "agent" | "system" | "error" | "meta"
 ) {
   const div = document.createElement("div");
   div.className = `modding-message ${type}`;
@@ -2329,6 +2363,7 @@ async function handleModdingRequest(text: string) {
       appendModdingMessage(result.explanation, "system");
       appendModdingHint();
     } else {
+      appendModdingMessage(summarizeOperations(result.patch.ops), "meta");
       // Apply the patch and show the result
       const applyResult = await moddingAPI.applyPatch(result.patch, {
         prompt: text,
