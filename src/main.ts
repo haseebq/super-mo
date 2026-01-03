@@ -144,6 +144,8 @@ function requireElement<T extends Element>(selector: string): T {
 
 const canvas = requireElement<HTMLCanvasElement>("#game");
 applyRuntimeCsp();
+const GAME_WIDTH = canvas.width;
+const GAME_HEIGHT = canvas.height;
 // Start with a no-op renderer until Pixi.js is ready.
 const nullGradient = {
   addColorStop() {},
@@ -1403,7 +1405,7 @@ function renderTitlePreview() {
   const levelWidth = state.level.width * state.level.tileSize;
   const levelHeight = state.level.height * state.level.tileSize;
   const scrollX = state.titleScroll % levelWidth;
-  const offsetY = canvas.height - levelHeight;
+  const offsetY = GAME_HEIGHT - levelHeight;
 
   renderer.ctx.save();
   renderer.ctx.translate(-scrollX, offsetY);
@@ -1457,7 +1459,7 @@ function renderTitlePreview() {
   drawScene(scrollX);
 
   // Seamless wrap: draw a second copy if the first one is scrolling off
-  if (scrollX > levelWidth - canvas.width) {
+  if (scrollX > levelWidth - GAME_WIDTH) {
     renderer.ctx.save();
     renderer.ctx.translate(levelWidth, 0);
     drawScene(scrollX - levelWidth);
@@ -1771,8 +1773,8 @@ function setMode(mode: Mode) {
 function updateCamera(dt: number) {
   const levelWidth = state.level.width * state.level.tileSize;
   const levelHeight = state.level.height * state.level.tileSize;
-  const maxX = Math.max(0, levelWidth - canvas.width);
-  const maxY = Math.max(0, levelHeight - canvas.height);
+  const maxX = Math.max(0, levelWidth - GAME_WIDTH);
+  const maxY = Math.max(0, levelHeight - GAME_HEIGHT);
   const targetLook = Math.sign(state.player.vx) * 24;
   state.cameraLook = approach(state.cameraLook, targetLook, 180 * dt);
   const targetLookY =
@@ -1781,7 +1783,7 @@ function updateCamera(dt: number) {
   const targetX =
     state.player.x +
     state.player.width / 2 -
-    canvas.width / 2 +
+    GAME_WIDTH / 2 +
     state.cameraLook;
   const offset = targetX - state.camera.x;
   const deadZone = 6;
@@ -1794,7 +1796,7 @@ function updateCamera(dt: number) {
   const targetY =
     state.player.y +
     state.player.height / 2 -
-    canvas.height / 2 +
+    GAME_HEIGHT / 2 +
     state.cameraLookY;
   const offsetY = targetY - state.camera.y;
   const deadZoneY = 4;
