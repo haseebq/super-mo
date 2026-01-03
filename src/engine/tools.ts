@@ -38,7 +38,14 @@ import {
   runSystem,
   runSystems,
 } from "./systems.js";
-import { Action, System } from "./state.js";
+import {
+  defineCollision,
+  removeCollision,
+  getCollisionHandlers,
+  detectCollisions,
+  getCollisionsLog,
+} from "./collisions.js";
+import { Action, System, CollisionHandler } from "./state.js";
 
 export interface ToolResult<T = unknown> {
   success: boolean;
@@ -261,6 +268,37 @@ export class ToolExecutor {
         parameters: {
           input: { type: "object", description: "Input state (keyboard, mouse)", required: false },
         },
+      },
+
+      // Collision tools
+      {
+        name: "define_collision",
+        description: "Define a collision handler (between layers + emit event)",
+        parameters: {
+          handler: { type: "object", description: "Collision handler {between: [layerA, layerB], condition?, emit, data?}", required: true },
+        },
+      },
+      {
+        name: "remove_collision",
+        description: "Remove a collision handler",
+        parameters: {
+          between: { type: "array", description: "Layer pair [layerA, layerB]", required: true },
+        },
+      },
+      {
+        name: "get_collision_handlers",
+        description: "Get all collision handlers",
+        parameters: {},
+      },
+      {
+        name: "detect_collisions",
+        description: "Run collision detection (usually called by step())",
+        parameters: {},
+      },
+      {
+        name: "get_collisions_log",
+        description: "Get log of current collisions",
+        parameters: {},
       },
     ];
   }
@@ -545,6 +583,43 @@ export class ToolExecutor {
           const state = this.engine.getStateMutable();
           const result = runSystems(state, 1 / 60, input);
           return { success: true, data: result };
+        }
+
+        // Collision tools
+        case "define_collision": {
+          const handler = args.handler as CollisionHandler;
+          if (!handler) {
+            return { success: false, error: "handler parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          defineCollision(state, handler);
+          return { success: true };
+        }
+
+        case "remove_collision": {
+          const between = args.between as [string, string];
+          if (!between || between.length !== 2) {
+            return { success: false, error: "between parameter required ([layerA, layerB])" };
+          }
+          const state = this.engine.getStateMutable();
+          const removed = removeCollision(state, between);
+          return { success: removed, error: removed ? undefined : "Collision handler not found" };
+        }
+
+        case "get_collision_handlers": {
+          const state = this.engine.getState();
+          return { success: true, data: getCollisionHandlers(state) };
+        }
+
+        case "detect_collisions": {
+          const state = this.engine.getStateMutable();
+          const result = detectCollisions(state);
+          return { success: true, data: result };
+        }
+
+        case "get_collisions_log": {
+          const state = this.engine.getState();
+          return { success: true, data: getCollisionsLog(state) };
         }
 
         default:

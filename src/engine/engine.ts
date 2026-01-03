@@ -11,12 +11,14 @@ import {
   cloneState,
 } from "./state.js";
 import { runSystems } from "./systems.js";
+import { detectCollisions } from "./collisions.js";
 
 export interface StepResult {
   frame: number;
   time: number;
   eventsEmitted: string[];
   systemsRun: number;
+  collisionsDetected: number;
 }
 
 export interface StepInput {
@@ -45,15 +47,24 @@ export class GameEngine {
     // Run all systems in phase order
     const systemsResult = runSystems(this.state, dt, input);
 
+    // Run collision detection
+    const collisionResult = detectCollisions(this.state);
+
+    // Combine events from systems and collisions
+    const allEvents = [
+      ...systemsResult.eventsEmitted,
+      ...collisionResult.eventsEmitted.map((e) => e.event),
+    ];
+
     // Future phases will add:
-    // - Collision detection (Phase 6)
     // - Event handling (Phase 7)
 
     return {
       frame: this.state.frame,
       time: this.state.time,
-      eventsEmitted: systemsResult.eventsEmitted,
+      eventsEmitted: allEvents,
       systemsRun: systemsResult.systemsRun.length,
+      collisionsDetected: collisionResult.collisionsDetected.length,
     };
   }
 
