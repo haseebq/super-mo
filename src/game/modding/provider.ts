@@ -211,6 +211,40 @@ export class KeywordModdingProvider implements ModdingProvider {
         lower.includes("unmute") ||
         lower.includes("enable");
 
+      // Music track changes
+      if (lower.includes("music")) {
+        if (lower.includes("stop") || lower.includes("no music")) {
+          return {
+            patch: {
+              ops: [{ op: "setMusic", action: "stop" }],
+            },
+            explanation: "Music stopped.",
+          };
+        }
+        if (lower.includes("next") || lower.includes("change") || lower.includes("different")) {
+          // Try to extract a track number
+          const trackMatch = lower.match(/track\s*(\d+)/);
+          const track = trackMatch ? parseInt(trackMatch[1], 10) - 1 : Math.floor(Math.random() * 6);
+          return {
+            patch: {
+              ops: [{ op: "setMusic", track, action: "play" }],
+            },
+            explanation: `Now playing music track ${track + 1}.`,
+          };
+        }
+        // Specific track number
+        const trackNumMatch = lower.match(/(?:track|music)\s*(\d+)/);
+        if (trackNumMatch) {
+          const track = parseInt(trackNumMatch[1], 10) - 1;
+          return {
+            patch: {
+              ops: [{ op: "setMusic", track, action: "play" }],
+            },
+            explanation: `Now playing music track ${track + 1}.`,
+          };
+        }
+      }
+
       if (disable || enable) {
         return {
           patch: {

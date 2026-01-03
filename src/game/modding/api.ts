@@ -7,6 +7,7 @@ import type {
   OpRemoveEntities,
   OpRunScript,
   OpSetEntityScript,
+  OpSetMusic,
   OpSetRenderFilters,
 } from "./types.js";
 import { activeRules, updateRule } from "./rules.js";
@@ -22,6 +23,7 @@ export interface GameEngineAdapter {
   reloadAssets?: () => void | Promise<void>;
   runScript?: (request: OpRunScript) => Promise<{ ops: Array<Record<string, unknown>> }>;
   setEntityScript?: (target: OpSetEntityScript["target"], script: string) => void;
+  setMusic?: (op: OpSetMusic) => void;
 }
 
 type ModdingSnapshot = {
@@ -215,6 +217,13 @@ export class ModdingAPI {
           continue;
         }
         this.adapter.setEntityScript(op.target, op.script);
+        applied++;
+      } else if (op.op === "setMusic") {
+        if (!this.adapter.setMusic) {
+          errors.push("Music control not available.");
+          continue;
+        }
+        this.adapter.setMusic(op);
         applied++;
       } else if (op.op === "runScript") {
         if (!this.adapter.runScript) {

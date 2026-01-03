@@ -143,17 +143,31 @@ function registerCapabilities(
     }
   );
 
+  const setMusicHandle = vm.newFunction(
+    "setMusic",
+    (trackHandle, actionHandle) => {
+      const track = vm.dump(trackHandle);
+      const action = vm.dump(actionHandle);
+      const musicOp: Record<string, unknown> = { op: "setMusic" };
+      if (typeof track === "number") musicOp.track = track;
+      if (action === "stop" || action === "play") musicOp.action = action;
+      ops.push(musicOp);
+    }
+  );
+
   vm.setProp(capHandle, "emit", emitHandle);
   vm.setProp(capHandle, "setRule", setRuleHandle);
   vm.setProp(capHandle, "setAbility", setAbilityHandle);
   vm.setProp(capHandle, "removeEntities", removeEntitiesHandle);
   vm.setProp(capHandle, "setEntityScript", setEntityScriptHandle);
+  vm.setProp(capHandle, "setMusic", setMusicHandle);
 
   emitHandle.dispose();
   setRuleHandle.dispose();
   setAbilityHandle.dispose();
   removeEntitiesHandle.dispose();
   setEntityScriptHandle.dispose();
+  setMusicHandle.dispose();
 
   vm.setProp(vm.global, "capabilities", capHandle);
   capHandle.dispose();

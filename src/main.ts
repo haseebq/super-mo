@@ -2177,6 +2177,17 @@ const moddingAPI = new ModdingAPI({
       console.error(`Failed to compile entity script for ${target}:`, error);
     }
   },
+  setMusic: (op) => {
+    if (op.action === "stop") {
+      audio.stopMusic();
+      return;
+    }
+    if (typeof op.track === "number") {
+      audio.startMusic(op.track);
+    }
+    // Volume is controlled globally via setMuted for now
+    // Could add per-track volume control in the future
+  },
 });
 
 // AI/Agent provider for translating prompts to patch operations
@@ -2323,6 +2334,9 @@ function formatModOperationSummary(op: ModOperation): string {
       return op.module ? `runScript module ${op.module.entry}` : "runScript inline";
     case "setEntityScript":
       return `setEntityScript ${op.target}`;
+    case "setMusic":
+      if (op.action === "stop") return "stopMusic";
+      return `setMusic track=${op.track ?? "current"}`;
   }
   const fallback = op as { op?: string };
   return fallback.op ? `op ${fallback.op}` : "op";

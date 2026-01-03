@@ -103,6 +103,13 @@ export type OpSetEntityScript = {
   script: string;
 };
 
+export type OpSetMusic = {
+  op: "setMusic";
+  track?: number;
+  volume?: number;
+  action?: "play" | "stop";
+};
+
 export type SandboxModulePatch = {
   entry: string;
   modules: Record<string, string>;
@@ -123,6 +130,7 @@ export type ModOperation =
   | OpSetRenderFilters
   | OpReloadAssets
   | OpSetEntityScript
+  | OpSetMusic
   | OpRunScript;
 
 export type GamePatch = {
