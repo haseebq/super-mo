@@ -804,6 +804,51 @@ body {
   color: #e04b3a;
 }
 
+/* Operation details display */
+.modding-op {
+  margin: 4px 0;
+  padding-left: 8px;
+  border-left: 2px solid #444;
+}
+
+.modding-op-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modding-op-toggle {
+  background: none;
+  border: none;
+  color: #78c7f0;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 0;
+  font-family: monospace;
+}
+
+.modding-op-toggle:hover {
+  color: #5dbb63;
+}
+
+.modding-op-code {
+  background: #0d0d0d;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 4px 0 0 0;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.modding-op-code.is-hidden {
+  display: none;
+}
+
 .modding-input-row {
   display: flex;
   gap: 8px;

@@ -2299,7 +2299,7 @@ const moddingCapabilityHint =
   "(grayscale/blur/sepia), reload assets, and run scripts.";
 let moddingHintShown = false;
 
-function formatModOperation(op: ModOperation): string {
+function formatModOperationSummary(op: ModOperation): string {
   switch (op.op) {
     case "setRule":
       return `setRule ${op.path}=${op.value}`;
@@ -2321,16 +2321,95 @@ function formatModOperation(op: ModOperation): string {
       return "reloadAssets";
     case "runScript":
       return op.module ? `runScript module ${op.module.entry}` : "runScript inline";
+    case "setEntityScript":
+      return `setEntityScript ${op.target}`;
   }
   const fallback = op as { op?: string };
   return fallback.op ? `op ${fallback.op}` : "op";
 }
 
-function summarizeOperations(ops: ModOperation[]): string {
-  if (!Array.isArray(ops) || ops.length === 0) {
-    return "AI patch: (no ops)";
+function hasOperationDetails(op: ModOperation): boolean {
+  return (
+    op.op === "runScript" ||
+    op.op === "setEntityScript" ||
+    op.op === "setBackgroundTheme" ||
+    op.op === "setRenderFilters"
+  );
+}
+
+function formatOperationDetails(op: ModOperation): string {
+  switch (op.op) {
+    case "runScript":
+      if (op.code) return op.code;
+      if (op.module) return `Entry: ${op.module.entry}\n${Object.entries(op.module.modules).map(([k, v]) => `--- ${k} ---\n${v}`).join("\n")}`;
+      return "";
+    case "setEntityScript":
+      return op.script;
+    case "setBackgroundTheme":
+      return op.theme ? JSON.stringify(op.theme, null, 2) : "(reset to default)";
+    case "setRenderFilters":
+      return op.filters ? JSON.stringify(op.filters, null, 2) : "(clear filters)";
+    default:
+      return "";
   }
-  return `AI patch: ${ops.map(formatModOperation).join("; ")}`;
+}
+
+function createOperationElement(op: ModOperation): HTMLElement {
+  const container = document.createElement("div");
+  container.className = "modding-op";
+
+  const summary = document.createElement("div");
+  summary.className = "modding-op-summary";
+  summary.textContent = formatModOperationSummary(op);
+
+  if (hasOperationDetails(op)) {
+    const details = formatOperationDetails(op);
+    if (details) {
+      const toggle = document.createElement("button");
+      toggle.className = "modding-op-toggle";
+      toggle.textContent = "[show]";
+      toggle.type = "button";
+
+      const code = document.createElement("pre");
+      code.className = "modding-op-code is-hidden";
+      code.textContent = details;
+
+      toggle.addEventListener("click", () => {
+        const isHidden = code.classList.contains("is-hidden");
+        code.classList.toggle("is-hidden");
+        toggle.textContent = isHidden ? "[hide]" : "[show]";
+      });
+
+      summary.appendChild(toggle);
+      container.appendChild(summary);
+      container.appendChild(code);
+      return container;
+    }
+  }
+
+  container.appendChild(summary);
+  return container;
+}
+
+function appendOperationsMessage(ops: ModOperation[]): void {
+  if (!Array.isArray(ops) || ops.length === 0) {
+    appendModdingMessage("AI patch: (no ops)", "meta");
+    return;
+  }
+
+  const container = document.createElement("div");
+  container.className = "modding-message meta";
+
+  const header = document.createElement("div");
+  header.textContent = `AI patch (${ops.length} operation${ops.length > 1 ? "s" : ""}):`;
+  container.appendChild(header);
+
+  for (const op of ops) {
+    container.appendChild(createOperationElement(op));
+  }
+
+  moddingHistory.appendChild(container);
+  moddingHistory.scrollTop = moddingHistory.scrollHeight;
 }
 
 function toggleModdingUI() {
@@ -2403,7 +2482,7 @@ async function handleModdingRequest(text: string) {
       appendModdingMessage(result.explanation, "system");
       appendModdingHint();
     } else {
-      appendModdingMessage(summarizeOperations(result.patch.ops), "meta");
+      appendOperationsMessage(result.patch.ops);
       // Apply the patch and show the result
       const applyResult = await moddingAPI.applyPatch(result.patch, {
         prompt: text,
