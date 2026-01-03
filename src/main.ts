@@ -1,7 +1,7 @@
 import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
-import { createDefaultModdingProvider, type PromptResult, type ConversationMessage } from "./game/modding/provider.js";
+import { createDefaultModdingProvider, getDiscoveryTools, type PromptResult, type ConversationMessage } from "./game/modding/provider.js";
 import { SandboxRuntime } from "./game/modding/sandbox/host.js";
 import type { BackgroundThemePatch, ModOperation } from "./game/modding/types.js";
 import type { RenderFilterSpec, Renderer } from "./core/renderer.js";
@@ -129,6 +129,7 @@ declare global {
     __SUPER_MO__?: {
       state: GameState;
       modding: ModdingAPI;
+      discovery: ReturnType<typeof getDiscoveryTools>;
       setMode: (mode: Mode) => void;
       resetPlayer: () => void;
       setDebug: (flags: { tiles?: boolean; labels?: boolean }) => void;
@@ -2196,6 +2197,7 @@ const moddingProvider = createDefaultModdingProvider();
 window.__SUPER_MO__ = {
   state,
   modding: moddingAPI,
+  discovery: getDiscoveryTools(),
   setMode,
   resetPlayer,
   setDebug(flags: { tiles?: boolean; labels?: boolean }) {

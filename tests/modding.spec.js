@@ -238,6 +238,110 @@ test("keyword provider handles sine wave enemy request", async ({ page }) => {
   expect(historyText).toContain("setEntityScript");
 });
 
+test("discovery tools provide operation docs", async ({ page }) => {
+  const discovery = await page.evaluate(() => {
+    const tools = window.__SUPER_MO__.discovery;
+    return {
+      operations: tools.listOperations(),
+      setEntityScriptDocs: tools.getOperationDocs("setEntityScript"),
+      enemySchema: tools.getEntitySchema("enemy"),
+      scriptContext: tools.getScriptContext(),
+    };
+  });
+
+  // Check operations list
+  expect(discovery.operations.length).toBeGreaterThan(5);
+  expect(discovery.operations.some((op) => op.op === "setEntityScript")).toBeTruthy();
+
+  // Check setEntityScript docs
+  expect(discovery.setEntityScriptDocs).not.toBeNull();
+  expect(discovery.setEntityScriptDocs.examples.length).toBeGreaterThan(0);
+  expect(discovery.setEntityScriptDocs.schema.target).toContain("enemy");
+
+  // Check entity schema
+  expect(discovery.enemySchema.properties.x).toBeDefined();
+  expect(discovery.enemySchema.properties.vx).toBeDefined();
+
+  // Check script context - blocked list approach
+  expect(discovery.scriptContext.blocked).toContain("fetch");
+  expect(discovery.scriptContext.blocked).toContain("eval");
+  expect(discovery.scriptContext.variables.entity).toBeDefined();
+  expect(discovery.scriptContext.variables.time).toBeDefined();
+});
+
+test("discovery tools handle multi-turn AI tool call workflow", async ({ page }) => {
+  // Simulate multi-turn conversation where AI iteratively discovers capabilities
+  // This mimics how a real AI would make sequential tool calls in a chat flow
+
+  // TURN 1: User asks "make enemies move in sine wave"
+  // AI doesn't know what operations exist, so it calls list_operations
+  const turn1 = await page.evaluate(() => {
+    const tools = window.__SUPER_MO__.discovery;
+    return tools.listOperations();
+  });
+  expect(turn1.length).toBeGreaterThan(5);
+  const entityScriptOp = turn1.find(op => op.op === "setEntityScript");
+  expect(entityScriptOp).toBeDefined();
+  expect(entityScriptOp.brief).toContain("per-frame");
+
+  // TURN 2: AI sees setEntityScript looks relevant, requests docs
+  const turn2 = await page.evaluate(() => {
+    const tools = window.__SUPER_MO__.discovery;
+    return tools.getOperationDocs("setEntityScript");
+  });
+  expect(turn2).not.toBeNull();
+  expect(turn2.description).toContain("JavaScript");
+  expect(turn2.schema.target).toContain("enemy");
+  expect(turn2.examples.length).toBeGreaterThan(0);
+  // AI sees there's a sine wave example!
+  const sineExample = turn2.examples.find(ex => ex.prompt.includes("sine wave"));
+  expect(sineExample).toBeDefined();
+
+  // TURN 3: AI wants to write a custom script, asks about entity properties
+  const turn3 = await page.evaluate(() => {
+    const tools = window.__SUPER_MO__.discovery;
+    return tools.getEntitySchema("enemy");
+  });
+  expect(turn3.properties.x).toBeDefined();
+  expect(turn3.properties.y).toBeDefined();
+  expect(turn3.properties.vx).toBeDefined();
+  expect(turn3.properties.baseX).toContain("optional"); // AI learns it can store baseX
+
+  // TURN 4: AI checks what JS is available in scripts
+  const turn4 = await page.evaluate(() => {
+    const tools = window.__SUPER_MO__.discovery;
+    return tools.getScriptContext();
+  });
+  expect(turn4.variables.entity).toBeDefined();
+  expect(turn4.variables.time).toBeDefined();
+  expect(turn4.blocked).toContain("fetch"); // AI knows not to use fetch
+  expect(turn4.blocked).toContain("eval");
+  expect(turn4.notes).toContain("Math"); // AI learns Math is available
+
+  // TURN 5: AI now has enough context to generate correct operation
+  // It uses the example from docs and its understanding of entity schema
+  const turn5 = await page.evaluate((exampleScript) => {
+    // AI generates operation based on discovered docs
+    const generatedOp = {
+      op: "setEntityScript",
+      target: "enemy",
+      script: exampleScript,
+    };
+
+    // Apply it to verify it works
+    return window.__SUPER_MO__.modding.applyPatch({ ops: [generatedOp] });
+  }, sineExample.op.script);
+
+  expect(turn5.success).toBeTruthy();
+  expect(turn5.appliedOps).toBe(1);
+
+  // Verify the script was actually applied
+  const hasScript = await page.evaluate(
+    () => window.__SUPER_MO__.state.entityScripts.enemy !== null
+  );
+  expect(hasScript).toBeTruthy();
+});
+
 test("sine wave enemy movement actually moves enemies", async ({ page }) => {
   // Get initial enemy positions
   const initialPositions = await page.evaluate(() =>

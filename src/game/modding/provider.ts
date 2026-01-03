@@ -1,4 +1,5 @@
 import type { GamePatch, GameStateSnapshot } from "./types.js";
+import { createDiscoveryTools, getDiscoverySystemPrompt, type DiscoveryTools } from "./discovery.js";
 
 /**
  * A message in the conversation history.
@@ -117,6 +118,68 @@ function parseChatResponse(payload: ChatResponse): PromptResult {
   };
 }
 
+// Discovery tools singleton
+const discoveryTools = createDiscoveryTools();
+
+// Tool definitions for AI to call
+const AI_TOOL_DEFINITIONS = [
+  {
+    type: "function",
+    function: {
+      name: "list_operations",
+      description: "List all available mod operations with brief descriptions",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_operation_docs",
+      description: "Get detailed documentation, schema, and examples for a specific operation",
+      parameters: {
+        type: "object",
+        properties: { op: { type: "string", description: "Operation name (e.g., 'setEntityScript')" } },
+        required: ["op"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_entity_schema",
+      description: "Get properties available on entities (for writing scripts)",
+      parameters: {
+        type: "object",
+        properties: { type: { type: "string", enum: ["enemy", "coin", "player"] } },
+        required: ["type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_script_context",
+      description: "Get info about what JavaScript is available in entity scripts (variables, blocked APIs)",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "apply_patch",
+      description: "Apply mod operations to the game",
+      parameters: {
+        type: "object",
+        properties: {
+          ops: { type: "array", items: { type: "object" }, description: "Array of mod operations" },
+          explanation: { type: "string", description: "Explanation of what the patch does" },
+        },
+        required: ["ops"],
+      },
+    },
+  },
+];
+
 export class ApiModdingProvider implements ModdingProvider {
   constructor(
     private options: {
@@ -146,6 +209,14 @@ export class ApiModdingProvider implements ModdingProvider {
           state: snapshot,
           model: this.options.model ?? DEFAULT_MODEL,
           messages: messages ?? [],
+          // Discovery context for AI
+          system_prompt: getDiscoverySystemPrompt(),
+          tools: AI_TOOL_DEFINITIONS,
+          // Pre-load essential discovery info so AI doesn't always need to call tools
+          discovery: {
+            operations: discoveryTools.listOperations(),
+            script_context: discoveryTools.getScriptContext(),
+          },
         }),
         signal: controller.signal,
       });
@@ -160,6 +231,11 @@ export class ApiModdingProvider implements ModdingProvider {
       clearTimeout(timeout);
     }
   }
+}
+
+/** Get discovery tools for external use (e.g., by backend to handle tool calls) */
+export function getDiscoveryTools(): DiscoveryTools {
+  return discoveryTools;
 }
 
 export class FallbackModdingProvider implements ModdingProvider {
