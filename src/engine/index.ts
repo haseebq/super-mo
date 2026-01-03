@@ -9,4 +9,5 @@ export * from "./state.js";
 export * from "./engine.js";
 export * from "./entities.js";
 export * from "./expressions.js";
+export * from "./actions.js";
 export * from "./tools.js";

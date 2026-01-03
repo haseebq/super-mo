@@ -25,6 +25,12 @@ import {
   isValidExpression,
   ExpressionContext,
 } from "./expressions.js";
+import {
+  executeAction,
+  executeActions,
+  ActionContext,
+} from "./actions.js";
+import { Action } from "./state.js";
 
 export interface ToolResult<T = unknown> {
   success: boolean;
@@ -193,6 +199,24 @@ export class ToolExecutor {
         description: "Check if an expression is valid and safe",
         parameters: {
           expression: { type: "string", description: "Expression to validate", required: true },
+        },
+      },
+
+      // Action tools
+      {
+        name: "execute_action",
+        description: "Execute a single action",
+        parameters: {
+          action: { type: "object", description: "Action to execute", required: true },
+          context: { type: "object", description: "Context variables (entity, input, data)", required: false },
+        },
+      },
+      {
+        name: "execute_actions",
+        description: "Execute a list of actions",
+        parameters: {
+          actions: { type: "array", description: "Actions to execute", required: true },
+          context: { type: "object", description: "Context variables (entity, input, data)", required: false },
         },
       },
     ];
@@ -395,6 +419,43 @@ export class ToolExecutor {
           }
           const valid = isValidExpression(expression);
           return { success: true, data: { valid } };
+        }
+
+        // Action tools
+        case "execute_action": {
+          const action = args.action as Action;
+          if (!action) {
+            return { success: false, error: "action parameter required" };
+          }
+          const context = (args.context as Partial<ActionContext>) ?? {};
+          const state = this.engine.getStateMutable();
+          const fullContext: ActionContext = {
+            state,
+            rules: state.rules,
+            time: state.time,
+            dt: 1 / 60,
+            ...context,
+          };
+          const result = executeAction(action, fullContext);
+          return { success: result.success, data: { eventsEmitted: result.eventsEmitted }, error: result.error };
+        }
+
+        case "execute_actions": {
+          const actions = args.actions as Action[];
+          if (!actions || !Array.isArray(actions)) {
+            return { success: false, error: "actions parameter required (array)" };
+          }
+          const context = (args.context as Partial<ActionContext>) ?? {};
+          const state = this.engine.getStateMutable();
+          const fullContext: ActionContext = {
+            state,
+            rules: state.rules,
+            time: state.time,
+            dt: 1 / 60,
+            ...context,
+          };
+          const result = executeActions(actions, fullContext);
+          return { success: result.success, data: { eventsEmitted: result.eventsEmitted }, error: result.error };
         }
 
         default:
