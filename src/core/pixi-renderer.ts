@@ -54,7 +54,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     autoStart: false, // Don't start Pixi's own render loop - we manage our own
   });
   
-  // Root container - no scaling needed, CSS handles it
+  // Root container handles base scaling to the CSS display size.
   const rootContainer = new Container();
   app.stage.addChild(rootContainer);
 
@@ -503,7 +503,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       ) {
         app.renderer.resize(nextWidth, nextHeight);
       }
-      cameraContainer.scale.set(nextWidth / GAME_WIDTH, nextHeight / GAME_HEIGHT);
+      rootContainer.scale.set(nextWidth / GAME_WIDTH, nextHeight / GAME_HEIGHT);
       if (activeFilters.length > 0) {
         filterContainer.filterArea = app.screen;
       }

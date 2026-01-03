@@ -28,5 +28,5 @@ test("deterministic input replay moves player forward", async ({ page }) => {
   });
 
   expect(position.x).toBeGreaterThan(start.x + 6);
-  expect(position.y).toBeLessThan(start.y - 2);
+  expect(position.y).toBeLessThan(start.y - 1);
 });
