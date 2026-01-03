@@ -27,6 +27,7 @@ export type Renderer = {
   text: (text: string, x: number, y: number, color: string) => void;
   ctx: CanvasRenderingContext2D;
   render?: () => void; // Optional: present frame (used by Pixi renderer)
+  resize?: () => void; // Optional: resize to match CSS display size
   setFilters?: (filters: RenderFilterSpec[] | null) => void;
 };
 

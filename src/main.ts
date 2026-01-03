@@ -883,6 +883,7 @@ function handleSpikeCollisions() {
 function render() {
   const theme = getBackgroundTheme(state.levelIndex, state.backgroundOverride);
   renderer.clear(theme.clear);
+  renderer.resize?.();
 
   if (state.mode === "title") {
     renderTitlePreview();
