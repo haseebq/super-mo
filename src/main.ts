@@ -2285,6 +2285,8 @@ function toggleFullscreen() {
 
 // Modding UI Integration
 const moddingOverlay = requireElement<HTMLDivElement>("#modding-overlay");
+const moddingPanel = requireElement<HTMLDivElement>(".modding-panel");
+const moddingHeader = requireElement<HTMLDivElement>(".modding-header");
 const moddingInput = requireElement<HTMLInputElement>("#modding-input");
 const moddingHistory = requireElement<HTMLDivElement>("#modding-history");
 const moddingCloseBtn = requireElement<HTMLButtonElement>("#modding-close");
@@ -2476,3 +2478,69 @@ if (moddingToggle) {
     toggleModdingUI();
   });
 }
+
+// Drag functionality for modding panel
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let panelStartX = 0;
+let panelStartY = 0;
+
+function startDrag(clientX: number, clientY: number) {
+  isDragging = true;
+  dragStartX = clientX;
+  dragStartY = clientY;
+  const rect = moddingOverlay.getBoundingClientRect();
+  panelStartX = rect.left;
+  panelStartY = rect.top;
+  moddingHeader.style.cursor = "grabbing";
+}
+
+function doDrag(clientX: number, clientY: number) {
+  if (!isDragging) return;
+  const dx = clientX - dragStartX;
+  const dy = clientY - dragStartY;
+  const newX = panelStartX + dx;
+  const newY = panelStartY + dy;
+  // Constrain to viewport
+  const maxX = window.innerWidth - moddingOverlay.offsetWidth;
+  const maxY = window.innerHeight - moddingOverlay.offsetHeight;
+  moddingOverlay.style.left = `${Math.max(0, Math.min(newX, maxX))}px`;
+  moddingOverlay.style.top = `${Math.max(0, Math.min(newY, maxY))}px`;
+  moddingOverlay.style.right = "auto";
+}
+
+function endDrag() {
+  isDragging = false;
+  moddingHeader.style.cursor = "move";
+}
+
+moddingHeader.addEventListener("mousedown", (e) => {
+  if ((e.target as HTMLElement).tagName === "BUTTON") return;
+  e.preventDefault();
+  startDrag(e.clientX, e.clientY);
+});
+
+document.addEventListener("mousemove", (e) => {
+  doDrag(e.clientX, e.clientY);
+});
+
+document.addEventListener("mouseup", () => {
+  endDrag();
+});
+
+moddingHeader.addEventListener("touchstart", (e) => {
+  if ((e.target as HTMLElement).tagName === "BUTTON") return;
+  const touch = e.touches[0];
+  startDrag(touch.clientX, touch.clientY);
+}, { passive: true });
+
+document.addEventListener("touchmove", (e) => {
+  if (!isDragging) return;
+  const touch = e.touches[0];
+  doDrag(touch.clientX, touch.clientY);
+}, { passive: true });
+
+document.addEventListener("touchend", () => {
+  endDrag();
+});

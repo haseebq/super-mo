@@ -24,7 +24,20 @@ export function createInput(): InputState {
     "ShiftRight",
   ]);
 
+  function isInputFocused(): boolean {
+    const active = document.activeElement;
+    return (
+      active instanceof HTMLInputElement ||
+      active instanceof HTMLTextAreaElement ||
+      active?.getAttribute("contenteditable") === "true"
+    );
+  }
+
   function handleKeyDown(event: KeyboardEvent) {
+    // Ignore game input when typing in input fields
+    if (isInputFocused()) {
+      return;
+    }
     if (blocked.has(event.code)) {
       event.preventDefault();
     }
