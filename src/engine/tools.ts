@@ -54,6 +54,16 @@ import {
   processEvents,
   getEventsLog,
 } from "./events.js";
+import {
+  getRule,
+  setRule,
+  getAllRules,
+  getPhysicsRules,
+  getScoringRules,
+  getControls,
+  setControl,
+  resetRules,
+} from "./rules.js";
 import { Action, System, CollisionHandler } from "./state.js";
 
 export interface ToolResult<T = unknown> {
@@ -356,6 +366,56 @@ export class ToolExecutor {
       {
         name: "get_events_log",
         description: "Get log of event handlers",
+        parameters: {},
+      },
+
+      // Rules tools
+      {
+        name: "get_rule",
+        description: "Get a rule value by path",
+        parameters: {
+          path: { type: "string", description: "Path (e.g., 'physics.gravity', 'scoring.coinValue')", required: true },
+        },
+      },
+      {
+        name: "set_rule",
+        description: "Set a rule value by path",
+        parameters: {
+          path: { type: "string", description: "Path (e.g., 'physics.gravity', 'scoring.coinValue')", required: true },
+          value: { type: "any", description: "Value to set", required: true },
+        },
+      },
+      {
+        name: "get_rules",
+        description: "Get all rules",
+        parameters: {},
+      },
+      {
+        name: "get_physics_rules",
+        description: "Get physics rules",
+        parameters: {},
+      },
+      {
+        name: "get_scoring_rules",
+        description: "Get scoring rules",
+        parameters: {},
+      },
+      {
+        name: "get_controls",
+        description: "Get control key mappings",
+        parameters: {},
+      },
+      {
+        name: "set_control",
+        description: "Set a control key mapping",
+        parameters: {
+          action: { type: "string", description: "Action name (e.g., 'jump', 'dash')", required: true },
+          key: { type: "string", description: "Key name (e.g., 'Space', 'Shift')", required: true },
+        },
+      },
+      {
+        name: "reset_rules",
+        description: "Reset all rules to defaults",
         parameters: {},
       },
     ];
@@ -747,6 +807,68 @@ export class ToolExecutor {
         case "get_events_log": {
           const state = this.engine.getState();
           return { success: true, data: getEventsLog(state) };
+        }
+
+        // Rules tools
+        case "get_rule": {
+          const path = args.path as string;
+          if (!path) {
+            return { success: false, error: "path parameter required" };
+          }
+          const state = this.engine.getState();
+          const value = getRule(state, path);
+          return { success: true, data: value };
+        }
+
+        case "set_rule": {
+          const path = args.path as string;
+          const value = args.value;
+          if (!path) {
+            return { success: false, error: "path parameter required" };
+          }
+          if (value === undefined) {
+            return { success: false, error: "value parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          const success = setRule(state, path, value);
+          return { success, error: success ? undefined : "Failed to set rule" };
+        }
+
+        case "get_rules": {
+          const state = this.engine.getState();
+          return { success: true, data: getAllRules(state) };
+        }
+
+        case "get_physics_rules": {
+          const state = this.engine.getState();
+          return { success: true, data: getPhysicsRules(state) };
+        }
+
+        case "get_scoring_rules": {
+          const state = this.engine.getState();
+          return { success: true, data: getScoringRules(state) };
+        }
+
+        case "get_controls": {
+          const state = this.engine.getState();
+          return { success: true, data: getControls(state) };
+        }
+
+        case "set_control": {
+          const action = args.action as string;
+          const key = args.key as string;
+          if (!action || !key) {
+            return { success: false, error: "action and key parameters required" };
+          }
+          const state = this.engine.getStateMutable();
+          setControl(state, action, key);
+          return { success: true };
+        }
+
+        case "reset_rules": {
+          const state = this.engine.getStateMutable();
+          resetRules(state);
+          return { success: true };
         }
 
         default:
