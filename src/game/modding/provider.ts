@@ -16,8 +16,8 @@ export type DebugInfo = {
   request: {
     prompt: string;
     system_prompt: string;
-    tools: unknown[];
-    discovery: unknown;
+    tools: unknown[] | string;  // string when "(not sent)"
+    discovery: unknown | string;
     messages: ConversationMessage[];
     state_summary: string;
   };
@@ -223,19 +223,27 @@ export class ApiModdingProvider implements ModdingProvider {
       script_context: discoveryTools.getScriptContext(),
     };
 
+    // Only send system prompt, tools, and discovery on first message
+    const isFirstMessage = !messages || messages.length === 0;
+    const requestBody: Record<string, unknown> = {
+      prompt,
+      state: snapshot,
+      model: this.options.model ?? DEFAULT_MODEL,
+      messages: messages ?? [],
+    };
+
+    // Include context only on first message of conversation
+    if (isFirstMessage) {
+      requestBody.system_prompt = systemPrompt;
+      requestBody.tools = AI_TOOL_DEFINITIONS;
+      requestBody.discovery = discovery;
+    }
+
     try {
       const response = await fetch(this.options.endpoint ?? DEFAULT_API_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          state: snapshot,
-          model: this.options.model ?? DEFAULT_MODEL,
-          messages: messages ?? [],
-          system_prompt: systemPrompt,
-          tools: AI_TOOL_DEFINITIONS,
-          discovery,
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal,
       });
 
@@ -246,13 +254,13 @@ export class ApiModdingProvider implements ModdingProvider {
       const payload = (await response.json()) as ChatResponse;
       const result = parseChatResponse(payload);
 
-      // Attach debug info
+      // Attach debug info (shows what was actually sent)
       result.debug = {
         request: {
           prompt,
-          system_prompt: systemPrompt,
-          tools: AI_TOOL_DEFINITIONS,
-          discovery,
+          system_prompt: isFirstMessage ? systemPrompt : "(not sent - using conversation context)",
+          tools: isFirstMessage ? AI_TOOL_DEFINITIONS : "(not sent)",
+          discovery: isFirstMessage ? discovery : "(not sent)",
           messages: messages ?? [],
           state_summary: `frame=${snapshot.frame}, coins=${snapshot.entities.coins}, enemies=${snapshot.entities.enemies}`,
         },
