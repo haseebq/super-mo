@@ -158,6 +158,15 @@ function registerConsole(
   consoleHandle.dispose();
 }
 
+function registerCommonJS(vm: ReturnType<QuickJSModule["newContext"]>) {
+  const moduleHandle = vm.newObject();
+  const exportsHandle = vm.newObject();
+  vm.setProp(moduleHandle, "exports", exportsHandle);
+  vm.setProp(vm.global, "module", moduleHandle);
+  vm.setProp(vm.global, "exports", exportsHandle);
+  return { moduleHandle, exportsHandle };
+}
+
 function normalizeModuleKey(name: string): string {
   const normalized = name.replace(/\\/g, "/");
   if (normalized.startsWith("./")) return normalized.slice(2);
@@ -216,11 +225,13 @@ async function runCode(
   let output: unknown;
   let error: string | null = null;
   let evalResult: ReturnType<typeof vm.evalCode> | null = null;
+  let commonjsHandles: ReturnType<typeof registerCommonJS> | null = null;
 
   try {
     disableNetworkAccess();
     registerCapabilities(vm, ops);
     registerConsole(vm, logs);
+    commonjsHandles = registerCommonJS(vm);
 
     evalResult = vm.evalCode(code, "sandbox.js");
     if (evalResult.error) {
@@ -229,11 +240,24 @@ async function runCode(
       output = vm.dump(evalResult.value);
       collectOpsFromOutput(output, ops);
     }
+
+    if (!error && ops.length === 0 && commonjsHandles) {
+      const moduleExports = vm.getProp(commonjsHandles.moduleHandle, "exports");
+      const moduleOutput = vm.dump(moduleExports);
+      moduleExports.dispose();
+      collectOpsFromOutput(moduleOutput, ops);
+    }
   } catch (err) {
     error = err instanceof Error ? err.message : safeString(err);
   } finally {
     try {
       evalResult?.dispose();
+    } catch {
+      // Ignore disposal failures.
+    }
+    try {
+      commonjsHandles?.exportsHandle.dispose();
+      commonjsHandles?.moduleHandle.dispose();
     } catch {
       // Ignore disposal failures.
     }

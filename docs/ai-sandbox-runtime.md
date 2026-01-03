@@ -39,6 +39,15 @@ export default {
 };
 ```
 
+Script mode also supports CommonJS-style exports:
+
+```js
+"use strict";
+module.exports = {
+  ops: [{ op: "setRule", path: "physics.gravity", value: 120 }]
+};
+```
+
 ## JS Subset Rules
 
 The sandbox validates code before execution.
@@ -79,6 +88,7 @@ capabilities.emit(op: Record<string, unknown>): void;
 Additional globals:
 
 - `console.log(...args)` forwards logs to the host for inspection.
+- `module` and `exports` are available in script mode for CommonJS compatibility.
 
 ## Notes
 
