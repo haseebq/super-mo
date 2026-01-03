@@ -10,11 +10,28 @@ export type ConversationMessage = {
 };
 
 /**
+ * Debug info for the AI request/response flow.
+ */
+export type DebugInfo = {
+  request: {
+    prompt: string;
+    system_prompt: string;
+    tools: unknown[];
+    discovery: unknown;
+    messages: ConversationMessage[];
+    state_summary: string;
+  };
+  response: unknown;
+  timestamp: number;
+};
+
+/**
  * Result from an AI agent/provider translating user prompt into patch operations.
  */
 export type PromptResult = {
   patch: GamePatch;
   explanation: string;
+  debug?: DebugInfo;
 };
 
 /**
@@ -200,6 +217,12 @@ export class ApiModdingProvider implements ModdingProvider {
       this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS
     );
 
+    const systemPrompt = getDiscoverySystemPrompt();
+    const discovery = {
+      operations: discoveryTools.listOperations(),
+      script_context: discoveryTools.getScriptContext(),
+    };
+
     try {
       const response = await fetch(this.options.endpoint ?? DEFAULT_API_ENDPOINT, {
         method: "POST",
@@ -209,14 +232,9 @@ export class ApiModdingProvider implements ModdingProvider {
           state: snapshot,
           model: this.options.model ?? DEFAULT_MODEL,
           messages: messages ?? [],
-          // Discovery context for AI
-          system_prompt: getDiscoverySystemPrompt(),
+          system_prompt: systemPrompt,
           tools: AI_TOOL_DEFINITIONS,
-          // Pre-load essential discovery info so AI doesn't always need to call tools
-          discovery: {
-            operations: discoveryTools.listOperations(),
-            script_context: discoveryTools.getScriptContext(),
-          },
+          discovery,
         }),
         signal: controller.signal,
       });
@@ -226,7 +244,23 @@ export class ApiModdingProvider implements ModdingProvider {
       }
 
       const payload = (await response.json()) as ChatResponse;
-      return parseChatResponse(payload);
+      const result = parseChatResponse(payload);
+
+      // Attach debug info
+      result.debug = {
+        request: {
+          prompt,
+          system_prompt: systemPrompt,
+          tools: AI_TOOL_DEFINITIONS,
+          discovery,
+          messages: messages ?? [],
+          state_summary: `frame=${snapshot.frame}, coins=${snapshot.entities.coins}, enemies=${snapshot.entities.enemies}`,
+        },
+        response: payload,
+        timestamp: Date.now(),
+      };
+
+      return result;
     } finally {
       clearTimeout(timeout);
     }

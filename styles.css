@@ -915,6 +915,64 @@ body {
 .modding-footer {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+#modding-debug-toggle {
+  background: #333;
+  border: none;
+  color: #888;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+#modding-debug-toggle.is-active {
+  background: #5dbb63;
+  color: #1a1a1a;
+}
+
+/* Debug output styles */
+.modding-debug {
+  margin: 8px 0;
+  padding: 8px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.modding-debug-header {
+  color: #f6d44d;
+  font-weight: bold;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #333;
+}
+
+.modding-debug-section {
+  color: #78c7f0;
+  font-weight: bold;
+  margin: 8px 0 4px 0;
+  cursor: pointer;
+}
+
+.modding-debug-code {
+  background: #0d0d0d;
+  border: 1px solid #222;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 4px 0;
+  font-size: 9px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  color: #aaa;
 }
 
 .touch-btn-modding {

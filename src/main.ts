@@ -1,7 +1,7 @@
 import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
-import { createDefaultModdingProvider, getDiscoveryTools, type PromptResult, type ConversationMessage } from "./game/modding/provider.js";
+import { createDefaultModdingProvider, getDiscoveryTools, type PromptResult, type ConversationMessage, type DebugInfo } from "./game/modding/provider.js";
 import { SandboxRuntime } from "./game/modding/sandbox/host.js";
 import type { BackgroundThemePatch, ModOperation } from "./game/modding/types.js";
 import type { RenderFilterSpec, Renderer } from "./core/renderer.js";
@@ -2305,12 +2305,14 @@ const moddingHistory = requireElement<HTMLDivElement>("#modding-history");
 const moddingCloseBtn = requireElement<HTMLButtonElement>("#modding-close");
 const moddingSendBtn = requireElement<HTMLButtonElement>("#modding-send");
 const moddingResetBtn = requireElement<HTMLButtonElement>("#modding-reset");
+const moddingDebugToggle = requireElement<HTMLButtonElement>("#modding-debug-toggle");
 const moddingToggle = document.getElementById("modding-toggle");
 const moddingCapabilityHint =
   "I can change rules (gravity, speed, scoring), remove coins or enemies, " +
   "toggle audio, change background themes, apply visual filters " +
   "(grayscale/blur/sepia), reload assets, and run scripts.";
 let moddingHintShown = false;
+let moddingDebugMode = false;
 
 // Conversation history for multi-turn AI context (cleared on page reload or reset)
 const conversationHistory: ConversationMessage[] = [];
@@ -2468,6 +2470,50 @@ function appendModdingHint() {
   appendModdingMessage(moddingCapabilityHint, "system");
 }
 
+function appendDebugInfo(debug: DebugInfo | undefined, source: "api" | "keyword"): void {
+  if (!moddingDebugMode) return;
+
+  const container = document.createElement("div");
+  container.className = "modding-debug";
+
+  const header = document.createElement("div");
+  header.className = "modding-debug-header";
+  header.textContent = `[DEBUG] Source: ${source} | ${new Date(debug?.timestamp ?? Date.now()).toISOString()}`;
+  container.appendChild(header);
+
+  if (source === "keyword") {
+    const note = document.createElement("pre");
+    note.className = "modding-debug-code";
+    note.textContent = "Using offline KeywordModdingProvider (no API call)";
+    container.appendChild(note);
+  } else if (debug) {
+    // Request section
+    const reqHeader = document.createElement("div");
+    reqHeader.className = "modding-debug-section";
+    reqHeader.textContent = "▼ REQUEST";
+    container.appendChild(reqHeader);
+
+    const reqCode = document.createElement("pre");
+    reqCode.className = "modding-debug-code";
+    reqCode.textContent = JSON.stringify(debug.request, null, 2);
+    container.appendChild(reqCode);
+
+    // Response section
+    const resHeader = document.createElement("div");
+    resHeader.className = "modding-debug-section";
+    resHeader.textContent = "▼ RESPONSE";
+    container.appendChild(resHeader);
+
+    const resCode = document.createElement("pre");
+    resCode.className = "modding-debug-code";
+    resCode.textContent = JSON.stringify(debug.response, null, 2);
+    container.appendChild(resCode);
+  }
+
+  moddingHistory.appendChild(container);
+  moddingHistory.scrollTop = moddingHistory.scrollHeight;
+}
+
 function isRollbackRequest(text: string): boolean {
   const normalized = text.trim().toLowerCase();
   return (
@@ -2528,6 +2574,9 @@ async function handleModdingRequest(text: string) {
 
         // Remove thinking indicator
         removeModdingMessage(thinkingEl);
+
+        // Show debug info if enabled
+        appendDebugInfo(result.debug, result.debug ? "api" : "keyword");
 
         if (result.patch.ops.length === 0) {
           // No operations generated - show the explanation as help text
@@ -2604,6 +2653,17 @@ moddingResetBtn.addEventListener("click", () => {
   resetLevel();
   conversationHistory.length = 0; // Clear conversation history
   appendModdingMessage("Reset rules and level.", "system");
+});
+moddingDebugToggle.addEventListener("click", () => {
+  moddingDebugMode = !moddingDebugMode;
+  moddingDebugToggle.textContent = moddingDebugMode ? "Debug: On" : "Debug: Off";
+  moddingDebugToggle.classList.toggle("is-active", moddingDebugMode);
+  appendModdingMessage(
+    moddingDebugMode
+      ? "Debug mode enabled. Raw AI request/response will be shown."
+      : "Debug mode disabled.",
+    "system"
+  );
 });
 moddingSendBtn.addEventListener("click", () => {
   const text = moddingInput.value.trim();
