@@ -33,6 +33,17 @@ function normalizeModuleMap(modules: SandboxModuleMap): SandboxModuleMap {
   return normalized;
 }
 
+function ensureUseStrict(code: string): string {
+  const trimmed = code.trimStart();
+  if (
+    trimmed.startsWith("\"use strict\"") ||
+    trimmed.startsWith("'use strict'")
+  ) {
+    return code;
+  }
+  return `"use strict";\n${code}`;
+}
+
 export class SandboxRuntime {
   private worker: Worker;
   private pending = new Map<string, PendingRequest>();
@@ -111,7 +122,8 @@ export class SandboxRuntime {
   }
 
   async evaluate(code: string): Promise<SandboxResult> {
-    const validation = validateSandboxScript(code);
+    const normalizedCode = ensureUseStrict(code);
+    const validation = validateSandboxScript(normalizedCode);
     if (!validation.ok) {
       throw new Error(`Sandbox validation failed: ${validation.errors.join(" ")}`);
     }
@@ -120,7 +132,7 @@ export class SandboxRuntime {
     return new Promise((resolve, reject) => {
       const id = createRequestId();
       this.pending.set(id, { resolve, reject });
-      const message: SandboxRequest = { type: "eval", id, code };
+      const message: SandboxRequest = { type: "eval", id, code: normalizedCode };
       this.worker.postMessage(message);
     });
   }
