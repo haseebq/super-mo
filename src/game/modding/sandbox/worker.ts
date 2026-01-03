@@ -148,7 +148,7 @@ function registerCapabilities(
     (trackHandle, actionHandle) => {
       const track = vm.dump(trackHandle);
       const action = vm.dump(actionHandle);
-      const musicOp: Record<string, unknown> = { op: "setMusic" };
+      const musicOp: SandboxOp = { op: "setMusic" };
       if (typeof track === "number") musicOp.track = track;
       if (action === "stop" || action === "play") musicOp.action = action;
       ops.push(musicOp);

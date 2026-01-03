@@ -1,7 +1,7 @@
 import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
-import { createDefaultModdingProvider } from "./game/modding/provider.js";
+import { createDefaultModdingProvider, type PromptResult } from "./game/modding/provider.js";
 import { SandboxRuntime } from "./game/modding/sandbox/host.js";
 import type { BackgroundThemePatch, ModOperation } from "./game/modding/types.js";
 import type { RenderFilterSpec, Renderer } from "./core/renderer.js";
@@ -2441,13 +2441,20 @@ function toggleModdingUI() {
 
 function appendModdingMessage(
   text: string,
-  type: "user" | "agent" | "system" | "error" | "meta"
-) {
+  type: "user" | "agent" | "system" | "error" | "meta" | "thinking" | "request" | "retry"
+): HTMLDivElement {
   const div = document.createElement("div");
   div.className = `modding-message ${type}`;
   div.textContent = text;
   moddingHistory.appendChild(div);
   moddingHistory.scrollTop = moddingHistory.scrollHeight;
+  return div;
+}
+
+function removeModdingMessage(el: HTMLDivElement): void {
+  if (el.parentNode === moddingHistory) {
+    moddingHistory.removeChild(el);
+  }
 }
 
 function appendModdingHint() {
@@ -2469,6 +2476,8 @@ function isRollbackRequest(text: string): boolean {
   );
 }
 
+const MAX_AI_RETRIES = 3;
+
 async function handleModdingRequest(text: string) {
   appendModdingMessage(text, "user");
   moddingInput.value = "";
@@ -2489,29 +2498,88 @@ async function handleModdingRequest(text: string) {
     }
 
     const snapshot = moddingAPI.getSnapshot();
-    const result = await moddingProvider.processPrompt(text, snapshot);
 
-    if (result.patch.ops.length === 0) {
-      // No operations generated - show the explanation as help text
-      appendModdingMessage(result.explanation, "system");
-      appendModdingHint();
-    } else {
-      appendOperationsMessage(result.patch.ops);
-      // Apply the patch and show the result
-      const applyResult = await moddingAPI.applyPatch(result.patch, {
-        prompt: text,
-        explanation: result.explanation,
-      });
-      if (applyResult.success) {
-        appendModdingMessage(result.explanation, "agent");
-      } else {
-        appendModdingMessage(
-          `Partial success: ${
-            result.explanation
-          }\nErrors: ${applyResult.errors?.join(", ")}`,
-          "error"
-        );
-        appendModdingHint();
+    // Show request info to user (subtle/greyed)
+    appendModdingMessage(`→ "${text}"`, "request");
+
+    // Show thinking indicator
+    const thinkingEl = appendModdingMessage("Thinking", "thinking");
+
+    let lastError: string | null = null;
+    let result: PromptResult | null = null;
+
+    // Retry loop with error feedback
+    for (let attempt = 1; attempt <= MAX_AI_RETRIES; attempt++) {
+      try {
+        // If retrying, include error context in the prompt
+        const promptWithContext = lastError && attempt > 1
+          ? `${text}\n\n[Previous attempt failed with error: ${lastError}. Please try a different approach.]`
+          : text;
+
+        result = await moddingProvider.processPrompt(promptWithContext, snapshot);
+
+        // Remove thinking indicator
+        removeModdingMessage(thinkingEl);
+
+        if (result.patch.ops.length === 0) {
+          // No operations generated - show the explanation as help text
+          appendModdingMessage(result.explanation, "system");
+          appendModdingHint();
+          return;
+        }
+
+        // Show what the AI returned
+        appendOperationsMessage(result.patch.ops);
+
+        // Apply the patch and check for errors
+        const applyResult = await moddingAPI.applyPatch(result.patch, {
+          prompt: text,
+          explanation: result.explanation,
+        });
+
+        if (applyResult.success) {
+          appendModdingMessage(result.explanation, "agent");
+          return; // Success - exit
+        } else {
+          // Capture error for retry
+          lastError = applyResult.errors?.join(", ") ?? "Unknown error applying patch";
+
+          if (attempt < MAX_AI_RETRIES) {
+            appendModdingMessage(
+              `Attempt ${attempt}/${MAX_AI_RETRIES} failed: ${lastError}. Retrying...`,
+              "retry"
+            );
+          } else {
+            // Final attempt failed
+            appendModdingMessage(
+              `Failed after ${MAX_AI_RETRIES} attempts. Last error: ${lastError}`,
+              "error"
+            );
+            appendModdingHint();
+            return;
+          }
+        }
+      } catch (err: any) {
+        lastError = err.message || "Unknown error";
+        removeModdingMessage(thinkingEl);
+
+        if (attempt < MAX_AI_RETRIES) {
+          appendModdingMessage(
+            `Attempt ${attempt}/${MAX_AI_RETRIES} failed: ${lastError}. Retrying...`,
+            "retry"
+          );
+          // Show thinking again for retry
+          const retryThinkingEl = appendModdingMessage("Thinking", "thinking");
+          // Replace thinkingEl reference for cleanup on next iteration
+          Object.assign(thinkingEl, { parentNode: retryThinkingEl.parentNode });
+        } else {
+          appendModdingMessage(
+            `Failed after ${MAX_AI_RETRIES} attempts: ${lastError}`,
+            "error"
+          );
+          appendModdingHint();
+          return;
+        }
       }
     }
   } catch (err: any) {
