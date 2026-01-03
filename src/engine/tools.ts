@@ -64,6 +64,20 @@ import {
   setControl,
   resetRules,
 } from "./rules.js";
+import {
+  getMode,
+  setMode,
+  defineTransition,
+  removeTransition,
+  triggerTransition,
+  getTransitionsFrom,
+  getAllTransitions,
+  getScreen,
+  setScreen,
+  updateScreen,
+  getAllScreens,
+  getAvailableTriggers,
+} from "./modes.js";
 import { Action, System, CollisionHandler } from "./state.js";
 
 export interface ToolResult<T = unknown> {
@@ -416,6 +430,80 @@ export class ToolExecutor {
       {
         name: "reset_rules",
         description: "Reset all rules to defaults",
+        parameters: {},
+      },
+
+      // Modes and Screens tools
+      {
+        name: "set_mode",
+        description: "Set the current game mode directly",
+        parameters: {
+          mode: { type: "string", description: "Mode name", required: true },
+        },
+      },
+      {
+        name: "define_transition",
+        description: "Define a mode transition rule",
+        parameters: {
+          from: { type: "string", description: "Source mode", required: true },
+          trigger: { type: "string", description: "Trigger name", required: true },
+          to: { type: "string", description: "Destination mode", required: true },
+        },
+      },
+      {
+        name: "remove_transition",
+        description: "Remove a mode transition rule",
+        parameters: {
+          from: { type: "string", description: "Source mode", required: true },
+          trigger: { type: "string", description: "Trigger name", required: true },
+        },
+      },
+      {
+        name: "trigger_transition",
+        description: "Attempt to trigger a mode transition",
+        parameters: {
+          trigger: { type: "string", description: "Trigger name", required: true },
+        },
+      },
+      {
+        name: "get_transitions",
+        description: "Get all mode transitions or transitions from a specific mode",
+        parameters: {
+          from: { type: "string", description: "Source mode (optional, returns all if omitted)", required: false },
+        },
+      },
+      {
+        name: "get_available_triggers",
+        description: "Get triggers available from current mode",
+        parameters: {},
+      },
+      {
+        name: "get_screen",
+        description: "Get a screen configuration",
+        parameters: {
+          screen: { type: "string", description: "Screen name", required: true },
+        },
+      },
+      {
+        name: "set_screen",
+        description: "Set a screen configuration",
+        parameters: {
+          screen: { type: "string", description: "Screen name", required: true },
+          config: { type: "object", description: "Screen configuration", required: true },
+        },
+      },
+      {
+        name: "update_screen",
+        description: "Update a screen property",
+        parameters: {
+          screen: { type: "string", description: "Screen name", required: true },
+          property: { type: "string", description: "Property name", required: true },
+          value: { type: "any", description: "Property value", required: true },
+        },
+      },
+      {
+        name: "get_screens",
+        description: "Get all screen configurations",
         parameters: {},
       },
     ];
@@ -869,6 +957,111 @@ export class ToolExecutor {
           const state = this.engine.getStateMutable();
           resetRules(state);
           return { success: true };
+        }
+
+        // Modes and Screens tools
+        case "set_mode": {
+          const mode = args.mode as string;
+          if (!mode) {
+            return { success: false, error: "mode parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          setMode(state, mode);
+          return { success: true };
+        }
+
+        case "define_transition": {
+          const from = args.from as string;
+          const trigger = args.trigger as string;
+          const to = args.to as string;
+          if (!from || !trigger || !to) {
+            return { success: false, error: "from, trigger, and to parameters required" };
+          }
+          const state = this.engine.getStateMutable();
+          defineTransition(state, from, trigger, to);
+          return { success: true };
+        }
+
+        case "remove_transition": {
+          const from = args.from as string;
+          const trigger = args.trigger as string;
+          if (!from || !trigger) {
+            return { success: false, error: "from and trigger parameters required" };
+          }
+          const state = this.engine.getStateMutable();
+          const removed = removeTransition(state, from, trigger);
+          return { success: removed, error: removed ? undefined : "Transition not found" };
+        }
+
+        case "trigger_transition": {
+          const trigger = args.trigger as string;
+          if (!trigger) {
+            return { success: false, error: "trigger parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          const triggered = triggerTransition(state, trigger);
+          return {
+            success: true,
+            data: {
+              triggered,
+              currentMode: getMode(state),
+            },
+          };
+        }
+
+        case "get_transitions": {
+          const from = args.from as string | undefined;
+          const state = this.engine.getState();
+          if (from) {
+            return { success: true, data: getTransitionsFrom(state, from) };
+          }
+          return { success: true, data: getAllTransitions(state) };
+        }
+
+        case "get_available_triggers": {
+          const state = this.engine.getState();
+          return { success: true, data: getAvailableTriggers(state) };
+        }
+
+        case "get_screen": {
+          const screen = args.screen as string;
+          if (!screen) {
+            return { success: false, error: "screen parameter required" };
+          }
+          const state = this.engine.getState();
+          const config = getScreen(state, screen);
+          if (!config) {
+            return { success: false, error: "Screen not found" };
+          }
+          return { success: true, data: config };
+        }
+
+        case "set_screen": {
+          const screen = args.screen as string;
+          const config = args.config as Record<string, unknown>;
+          if (!screen || !config) {
+            return { success: false, error: "screen and config parameters required" };
+          }
+          const state = this.engine.getStateMutable();
+          setScreen(state, screen, config);
+          return { success: true };
+        }
+
+        case "update_screen": {
+          const screen = args.screen as string;
+          const property = args.property as string;
+          const value = args.value;
+          if (!screen || !property || value === undefined) {
+            return { success: false, error: "screen, property, and value parameters required" };
+          }
+          const state = this.engine.getStateMutable();
+          const updated = updateScreen(state, screen, property, value);
+          return { success: updated, error: updated ? undefined : "Screen not found" };
+        }
+
+        case "get_screens": {
+          const state = this.engine.getState();
+          return { success: true, data: getAllScreens(state) };
         }
 
         default:

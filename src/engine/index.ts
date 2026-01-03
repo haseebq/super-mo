@@ -14,4 +14,5 @@ export * from "./systems.js";
 export * from "./collisions.js";
 export * from "./events.js";
 export * from "./rules.js";
+export * from "./modes.js";
 export * from "./tools.js";
