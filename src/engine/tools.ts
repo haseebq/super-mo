@@ -30,7 +30,15 @@ import {
   executeActions,
   ActionContext,
 } from "./actions.js";
-import { Action } from "./state.js";
+import {
+  defineSystem,
+  removeSystem,
+  getSystem,
+  getSystems,
+  runSystem,
+  runSystems,
+} from "./systems.js";
+import { Action, System } from "./state.js";
 
 export interface ToolResult<T = unknown> {
   success: boolean;
@@ -217,6 +225,41 @@ export class ToolExecutor {
         parameters: {
           actions: { type: "array", description: "Actions to execute", required: true },
           context: { type: "object", description: "Context variables (entity, input, data)", required: false },
+        },
+      },
+
+      // System tools
+      {
+        name: "define_system",
+        description: "Define a system (query + actions)",
+        parameters: {
+          system: { type: "object", description: "System definition {name, phase, query, actions}", required: true },
+        },
+      },
+      {
+        name: "remove_system",
+        description: "Remove a system by name",
+        parameters: {
+          name: { type: "string", description: "System name", required: true },
+        },
+      },
+      {
+        name: "get_system",
+        description: "Get a system by name",
+        parameters: {
+          name: { type: "string", description: "System name", required: true },
+        },
+      },
+      {
+        name: "get_systems",
+        description: "Get all systems",
+        parameters: {},
+      },
+      {
+        name: "run_systems",
+        description: "Run all systems (usually called by step())",
+        parameters: {
+          input: { type: "object", description: "Input state (keyboard, mouse)", required: false },
         },
       },
     ];
@@ -456,6 +499,52 @@ export class ToolExecutor {
           };
           const result = executeActions(actions, fullContext);
           return { success: result.success, data: { eventsEmitted: result.eventsEmitted }, error: result.error };
+        }
+
+        // System tools
+        case "define_system": {
+          const system = args.system as System;
+          if (!system) {
+            return { success: false, error: "system parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          defineSystem(state, system);
+          return { success: true };
+        }
+
+        case "remove_system": {
+          const name = args.name as string;
+          if (!name) {
+            return { success: false, error: "name parameter required" };
+          }
+          const state = this.engine.getStateMutable();
+          const removed = removeSystem(state, name);
+          return { success: removed, error: removed ? undefined : "System not found" };
+        }
+
+        case "get_system": {
+          const name = args.name as string;
+          if (!name) {
+            return { success: false, error: "name parameter required" };
+          }
+          const state = this.engine.getState();
+          const system = getSystem(state, name);
+          if (!system) {
+            return { success: false, error: "System not found" };
+          }
+          return { success: true, data: system };
+        }
+
+        case "get_systems": {
+          const state = this.engine.getState();
+          return { success: true, data: getSystems(state) };
+        }
+
+        case "run_systems": {
+          const input = (args.input as Record<string, unknown>) ?? {};
+          const state = this.engine.getStateMutable();
+          const result = runSystems(state, 1 / 60, input);
+          return { success: true, data: result };
         }
 
         default:

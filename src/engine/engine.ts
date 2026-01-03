@@ -10,11 +10,21 @@ import {
   createInitialState,
   cloneState,
 } from "./state.js";
+import { runSystems } from "./systems.js";
 
 export interface StepResult {
   frame: number;
   time: number;
   eventsEmitted: string[];
+  systemsRun: number;
+}
+
+export interface StepInput {
+  horizontal?: number;
+  vertical?: number;
+  jump?: boolean;
+  dash?: boolean;
+  [key: string]: unknown;
 }
 
 export class GameEngine {
@@ -28,19 +38,22 @@ export class GameEngine {
    * Advance simulation by dt seconds.
    * Returns info about what happened during the step.
    */
-  step(dt: number): StepResult {
+  step(dt: number, input: StepInput = {}): StepResult {
     this.state.frame += 1;
     this.state.time += dt;
 
+    // Run all systems in phase order
+    const systemsResult = runSystems(this.state, dt, input);
+
     // Future phases will add:
-    // - System execution (Phase 5)
     // - Collision detection (Phase 6)
     // - Event handling (Phase 7)
 
     return {
       frame: this.state.frame,
       time: this.state.time,
-      eventsEmitted: [],
+      eventsEmitted: systemsResult.eventsEmitted,
+      systemsRun: systemsResult.systemsRun.length,
     };
   }
 
