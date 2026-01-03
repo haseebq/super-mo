@@ -1,6 +1,14 @@
 import type { GamePatch, GameStateSnapshot } from "./types.js";
 
 /**
+ * A message in the conversation history.
+ */
+export type ConversationMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
+
+/**
  * Result from an AI agent/provider translating user prompt into patch operations.
  */
 export type PromptResult = {
@@ -14,12 +22,13 @@ export type PromptResult = {
  */
 export interface ModdingProvider {
   /**
-   * Given a user prompt and current game state snapshot, return patch operations
-   * that implement the user's request.
+   * Given a user prompt, conversation history, and current game state snapshot,
+   * return patch operations that implement the user's request.
    */
   processPrompt(
     prompt: string,
-    snapshot: GameStateSnapshot
+    snapshot: GameStateSnapshot,
+    messages?: ConversationMessage[]
   ): Promise<PromptResult>;
 }
 
@@ -119,7 +128,8 @@ export class ApiModdingProvider implements ModdingProvider {
 
   async processPrompt(
     prompt: string,
-    snapshot: GameStateSnapshot
+    snapshot: GameStateSnapshot,
+    messages?: ConversationMessage[]
   ): Promise<PromptResult> {
     const controller = new AbortController();
     const timeout = setTimeout(
@@ -135,6 +145,7 @@ export class ApiModdingProvider implements ModdingProvider {
           prompt,
           state: snapshot,
           model: this.options.model ?? DEFAULT_MODEL,
+          messages: messages ?? [],
         }),
         signal: controller.signal,
       });
@@ -159,12 +170,13 @@ export class FallbackModdingProvider implements ModdingProvider {
 
   async processPrompt(
     prompt: string,
-    snapshot: GameStateSnapshot
+    snapshot: GameStateSnapshot,
+    messages?: ConversationMessage[]
   ): Promise<PromptResult> {
     try {
-      return await this.primary.processPrompt(prompt, snapshot);
+      return await this.primary.processPrompt(prompt, snapshot, messages);
     } catch (error: any) {
-      const result = await this.fallback.processPrompt(prompt, snapshot);
+      const result = await this.fallback.processPrompt(prompt, snapshot, messages);
       const reason =
         error?.name === "AbortError"
           ? "Timed out."
@@ -191,7 +203,8 @@ export function createDefaultModdingProvider(): ModdingProvider {
 export class KeywordModdingProvider implements ModdingProvider {
   async processPrompt(
     prompt: string,
-    _snapshot: GameStateSnapshot
+    _snapshot: GameStateSnapshot,
+    _messages?: ConversationMessage[]
   ): Promise<PromptResult> {
     const lower = prompt.toLowerCase();
 

@@ -1,7 +1,7 @@
 import { createLoop } from "./core/loop.js";
 import { activeRules, resetRules } from "./game/modding/rules.js";
 import { ModdingAPI } from "./game/modding/api.js";
-import { createDefaultModdingProvider, type PromptResult } from "./game/modding/provider.js";
+import { createDefaultModdingProvider, type PromptResult, type ConversationMessage } from "./game/modding/provider.js";
 import { SandboxRuntime } from "./game/modding/sandbox/host.js";
 import type { BackgroundThemePatch, ModOperation } from "./game/modding/types.js";
 import type { RenderFilterSpec, Renderer } from "./core/renderer.js";
@@ -2310,6 +2310,9 @@ const moddingCapabilityHint =
   "(grayscale/blur/sepia), reload assets, and run scripts.";
 let moddingHintShown = false;
 
+// Conversation history for multi-turn AI context (cleared on page reload or reset)
+const conversationHistory: ConversationMessage[] = [];
+
 function formatModOperationSummary(op: ModOperation): string {
   switch (op.op) {
     case "setRule":
@@ -2482,6 +2485,9 @@ async function handleModdingRequest(text: string) {
   appendModdingMessage(text, "user");
   moddingInput.value = "";
 
+  // Add user message to conversation history
+  conversationHistory.push({ role: "user", content: text });
+
   try {
     if (isRollbackRequest(text)) {
       const rollback = moddingAPI.rollbackLastPatch();
@@ -2516,7 +2522,7 @@ async function handleModdingRequest(text: string) {
           ? `${text}\n\n[Previous attempt failed with error: ${lastError}. Please try a different approach.]`
           : text;
 
-        result = await moddingProvider.processPrompt(promptWithContext, snapshot);
+        result = await moddingProvider.processPrompt(promptWithContext, snapshot, conversationHistory);
 
         // Remove thinking indicator
         removeModdingMessage(thinkingEl);
@@ -2539,6 +2545,8 @@ async function handleModdingRequest(text: string) {
 
         if (applyResult.success) {
           appendModdingMessage(result.explanation, "agent");
+          // Add assistant response to conversation history
+          conversationHistory.push({ role: "assistant", content: result.explanation });
           return; // Success - exit
         } else {
           // Capture error for retry
@@ -2592,6 +2600,7 @@ moddingCloseBtn.addEventListener("click", toggleModdingUI);
 moddingResetBtn.addEventListener("click", () => {
   resetRules();
   resetLevel();
+  conversationHistory.length = 0; // Clear conversation history
   appendModdingMessage("Reset rules and level.", "system");
 });
 moddingSendBtn.addEventListener("click", () => {
