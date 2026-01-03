@@ -14,19 +14,16 @@
 │  Observes: Pure data state (JSON)                           │
 │  Controls: Tool calls → Engine operations                   │
 └──────────────────────────┬──────────────────────────────────┘
-                           │ Tool calls (query_state, spawn_entity, etc.)
+                           │ Tool calls
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                   GAME ENGINE (Pure Data)                    │
 ├─────────────────────────────────────────────────────────────┤
-│  State: {                                                    │
-│    entities: [...],   // All game objects as data            │
-│    rules: {...},      // Physics, scoring, behaviors         │
-│    scripts: {...},    // Entity behavior definitions         │
-│    frame: number,     // Simulation tick                     │
-│  }                                                           │
+│  Components: Position, Velocity, Health, Collider, ...     │
+│  Systems: gravity, movement, player-input (all as data)    │
+│  Events: player-hit, collect-coin, game-over (handlers)    │
+│  Rules: physics, scoring, controls                          │
 │                                                              │
-│  Operations: step(), spawn(), remove(), setRule(), etc.     │
 │  Deterministic: Same inputs → Same outputs                  │
 │  No rendering, no I/O, no side effects                      │
 └──────────────────────────┬──────────────────────────────────┘
@@ -35,362 +32,552 @@
 ┌─────────────────────────────────────────────────────────────┐
 │              REPRESENTATION ENGINE (Swappable)               │
 ├─────────────────────────────────────────────────────────────┤
-│  Input: Game engine state                                    │
-│  Output: Visual rendering                                    │
-│                                                              │
 │  Implementations:                                            │
-│    - Canvas2DRenderer: 2D pixel art                         │
-│    - WebGLRenderer: Hardware accelerated 2D                 │
-│    - ThreeJSRenderer: 3D visualization                      │
-│    - ASCIIRenderer: Terminal output                         │
-│    - HeadlessRenderer: No output (AI simulation)            │
+│    - Canvas2DRenderer    - WebGLRenderer                    │
+│    - ThreeJSRenderer     - ASCIIRenderer                    │
+│    - HeadlessRenderer (for testing)                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## Core Principles
 
-1. **Engine is pure data**: All game state is JSON-serializable. No rendering, no I/O, no side effects.
-2. **Representation renders state**: The representation engine just draws whatever the game engine state says. Swappable (2D Canvas, WebGL, 3D, ASCII).
-3. **AI sees everything**: AI observes exact game state as data. No hidden state. What AI sees = what gets rendered.
-4. **Tools are the API**: All engine operations exposed as tools. AI programs by making tool calls.
-5. **Same interface everywhere**: Dev AI and deployed AI use identical tools. No special access.
+1. **Engine is pure data**: All state is JSON-serializable. No functions, no closures.
+2. **Structured actions, not code**: Systems and events use typed actions, not code strings.
+3. **Expressions, not code**: Values use a safe expression language (math + references).
+4. **Collisions emit events**: Collision detection and handling are separated.
+5. **Tools are the only API**: All interaction via tool calls. No backdoors.
+6. **Tests use tools too**: Test suite connects and uses the same tool interface as AI.
 
-## Architecture Components
+---
 
-### 1. GameEngine (Pure Simulation)
+## Component-System-Event Model
+
+### 1. Entities & Components (Pure Data)
+
+Entities are IDs with attached component data. Components have no behavior.
 
 ```typescript
-// src/engine/engine.ts
-interface GameEngine {
-  // State
-  getState(): EngineState;
-  loadState(state: EngineState): void;
-
-  // Simulation
-  step(dt: number): StepResult;
-
-  // Operations (all exposed as tools)
-  setRule(path: string, value: unknown): void;
-  spawnEntity(kind: EntityKind, props: EntityProps): EntityId;
-  removeEntity(id: EntityId): void;
-  setEntityScript(target: EntityKind, script: string): void;
-  defineEntityType(name: string, schema: EntitySchema): void;
-  // ... all operations
+interface Entity {
+  id: EntityId;
+  tags: string[];                    // "player", "enemy", "coin"
+  components: {
+    [type: string]: ComponentData;
+  };
 }
 
+// Example entity
+{
+  id: "player-1",
+  tags: ["player"],
+  components: {
+    Position: { x: 100, y: 200 },
+    Velocity: { vx: 0, vy: 0 },
+    Collider: { width: 16, height: 16, layer: "player" },
+    Health: { lives: 3, invincibleUntil: 0 },
+    Stats: { coins: 0, score: 0 },
+    Sprite: { sheet: "player", animation: "idle" }
+  }
+}
+```
+
+### 2. Systems as Data
+
+Systems are NOT code. They are data: a query + a list of actions.
+
+```typescript
+interface System {
+  name: string;
+  phase: "input" | "update" | "physics" | "collision";
+  query: { has?: string[], not?: string[], tag?: string };
+  actions: Action[];
+}
+
+// Example systems
+systems: [
+  {
+    name: "gravity",
+    phase: "physics",
+    query: { has: ["Velocity"], not: ["Static"] },
+    actions: [
+      { type: "add", target: "Velocity.vy", value: "rules.physics.gravity * dt" }
+    ]
+  },
+  {
+    name: "movement",
+    phase: "physics",
+    query: { has: ["Position", "Velocity"] },
+    actions: [
+      { type: "add", target: "Position.x", value: "Velocity.vx * dt" },
+      { type: "add", target: "Position.y", value: "Velocity.vy * dt" }
+    ]
+  },
+  {
+    name: "player-input",
+    phase: "input",
+    query: { tag: "player", has: ["Velocity"] },
+    actions: [
+      { type: "set", target: "Velocity.vx", value: "input.horizontal * rules.physics.moveSpeed" },
+      { type: "when", condition: "input.jump && grounded",
+        then: [{ type: "set", target: "Velocity.vy", value: "-rules.physics.jumpImpulse" }]
+      }
+    ]
+  }
+]
+```
+
+### 3. Collision Handlers → Emit Events
+
+Collisions detect overlaps and emit events. They don't execute logic directly.
+
+```typescript
+interface CollisionHandler {
+  between: [string, string];   // layer names
+  condition?: string;          // optional expression
+  emit: string;                // event name
+  data?: object;               // data to pass
+}
+
+collisions: [
+  {
+    between: ["player", "enemy"],
+    condition: "a.Velocity.vy > 0 && a.Position.y < b.Position.y",
+    emit: "stomp-enemy",
+    data: { player: "a", enemy: "b" }
+  },
+  {
+    between: ["player", "enemy"],
+    condition: "time > a.Health.invincibleUntil",
+    emit: "player-hit",
+    data: { player: "a", enemy: "b" }
+  },
+  {
+    between: ["player", "coin"],
+    emit: "collect-coin",
+    data: { player: "a", coin: "b" }
+  }
+]
+```
+
+### 4. Event Handlers (Reactive Rules)
+
+Events trigger action chains. This is where game logic lives.
+
+```typescript
+events: {
+  "stomp-enemy": [
+    { type: "remove", target: "data.enemy" },
+    { type: "add", target: "data.player.Stats.score", value: 100 },
+    { type: "set", target: "data.player.Velocity.vy", value: -200 },
+    { type: "emit", event: "spawn-particles", data: { at: "data.enemy.Position" } }
+  ],
+
+  "player-hit": [
+    { type: "add", target: "data.player.Health.lives", value: -1 },
+    { type: "set", target: "data.player.Health.invincibleUntil", value: "time + 2" },
+    { type: "when", condition: "data.player.Health.lives <= 0",
+      then: [{ type: "emit", event: "game-over" }],
+      else: [{ type: "emit", event: "respawn-player" }]
+    }
+  ],
+
+  "collect-coin": [
+    { type: "remove", target: "data.coin" },
+    { type: "add", target: "data.player.Stats.coins", value: 1 },
+    { type: "add", target: "data.player.Stats.score", value: "rules.scoring.coinValue" }
+  ],
+
+  "game-over": [
+    { type: "setMode", mode: "gameover" }
+  ]
+}
+```
+
+### 5. Action Types (Built-in)
+
+```typescript
+type Action =
+  // Data manipulation
+  | { type: "set", target: string, value: Expression }
+  | { type: "add", target: string, value: Expression }
+  | { type: "remove", target: string }
+
+  // Entity operations
+  | { type: "spawn", template: string, at?: Expression }
+  | { type: "destroy", target: string }
+
+  // Events
+  | { type: "emit", event: string, data?: object }
+
+  // Control flow
+  | { type: "when", condition: Expression, then: Action[], else?: Action[] }
+  | { type: "forEach", query: Query, do: Action[] }
+
+  // Game state
+  | { type: "setMode", mode: string }
+
+  // Escape hatch (validated, sandboxed)
+  | { type: "script", code: string }
+```
+
+### 6. Expression Language (Safe Subset)
+
+Expressions are evaluated, not executed. No arbitrary code.
+
+```typescript
+// Valid expressions:
+"entity.Velocity.vy + rules.physics.gravity * dt"
+"time > entity.Health.invincibleUntil"
+"Math.sin(time * 2) * 30"
+"input.horizontal * rules.physics.moveSpeed"
+"data.player.Health.lives <= 0"
+
+// Allowed:
+// - Math operators: + - * / %
+// - Comparisons: < > <= >= == !=
+// - Logic: && || !
+// - References: entity.X, rules.X, time, dt, input.X, data.X
+// - Functions: Math.sin, Math.cos, Math.abs, Math.min, Math.max
+
+// NOT allowed:
+// - Function calls (except Math.*)
+// - Assignment
+// - fetch, eval, Function, etc.
+```
+
+---
+
+## Complete Engine State
+
+```typescript
 interface EngineState {
+  // Simulation
   frame: number;
   time: number;
-  rules: Rules;
-  entities: Map<EntityId, Entity>;
-  scripts: Map<EntityKind, CompiledScript>;
-  // Everything serializable
-}
-```
 
-### 2. Tool Interface
+  // Entities (ECS)
+  entities: Entity[];
+  templates: Record<string, EntityTemplate>;
 
-```typescript
-// src/engine/tools.ts
-interface ChatInterface {
-  // Tool definitions for AI
-  getToolDefinitions(): ToolDefinition[];
+  // Systems (data, not code)
+  systems: System[];
 
-  // Execute a tool call from AI
-  executeTool(name: string, args: unknown): ToolResult;
+  // Collisions & Events
+  collisions: CollisionHandler[];
+  events: Record<string, Action[]>;
 
-  // Get current state summary for AI context
-  getStateSummary(): string;
-}
-
-// Every engine operation becomes a tool:
-const TOOLS = [
-  {
-    name: "query_state",
-    description: "Get current engine state (entities, rules, scripts)",
-    parameters: { filter?: "entities" | "rules" | "scripts" | "all" }
-  },
-  {
-    name: "step_simulation",
-    description: "Advance simulation by N frames, return state diff",
-    parameters: { frames: number }
-  },
-  {
-    name: "spawn_entity",
-    description: "Create a new entity in the world",
-    parameters: { kind: string, x: number, y: number, props?: object }
-  },
-  {
-    name: "set_rule",
-    description: "Modify a game rule (physics, scoring, etc)",
-    parameters: { path: string, value: unknown }
-  },
-  {
-    name: "define_behavior",
-    description: "Define a reusable behavior script for entity type",
-    parameters: { target: string, script: string }
-  },
-  {
-    name: "set_screen",
-    description: "Configure a UI screen (title, intro, complete, etc)",
-    parameters: { screen: string, config: object }
-  },
-  {
-    name: "define_mode_transition",
-    description: "Define how game modes transition",
-    parameters: { from: string, trigger: string, to: string }
-  },
-  {
-    name: "dump_state",
-    description: "Export complete engine state as JSON",
-    parameters: {}
-  },
-  {
-    name: "load_state",
-    description: "Load a previously exported state",
-    parameters: { state: object }
-  }
-];
-```
-
-### 3. Representation Engine (Presentation Only)
-
-```typescript
-// src/representation/renderer.ts
-interface Renderer {
-  render(state: EngineState): void;
-  setViewport(width: number, height: number): void;
-}
-
-// Renderer knows nothing about game logic
-// Just draws what the state says
-class Canvas2DRenderer implements Renderer {
-  render(state: EngineState) {
-    // Draw based on current mode
-    if (state.modes.current === "title") {
-      this.drawScreen(state.screens.title);
-    } else if (state.modes.current === "playing") {
-      this.drawLevel(state.level);
-      for (const entity of state.entities) {
-        this.drawEntity(entity);
-      }
-    }
-    // ...
-  }
-}
-```
-
-## Everything Is Data
-
-The game engine processes pure data. **Everything** is data:
-
-```typescript
-interface EngineState {
-  // Game content
-  entities: Entity[];           // Player, enemies, coins, platforms
-  level: TileMap;               // World geometry
-
-  // Behaviors (AI-written)
-  scripts: {
-    enemy: string;              // "entity.x += Math.sin(time) * 2"
-    coin: string;               // "entity.y += Math.cos(time) * 0.5"
-    player: string;             // Custom player behavior
-  };
-
-  // Rules (AI-configured)
+  // Rules
   rules: {
-    physics: { gravity: number, friction: number, jumpImpulse: number };
+    physics: { gravity: number, friction: number, moveSpeed: number, jumpImpulse: number };
     scoring: { coinValue: number, enemyKillBonus: number };
-    controls: { jump: string, left: string, right: string };
+    controls: Record<string, string>;
   };
 
-  // UI Flow (AI-defined)
+  // UI Flow
   screens: {
     title: { text: string, prompt: string };
     intro: { title: string, goal: string };
-    story: Array<{ speaker: string, text: string }>;
     complete: { message: string };
   };
 
-  // Mode state machine (AI-configured)
+  // Mode State Machine
   modes: {
-    current: "title" | "intro" | "playing" | "paused" | "complete";
-    transitions: {
-      title: { onInput: string };
-      intro: { onInput: string };
-      playing: { onDeath: string, onGoal: string };
-    };
+    current: string;
+    transitions: Record<string, Record<string, string>>;
   };
 
-  // Simulation state
-  frame: number;
-  time: number;
+  // Level
+  level: {
+    tiles: number[][];
+    width: number;
+    height: number;
+  };
 }
 ```
 
-**AI writes the game by configuring this state.** When done, dump it. That dump IS the game.
+---
+
+## Tool Interface
+
+All engine operations are exposed as tools. AI controls engine exclusively via tools.
+
+### Query Tools
+- `query_state` - Get full or filtered state
+- `get_entity` - Get single entity by ID
+- `get_entities` - Query entities by tag/components
+- `get_tools` - List available tools
+
+### Entity Tools
+- `spawn_entity` - Create entity from template
+- `remove_entity` - Delete entity
+- `set_component` - Update component data
+
+### System Tools
+- `define_system` - Add/update a system
+- `remove_system` - Delete a system
+
+### Event Tools
+- `define_collision` - Add collision handler
+- `define_event` - Add event handler
+- `trigger_event` - Manually fire event (for testing)
+
+### Rule Tools
+- `set_rule` - Update a rule value
+- `get_rule` - Read a rule value
+
+### Screen/Mode Tools
+- `set_screen` - Configure a screen
+- `set_mode` - Change current mode
+- `define_transition` - Add mode transition
+
+### Simulation Tools
+- `step` - Advance N frames
+- `dump_state` - Export full state as JSON
+- `load_state` - Import state from JSON
+
+### Debug Tools
+- `get_events_log` - Events fired last step
+- `get_collisions_log` - Collisions detected last step
+
+---
 
 ## Golden Rule: No Shortcuts
 
 **The development AI must never take shortcuts.** Every capability must go through the tool interface.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    DEVELOPMENT WORKFLOW                      │
-└─────────────────────────────────────────────────────────────┘
-
 User: "Add a double-jump ability"
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│  1. AI connects to running game engine                       │
-└─────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│  2. AI tries to implement via tools                          │
-│     Can I do this with existing tools?                       │
-└─────────────────────────────────────────────────────────────┘
-                │
-        ┌───────┴───────┐
-        │               │
-       YES              NO
-        │               │
-        ▼               ▼
-┌───────────────┐ ┌─────────────────────────────────────────────┐
-│ 3a. Implement │ │ 3b. EXTEND THE ENGINE FIRST                 │
-│ via tools     │ │     - Add new tool/capability to engine     │
-│               │ │     - Hot reload engine                     │
-│               │ │     - Reconnect to engine                   │
-│               │ │     - NOW implement via the new tools       │
-└───────────────┘ └─────────────────────────────────────────────┘
-        │               │
-        └───────┬───────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│  4. dump_state() → save game definition                      │
-└─────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│  5. Ship: Engine + State = Game                              │
-│     Deployed AI has SAME capabilities as dev AI              │
-└─────────────────────────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────┐
+│  1. AI connects to running game engine  │
+└─────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────┐
+│  2. AI tries to implement via tools     │
+│     Can I do this with existing tools?  │
+└─────────────────────────────────────────┘
+        │
+   ┌────┴────┐
+   │         │
+  YES        NO
+   │         │
+   ▼         ▼
+┌───────┐ ┌────────────────────────────────┐
+│ Do it │ │ EXTEND THE ENGINE FIRST        │
+│ via   │ │   - Add new tool/capability    │
+│ tools │ │   - Hot reload engine          │
+│       │ │   - Reconnect                  │
+│       │ │   - NOW implement via tools    │
+└───────┘ └────────────────────────────────┘
+   │         │
+   └────┬────┘
+        │
+        ▼
+┌─────────────────────────────────────────┐
+│  3. dump_state() → save game definition │
+└─────────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────┐
+│  4. Ship: Engine + State = Game         │
+│     Deployed AI has SAME capabilities   │
+└─────────────────────────────────────────┘
 ```
 
-**Why this matters:**
-- No "magic" dev-only features
-- Deployed AI can do everything dev AI can do
-- Engine grows organically based on real needs
-- Every capability is documented as a tool
+---
 
-## AI Connection Protocol
+## Testing Strategy
+
+**Tests use the tool interface.** No backdoor method calls. Tests connect to the engine the same way AI does.
+
+### Tests Are Tool Call Sequences
+
+```json
+{
+  "name": "gravity-affects-velocity",
+  "steps": [
+    {
+      "tool": "spawn_entity",
+      "args": { "template": "ball", "at": { "x": 100, "y": 0 } },
+      "storeAs": "ballId"
+    },
+    {
+      "tool": "set_rule",
+      "args": { "path": "physics.gravity", "value": 100 }
+    },
+    {
+      "tool": "step",
+      "args": { "frames": 60 }
+    },
+    {
+      "tool": "get_entity",
+      "args": { "id": "$ballId" },
+      "assert": {
+        "result.components.Velocity.vy": { "greaterThan": 0 },
+        "result.components.Position.y": { "greaterThan": 0 }
+      }
+    }
+  ]
+}
+```
+
+### Test Categories
+
+1. **Expression Evaluator** - Math, comparisons, references
+2. **Action Executor** - Each action type works correctly
+3. **System Runner** - Queries match, actions execute
+4. **Collision Detection** - Overlaps detected, events emitted
+5. **Event Handlers** - Actions execute, events chain
+6. **Tool Interface** - Each tool works via connection
+7. **Scenario Tests** - Full game scenarios as tool sequences
+8. **Determinism Tests** - Same input = same output
+9. **Replay Tests** - Recorded sessions replay identically
+
+### Test Runner Connects Like AI
 
 ```typescript
-// AI connects via WebSocket or stdio
-interface AIConnection {
-  // Engine → AI
-  onStateUpdate(state: EngineState): void;
-  onToolResult(id: string, result: ToolResult): void;
+async function runTest(testFile: string) {
+  const test = loadJSON(testFile);
+  const conn = await connectToEngine();
 
-  // AI → Engine
-  callTool(name: string, args: unknown): Promise<ToolResult>;
+  for (const step of test.steps) {
+    const result = await conn.call(step.tool, step.args);
+
+    if (step.assert) {
+      for (const [path, expected] of Object.entries(step.assert)) {
+        assertPath(result, path, expected);
+      }
+    }
+  }
+
+  await conn.disconnect();
 }
-
-// Hot-swap example:
-engine.disconnectAI();           // Current AI disconnected
-engine.connectAI(newAISocket);   // New AI connected
-// New AI receives current state, continues from there
 ```
 
-**Any AI that speaks the tool protocol can control the engine.** The engine doesn't care if it's Claude, GPT-4, Llama, or a human typing JSON.
-
-## Example: AI Development Session
-
-```
-1. AI connects to engine (fresh state)
-2. AI calls set_screen("title", { text: "Super Mo", prompt: "Press Enter" })
-3. AI calls define_mode_transition("title", "onInput", "playing")
-4. AI calls spawn_entity("player", { x: 100, y: 200 })
-5. AI calls define_behavior("player", "<movement script>")
-6. AI calls set_rule("physics.gravity", 980)
-7. AI calls step_simulation(100) → observes player falling
-8. AI iterates: adjusts gravity, tweaks jump, adds enemies
-9. AI calls dump_state() → saves complete game definition
-10. Ship: Engine + dumped state = playable game
-```
-
-## Example: Extending the Engine
-
-```
-User: "Add particle effects when player jumps"
-
-AI: Let me check if I can do this with existing tools...
-AI: [calls get_tools()] → No particle system tool exists
-
-AI: I need to extend the engine first.
-AI: [writes src/engine/particles.ts]
-AI: [adds spawn_particles tool to tools.ts]
-AI: [hot reloads engine]
-AI: [reconnects to engine]
-
-AI: Now I can implement the feature:
-AI: [calls define_behavior("player", "if (justJumped) spawn_particles(...)")]
-AI: [calls step_simulation(60)] → sees particles
-AI: [calls dump_state()]
-
-Result: Engine now has particle system, deployed AI can use it too
-```
+---
 
 ## Implementation Phases
 
-### Phase 1: Define Engine State Schema
-- Design complete EngineState type (entities, rules, scripts, screens, modes)
-- Make everything JSON-serializable
-- No functions in state - behaviors are script strings
+### Phase 0: Foundation
+- Clean slate, keep CI/Cloudflare infra
+- New project structure: `src/engine/`, `src/representation/`
+- Basic test runner that connects via tools
 
-### Phase 2: Build Pure Engine
-- Engine executes state (interprets scripts, applies rules)
-- `step(dt)` advances simulation deterministically
-- All operations exposed as methods: spawn, remove, setRule, defineScript, etc.
+### Phase 1: Engine Core
+- EngineState type, empty initial state
+- step() advances frame/time
+- State serialization/deserialization
+- **Tests:** step works, state round-trips
 
-### Phase 3: Create Tool Interface
-- Every engine operation becomes a tool
-- Query tools: get_state, get_entities, get_rules
-- Mutation tools: spawn_entity, set_rule, define_behavior, set_screen
-- Simulation tools: step, dump_state, load_state
+### Phase 2: Entity System
+- Entity type, EntityId, components
+- spawn_entity, remove_entity, get_entity tools
+- **Tests:** CRUD operations via tools
 
-### Phase 4: Build Representation Engine
-- Takes EngineState, renders it
-- Reads screens/modes to show correct UI
-- Completely stateless - just draws what state says
+### Phase 3: Expression Evaluator
+- Parse and evaluate safe expressions
+- Math, comparisons, references
+- Security: reject dangerous code
+- **Tests:** expression evaluation, rejection of bad input
 
-### Phase 5: AI Connection
-- WebSocket/stdio interface for AI to connect
-- AI receives state updates after each step
-- AI sends tool calls, receives results
-- Test: Development AI connects and builds the game live
+### Phase 4: Action Executor
+- Execute action types: set, add, remove, when, emit
+- Context: entity, rules, time, dt
+- **Tests:** each action type via tools
+
+### Phase 5: Systems
+- System definitions (query + actions)
+- System runner processes matching entities
+- Phase ordering (input, update, physics)
+- **Tests:** systems run via define_system tool
+
+### Phase 6: Collision System
+- Collision detection between layers
+- Emit events on collision
+- Conditions on collisions
+- **Tests:** collision → event via tools
+
+### Phase 7: Event System
+- Event handlers as action lists
+- Event chaining (emit within handler)
+- Branching (when/else)
+- **Tests:** event chains via trigger_event tool
+
+### Phase 8: Rules System
+- Physics, scoring, controls as data
+- set_rule, get_rule tools
+- Systems/expressions can reference rules
+- **Tests:** rule changes affect simulation
+
+### Phase 9: Screens & Modes
+- Screen configurations
+- Mode state machine
+- Transitions
+- **Tests:** mode changes via tools
+
+### Phase 10: AI Connection
+- WebSocket/stdio interface
+- Tool call protocol
+- Hot-swap support
+- **Tests:** external process connects, calls tools
+
+### Phase 11: Headless Representation
+- Renderer interface
+- Headless renderer logs what would be drawn
+- Useful for testing
+- **Tests:** correct entities in render log
+
+### Phase 12: Canvas2D Representation
+- Actual visual rendering
+- Draws entities, UI, screens
+- **Tests:** Playwright visual verification
+
+### Phase 13: Integration
+- Full game loop
+- Load initial state, run game
+- AI can build complete game via tools
+- **Tests:** full scenario tests, replay tests
+
+---
 
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
-| `src/engine/engine.ts` | Pure game simulation |
-| `src/engine/state.ts` | State types (EngineState), serialization |
-| `src/engine/tools.ts` | Tool definitions for AI |
-| `src/engine/connection.ts` | WebSocket/stdio AI connection |
-| `src/representation/renderer.ts` | Representation interface |
-| `src/representation/canvas2d.ts` | 2D Canvas implementation |
-| `src/representation/webgl.ts` | WebGL implementation |
+```
+src/
+  engine/
+    state.ts           # EngineState type, serialization
+    engine.ts          # GameEngine class
+    entities.ts        # Entity, Component types
+    systems.ts         # System runner
+    expressions.ts     # Expression evaluator
+    actions.ts         # Action executor
+    collisions.ts      # Collision detection
+    events.ts          # Event handler
+    rules.ts           # Rules management
+    modes.ts           # Mode state machine
+    tools.ts           # Tool definitions + executor
+    connection.ts      # WebSocket/stdio connection
+
+  representation/
+    renderer.ts        # Renderer interface
+    headless.ts        # Headless (test) renderer
+    canvas2d.ts        # Canvas 2D renderer
+
+tests/
+  scenarios/           # JSON test files (tool call sequences)
+  runner.ts            # Test runner (connects via tools)
+```
+
+---
 
 ## Key Insight
 
-The "code" for this game is not TypeScript files - it's the **state dump**.
+The "code" for this game is the **state dump**.
 
 When we ship:
 1. The engine (fixed TypeScript)
 2. The representation engine (fixed TypeScript)
-3. The initial state JSON (AI-generated)
+3. The initial state JSON (AI-generated via tools)
 
-The deployed AI can modify the game at runtime. Swap AIs anytime. The new AI sees the same state, has the same tools, picks up where the last one left off.
+The deployed AI can modify the game at runtime. Swap AIs anytime. Tests verify behavior by connecting and calling tools - same as AI.
