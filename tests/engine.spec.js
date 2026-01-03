@@ -61,3 +61,39 @@ test("engine boots and toggles states", async ({ page }) => {
     `Console errors: ${consoleErrors.join(" | ")}`
   ).toHaveLength(0);
 });
+
+test("camera pans right when player moves right", async ({ page }) => {
+  await page.goto("/");
+
+  await page.waitForFunction(() => window.__SUPER_MO__?.state != null, {
+    timeout: 10000,
+  });
+  await page.waitForFunction(() => window.__RENDERER_READY__ === true, {
+    timeout: 10000,
+  });
+
+  await pressKey(page, "Enter");
+  await page.waitForFunction(() => window.__SUPER_MO__?.state?.mode === "intro", {
+    timeout: 10000,
+  });
+  await pressKey(page, "Enter");
+
+  await page.waitForFunction(() => window.__SUPER_MO__?.state?.mode === "playing", {
+    timeout: 10000,
+  });
+
+  const initialCameraX = await page.evaluate(
+    () => window.__SUPER_MO__?.state?.camera?.x ?? 0
+  );
+
+  await page.keyboard.down("ArrowRight");
+  await page.waitForFunction(() => window.__SUPER_MO__?.state?.camera?.x > 0, {
+    timeout: 3000,
+  });
+  await page.keyboard.up("ArrowRight");
+
+  const cameraX = await page.evaluate(
+    () => window.__SUPER_MO__?.state?.camera?.x ?? 0
+  );
+  expect(cameraX).toBeGreaterThan(initialCameraX);
+});

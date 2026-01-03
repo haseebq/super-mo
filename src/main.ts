@@ -1048,10 +1048,10 @@ function render() {
 
   state.particles.draw(renderer);
 
-  renderer.ctx.restore();
-
   // Present the frame (required for Pixi.js renderer)
   renderer.render?.();
+
+  renderer.ctx.restore();
 }
 
 function drawLevel(level: Level) {
@@ -1489,10 +1489,10 @@ function renderTitlePreview() {
     renderer.ctx.restore();
   }
 
-  renderer.ctx.restore();
-
   // Present the frame (required for Pixi.js renderer)
   renderer.render?.();
+
+  renderer.ctx.restore();
 }
 
 function drawSprite(id: string, x: number, y: number, flipX = false) {
