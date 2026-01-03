@@ -21,12 +21,13 @@ When creating new issues, think through the dependency chain and add `bd dep` li
 
 When a session begins, **automatically start working on open issues**:
 
-1. Run `bd ready` to see available work
-2. Pick issues in priority order (P0 → P1 → P2 → P3)
-3. For same-priority issues, use your judgment on logical order (e.g., fix blockers first, group related work)
-4. Mark the issue as in-progress: `bd update <id> --status in_progress`
-5. Complete the work, commit, and close: `bd close <id>`
-6. Move to the next issue
+1. Run `bd sync` first to pull any issues from upstream (someone else may have created issues in the remote repo)
+2. Run `bd ready` to see available work
+3. Pick issues in priority order (P0 → P1 → P2 → P3)
+4. For same-priority issues, use your judgment on logical order (e.g., fix blockers first, group related work)
+5. Mark the issue as in-progress: `bd update <id> --status in_progress`
+6. Complete the work, commit, and close: `bd close <id>`
+7. Move to the next issue
 
 **Do not ask the user which issue to work on**—just start with the highest priority available work.
 
@@ -168,11 +169,12 @@ bd sync               # Commit and push changes
 
 ### Workflow Pattern
 
-1. **Start**: Run `bd ready` to find actionable work
-2. **Claim**: Use `bd update <id> --status=in_progress`
-3. **Work**: Implement the task
-4. **Complete**: Use `bd close <id>`
-5. **Sync**: Always run `bd sync` at session end
+1. **Sync first**: Run `bd sync` at session start to pull upstream issues (others may have created issues)
+2. **Start**: Run `bd ready` to find actionable work
+3. **Claim**: Use `bd update <id> --status=in_progress`
+4. **Work**: Implement the task
+5. **Complete**: Use `bd close <id>`
+6. **Sync**: Always run `bd sync` at session end
 
 ### Key Concepts
 
@@ -196,6 +198,7 @@ git push                # Push to remote
 
 ### Best Practices
 
+- **Always run `bd sync` at session start** to pull any upstream issues (others may have created issues in the remote repo)
 - Check `bd ready` at session start to find available work
 - Update status as you work (in_progress → closed)
 - Create new issues with `bd create` when you discover tasks
