@@ -406,6 +406,26 @@ export class KeywordModdingProvider implements ModdingProvider {
       };
     }
 
+    // Sine wave enemy movement
+    if (
+      (lower.includes("sine") || lower.includes("wave") || lower.includes("wavy") || lower.includes("oscillat")) &&
+      (lower.includes("enem") || lower.includes("monster"))
+    ) {
+      // Horizontal sine wave by default
+      const isVertical = lower.includes("vertical") || lower.includes("up") || lower.includes("down");
+      const script = isVertical
+        ? "if (!entity.baseY) entity.baseY = entity.y; entity.y = entity.baseY + 30 * Math.sin(time * 2 + entity.x * 0.01);"
+        : "if (!entity.baseX) entity.baseX = entity.x; entity.x = entity.baseX + 30 * Math.sin(time * 2 + entity.y * 0.01);";
+      return {
+        patch: {
+          ops: [{ op: "setEntityScript", target: "enemy", script }],
+        },
+        explanation: isVertical
+          ? "Enemies now move in a vertical sine wave pattern!"
+          : "Enemies now move in a horizontal sine wave pattern!",
+      };
+    }
+
     // No match found
     return {
       patch: { ops: [] },

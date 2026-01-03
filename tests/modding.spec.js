@@ -214,3 +214,60 @@ test("setEntityScript can be applied directly without sandbox", async ({ page })
   );
   expect(hasScript).toBeTruthy();
 });
+
+test("keyword provider handles sine wave enemy request", async ({ page }) => {
+  // Open modding panel
+  const moddingToggle = page.locator("#modding-toggle");
+  await moddingToggle.click();
+
+  const moddingOverlay = page.locator("#modding-overlay");
+  await expect(moddingOverlay).not.toHaveClass(/is-hidden/);
+
+  // Send sine wave request
+  const input = page.locator("#modding-input");
+  await input.fill("make enemies move in sine wave pattern");
+  await page.locator("#modding-send").click();
+
+  // Wait for entityScript to be applied
+  await page.waitForFunction(
+    () => window.__SUPER_MO__.state.entityScripts.enemy !== null
+  );
+
+  // Verify the history shows the operation was applied
+  const historyText = await page.locator(".modding-history").textContent();
+  expect(historyText).toContain("setEntityScript");
+});
+
+test("sine wave enemy movement actually moves enemies", async ({ page }) => {
+  // Get initial enemy positions
+  const initialPositions = await page.evaluate(() =>
+    window.__SUPER_MO__.state.enemies.map((e) => ({ x: e.x, y: e.y }))
+  );
+  expect(initialPositions.length).toBeGreaterThan(0);
+
+  // Apply sine wave via setEntityScript directly
+  const result = await page.evaluate(async () => {
+    return await window.__SUPER_MO__.modding.applyPatch({
+      ops: [
+        {
+          op: "setEntityScript",
+          target: "enemy",
+          script: "if (!entity.baseX) entity.baseX = entity.x; entity.x = entity.baseX + 30 * Math.sin(time * 2);",
+        },
+      ],
+    });
+  });
+  expect(result.success).toBeTruthy();
+
+  // Wait for script to execute during game updates
+  await page.waitForTimeout(300);
+
+  // Verify enemies have moved from their original X positions
+  const finalPositions = await page.evaluate(() =>
+    window.__SUPER_MO__.state.enemies.map((e) => ({ x: e.x, baseX: e.baseX }))
+  );
+
+  // At least one enemy should have baseX set and x should differ from baseX
+  const hasMovement = finalPositions.some((e) => e.baseX !== undefined && Math.abs(e.x - e.baseX) > 0.1);
+  expect(hasMovement).toBeTruthy();
+});
