@@ -7,4 +7,5 @@
 
 export * from "./state.js";
 export * from "./engine.js";
+export * from "./entities.js";
 export * from "./tools.js";

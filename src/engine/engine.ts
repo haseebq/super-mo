@@ -92,4 +92,12 @@ export class GameEngine {
   getTime(): number {
     return this.state.time;
   }
+
+  /**
+   * Get mutable state reference (for entity operations).
+   * Use with care - mutations affect engine state directly.
+   */
+  getStateMutable(): EngineState {
+    return this.state;
+  }
 }
