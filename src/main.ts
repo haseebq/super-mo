@@ -2253,6 +2253,11 @@ const moddingCloseBtn = requireElement<HTMLButtonElement>("#modding-close");
 const moddingSendBtn = requireElement<HTMLButtonElement>("#modding-send");
 const moddingResetBtn = requireElement<HTMLButtonElement>("#modding-reset");
 const moddingToggle = document.getElementById("modding-toggle");
+const moddingCapabilityHint =
+  "I can change rules (gravity, speed, scoring), remove coins or enemies, " +
+  "toggle audio, change background themes, apply visual filters " +
+  "(grayscale/blur/sepia), reload assets, and run scripts.";
+let moddingHintShown = false;
 
 function toggleModdingUI() {
   const isHidden = moddingOverlay.classList.contains("is-hidden");
@@ -2276,6 +2281,12 @@ function appendModdingMessage(
   div.textContent = text;
   moddingHistory.appendChild(div);
   moddingHistory.scrollTop = moddingHistory.scrollHeight;
+}
+
+function appendModdingHint() {
+  if (moddingHintShown) return;
+  moddingHintShown = true;
+  appendModdingMessage(moddingCapabilityHint, "system");
 }
 
 function isRollbackRequest(text: string): boolean {
@@ -2316,6 +2327,7 @@ async function handleModdingRequest(text: string) {
     if (result.patch.ops.length === 0) {
       // No operations generated - show the explanation as help text
       appendModdingMessage(result.explanation, "system");
+      appendModdingHint();
     } else {
       // Apply the patch and show the result
       const applyResult = await moddingAPI.applyPatch(result.patch, {
@@ -2331,10 +2343,12 @@ async function handleModdingRequest(text: string) {
           }\nErrors: ${applyResult.errors?.join(", ")}`,
           "error"
         );
+        appendModdingHint();
       }
     }
   } catch (err: any) {
     appendModdingMessage(err.message, "error");
+    appendModdingHint();
   }
 }
 
