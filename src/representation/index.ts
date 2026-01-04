@@ -83,3 +83,4 @@ export interface TestableRenderer extends Renderer {
 }
 
 export * from "./headless.js";
+export * from "./canvas2d.js";
