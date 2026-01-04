@@ -6,6 +6,7 @@
  */
 
 import { GameEngine, ToolExecutor, EngineState } from "./engine/index.js";
+import { HeadlessRenderer, createHeadlessRenderer } from "./representation/index.js";
 
 const engine = new GameEngine();
 const tools = new ToolExecutor(engine);
@@ -17,6 +18,7 @@ declare global {
       engine: GameEngine;
       tools: ToolExecutor;
       state: EngineState;
+      createHeadlessRenderer: typeof createHeadlessRenderer;
     };
     __RENDERER_READY__: boolean;
   }
@@ -28,6 +30,7 @@ window.__SUPER_MO__ = {
   get state() {
     return engine.getState();
   },
+  createHeadlessRenderer,
 };
 window.__RENDERER_READY__ = true;
 
