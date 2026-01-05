@@ -344,6 +344,27 @@ function createInitialGameState(): void {
     },
   });
 
+  // Define collision handler for player-coin
+  tools.call("define_collision", {
+    collision: {
+      between: ["player", "coin"],
+      actions: [
+        { type: "emit", event: "coin_collected" },
+        { type: "add", target: "data.player.Stats.coins", value: "1" },
+        { type: "add", target: "data.player.Stats.score", value: "rules.scoring.coinValue" },
+        { type: "destroy", target: "data.coin" },
+      ],
+    },
+  });
+
+  // Define event handler to log coin collection
+  tools.call("define_event", {
+    event: {
+      name: "coin_collected",
+      actions: [{ type: "emit", event: "score_changed" }],
+    },
+  });
+
   logToConsole("{cyan-fg}Game initialized!{/cyan-fg}");
   logToConsole("{gray-fg}Arrow keys to move{/gray-fg}");
 }
