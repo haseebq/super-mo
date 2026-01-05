@@ -313,7 +313,7 @@ function createInitialGameState(): void {
       phase: "input",
       query: { tag: "player", has: ["Position", "Velocity"] },
       actions: [
-        { type: "set", target: "Velocity.vx", value: "input.horizontal * 12" },
+        { type: "set", target: "entity.Velocity.vx", value: "input.horizontal * 12" },
       ],
     },
   });
@@ -324,7 +324,7 @@ function createInitialGameState(): void {
       name: "gravity",
       phase: "physics",
       query: { has: ["Velocity"], not: ["Static"] },
-      actions: [{ type: "add", target: "Velocity.vy", value: "20 * dt" }],
+      actions: [{ type: "add", target: "entity.Velocity.vy", value: "20 * dt" }],
     },
   });
 
@@ -335,8 +335,8 @@ function createInitialGameState(): void {
       phase: "physics",
       query: { has: ["Position", "Velocity"] },
       actions: [
-        { type: "add", target: "Position.x", value: "Velocity.vx * dt" },
-        { type: "add", target: "Position.y", value: "Velocity.vy * dt" },
+        { type: "add", target: "entity.Position.x", value: "entity.Velocity.vx * dt" },
+        { type: "add", target: "entity.Position.y", value: "entity.Velocity.vy * dt" },
       ],
     },
   });
@@ -432,7 +432,7 @@ function renderGame(): void {
   const stats = (player?.components.Stats as { score?: number; coins?: number }) ?? {};
   const health = (player?.components.Health as { lives?: number }) ?? {};
   hudBox.setContent(
-    ` {bold}♥{/bold} ${health.lives ?? 3}  {bold}●{/bold} ${stats.coins ?? 0}  {bold}★{/bold} ${stats.score ?? 0}  {bold}Mode:{/bold} ${mode}`
+    ` {bold}${mode.toUpperCase()}{/bold} | Lives: ${health.lives ?? 0} | Coins: ${stats.coins ?? 0} | Score: ${stats.score ?? 0}`
   );
 
   // Update status bar
@@ -816,6 +816,28 @@ screen.key(["tab"], () => {
   }
 });
 
+// Arrow key handlers - explicit bindings are more reliable than keypress events
+screen.key(["left", "a"], () => {
+  if (!chatFocused) {
+    keysPressed.add("left");
+    setTimeout(() => keysPressed.delete("left"), 150);
+  }
+});
+
+screen.key(["right", "d"], () => {
+  if (!chatFocused) {
+    keysPressed.add("right");
+    setTimeout(() => keysPressed.delete("right"), 150);
+  }
+});
+
+screen.key(["up", "w", "space"], () => {
+  if (!chatFocused) {
+    keysPressed.add("up");
+    setTimeout(() => keysPressed.delete("up"), 150);
+  }
+});
+
 // Mouse click on game pane focuses it
 gameBox.on("click", () => {
   focusGame();
@@ -842,8 +864,8 @@ consoleInput.on("submit", async (value: string) => {
     await processAIMessage(value.trim());
   }
   consoleInput.clearValue();
-  // Stay in chat mode after submit
-  consoleInput.focus();
+  // Stay in chat mode after submit - must call readInput again after clearValue
+  consoleInput.readInput();
   screen.render();
 });
 
