@@ -320,7 +320,7 @@ function checkRateLimit(ip: string) {
   };
 }
 
-function buildPrompt(messages: Array<{ role: "user"; content: string }>) {
+function buildPrompt(messages: Array<{ role: string; content: string }>) {
   const toolSchema = JSON.stringify(TOOL_SCHEMA, null, 2);
   const lines = [
     SYSTEM_PROMPT,
@@ -330,8 +330,13 @@ function buildPrompt(messages: Array<{ role: "user"; content: string }>) {
     'Example: {"tool_calls":[{"name":"apply_patch","arguments":{"patch":{"ops":[]},\"explanation\":\"...\"}}],"response":"..."}',
   ];
 
+  // Include conversation history for multi-turn context
   for (const message of messages) {
-    lines.push(`User: ${message.content}`);
+    if (message.role === "user") {
+      lines.push(`User: ${message.content}`);
+    } else if (message.role === "assistant") {
+      lines.push(`Assistant: ${message.content}`);
+    }
   }
 
   return lines.join("\n\n");
@@ -443,30 +448,34 @@ export async function onRequest(context: {
     return jsonResponse({ error: "Model not allowed" }, 400);
   }
 
-  const userMessages: Array<{ role: "user"; content: string }> = [];
+  // Parse conversation history (user and assistant messages)
+  const conversationMessages: Array<{ role: string; content: string }> = [];
   if (Array.isArray(body.messages)) {
     for (const message of body.messages) {
-      if (message?.role !== "user" || typeof message?.content !== "string") {
-        continue;
+      if (typeof message?.content !== "string") continue;
+      if (message.role === "user" || message.role === "assistant") {
+        conversationMessages.push({
+          role: message.role,
+          content: message.content.slice(0, MAX_MESSAGE_CHARS),
+        });
       }
-      userMessages.push({
-        role: "user",
-        content: message.content.slice(0, MAX_MESSAGE_CHARS),
-      });
     }
   }
 
+  // Add current prompt as latest user message (if not already in messages)
   if (typeof body.prompt === "string") {
     const trimmed = body.prompt.trim();
     if (trimmed) {
-      userMessages.push({
+      conversationMessages.push({
         role: "user",
         content: trimmed.slice(0, MAX_MESSAGE_CHARS),
       });
     }
   }
 
-  if (userMessages.length === 0) {
+  // Must have at least one user message
+  const hasUserMessage = conversationMessages.some((m) => m.role === "user");
+  if (!hasUserMessage) {
     return jsonResponse({ error: "Missing user prompt" }, 400);
   }
 
@@ -479,13 +488,14 @@ export async function onRequest(context: {
     return jsonResponse({ error: "Game state too large" }, 413);
   }
 
-  userMessages.push({
+  // Add current game state as context (as a system-like message)
+  conversationMessages.push({
     role: "user",
     content: `Game state snapshot (JSON):\n${stateJson}`,
   });
 
   const payload = {
-    input: buildPrompt(userMessages),
+    input: buildPrompt(conversationMessages),
     max_tokens: MAX_TOKENS,
     temperature: 0.2,
   };
