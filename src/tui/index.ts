@@ -72,6 +72,8 @@ const gameBox: BlessedBox = blessed.box({
     border: { fg: "cyan" },
     bg: "black",
   },
+  focusable: true, // Allow focus for keyboard input
+  keys: true, // Enable key events
 });
 
 // Game content area
@@ -173,6 +175,9 @@ const inputState = {
 
 // Track pressed keys for proper key up/down
 const keysPressed = new Set<string>();
+
+// Track which pane is focused (game vs chat)
+let chatFocused = false;
 
 // AI state
 let aiBackend: AIBackend = "none";
@@ -733,8 +738,12 @@ async function processAIMessage(userMessage: string): Promise<void> {
   isProcessingAI = false;
 }
 
-// Key bindings - track key state
+// Key bindings - track key state for game controls
+// Only process when chat is NOT focused to avoid double input
 screen.on("keypress", (_ch: string, key: { name: string; full: string }) => {
+  // Skip if chat is focused (textbox handles its own input)
+  if (chatFocused) return;
+
   if (key && key.name) {
     keysPressed.add(key.name);
 
@@ -745,8 +754,9 @@ screen.on("keypress", (_ch: string, key: { name: string; full: string }) => {
   }
 });
 
-// Mode transitions with Enter
+// Mode transitions with Enter (only when not in chat)
 screen.key(["enter"], () => {
+  if (chatFocused) return; // Let textbox handle Enter
   const mode = engine.getMode();
   if (mode === "title") {
     createInitialGameState();
@@ -762,8 +772,9 @@ screen.key(["enter"], () => {
   }
 });
 
-// Pause toggle
+// Pause toggle (only when not in chat)
 screen.key(["p"], () => {
+  if (chatFocused) return; // Let textbox handle 'p'
   const mode = engine.getMode();
   if (mode === "playing") {
     tools.call("trigger_transition", { trigger: "pause" });
@@ -771,9 +782,6 @@ screen.key(["p"], () => {
     tools.call("trigger_transition", { trigger: "resume" });
   }
 });
-
-// Track which pane is focused
-let chatFocused = false;
 
 /**
  * Focus the chat input pane.
@@ -811,6 +819,16 @@ screen.key(["tab"], () => {
 // Mouse click on game pane focuses it
 gameBox.on("click", () => {
   focusGame();
+});
+
+// Keyboard input on game pane
+gameBox.on("keypress", (_ch: string, key: { name: string }) => {
+  if (key && key.name) {
+    keysPressed.add(key.name);
+    setTimeout(() => {
+      keysPressed.delete(key.name);
+    }, 100);
+  }
 });
 
 // Mouse click on console pane focuses it
@@ -858,6 +876,9 @@ logToConsole("");
 
 // Initial render
 renderGame();
+
+// Focus game pane by default
+gameBox.focus();
 
 // Start game loop (30 FPS)
 gameLoopInterval = setInterval(gameLoop, 1000 / 30);
