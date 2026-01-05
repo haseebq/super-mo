@@ -223,6 +223,7 @@ function logToConsole(message: string): void {
  */
 function createInitialGameState(): void {
   // Define templates
+  // NOTE: Collider.layer must match collision handler "between" values
   tools.call("define_template", {
     name: "player",
     template: {
@@ -230,7 +231,7 @@ function createInitialGameState(): void {
       components: {
         Position: { x: 5, y: 14 },
         Velocity: { vx: 0, vy: 0 },
-        Collider: { width: 1, height: 1 },
+        Collider: { width: 1, height: 1, layer: "player" },
         Health: { lives: 3 },
         Stats: { coins: 0, score: 0 },
       },
@@ -243,7 +244,7 @@ function createInitialGameState(): void {
       tags: ["coin"],
       components: {
         Position: { x: 0, y: 0 },
-        Collider: { width: 1, height: 1 },
+        Collider: { width: 1, height: 1, layer: "coin" },
       },
     },
   });
@@ -345,23 +346,25 @@ function createInitialGameState(): void {
   });
 
   // Define collision handler for player-coin
+  // NOTE: CollisionHandler only has `emit` - actions go in event handlers
   tools.call("define_collision", {
-    collision: {
+    handler: {
       between: ["player", "coin"],
-      actions: [
-        { type: "emit", event: "coin_collected" },
-        { type: "add", target: "data.player.Stats.coins", value: "1" },
-        { type: "add", target: "data.player.Stats.score", value: "rules.scoring.coinValue" },
-        { type: "destroy", target: "data.coin" },
-      ],
+      emit: "coin_collected",
+      data: { player: "a", coin: "b" }, // Map collision entities to event data
     },
   });
 
-  // Define event handler to log coin collection
+  // Define event handler for coin collection (actions triggered by collision)
   tools.call("define_event", {
     event: {
       name: "coin_collected",
-      actions: [{ type: "emit", event: "score_changed" }],
+      actions: [
+        { type: "add", target: "data.player.Stats.coins", value: "1" },
+        { type: "add", target: "data.player.Stats.score", value: "rules.scoring.coinValue" },
+        { type: "destroy", target: "data.coin" },
+        { type: "emit", event: "score_changed" },
+      ],
     },
   });
 
@@ -906,10 +909,17 @@ consoleInput.on("submit", async (value: string) => {
   if (value && value.trim()) {
     await processAIMessage(value.trim());
   }
-  consoleInput.clearValue();
-  // Stay in chat mode after submit - must call readInput again after clearValue
-  consoleInput.readInput();
+  // Clear the value using setValue to avoid input state issues
+  consoleInput.setValue("");
   screen.render();
+  // Use setImmediate to let blessed's event loop settle before re-enabling input
+  // This prevents double character issues from rapid submit-clear-readInput cycles
+  setImmediate(() => {
+    if (chatFocused) {
+      consoleInput.readInput();
+      screen.render();
+    }
+  });
 });
 
 // Tab in console cycles back to game

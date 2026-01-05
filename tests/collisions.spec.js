@@ -354,4 +354,141 @@ test.describe("Collisions", () => {
     expect(tools).toContain("detect_collisions");
     expect(tools).toContain("get_collisions_log");
   });
+
+  test.describe("layer requirement (TUI bug regression)", () => {
+    test("entities without layer property are not detected in collisions", async ({
+      page,
+    }) => {
+      const result = await page.evaluate(() => {
+        const tools = window.__SUPER_MO__.tools;
+
+        // Create entities WITHOUT layer property (this was the TUI bug)
+        tools.call("create_entity", {
+          id: "player-no-layer",
+          tags: ["player"],
+          components: {
+            Position: { x: 0, y: 0 },
+            Collider: { width: 32, height: 32 }, // No layer!
+          },
+        });
+
+        tools.call("create_entity", {
+          id: "coin-no-layer",
+          tags: ["coin"],
+          components: {
+            Position: { x: 10, y: 10 }, // Overlapping
+            Collider: { width: 16, height: 16 }, // No layer!
+          },
+        });
+
+        tools.call("define_collision", {
+          handler: { between: ["player", "coin"], emit: "coin-collected" },
+        });
+
+        return tools.call("detect_collisions").data;
+      });
+
+      // Without layers, collisions are NOT detected (this documents the behavior)
+      expect(result.collisionsDetected.length).toBe(0);
+      expect(result.eventsEmitted.length).toBe(0);
+    });
+
+    test("entities WITH layer property are detected in collisions", async ({
+      page,
+    }) => {
+      const result = await page.evaluate(() => {
+        const tools = window.__SUPER_MO__.tools;
+
+        // Create entities WITH layer property (the fix)
+        tools.call("create_entity", {
+          id: "player-with-layer",
+          tags: ["player"],
+          components: {
+            Position: { x: 0, y: 0 },
+            Collider: { width: 32, height: 32, layer: "player" },
+          },
+        });
+
+        tools.call("create_entity", {
+          id: "coin-with-layer",
+          tags: ["coin"],
+          components: {
+            Position: { x: 10, y: 10 }, // Overlapping
+            Collider: { width: 16, height: 16, layer: "coin" },
+          },
+        });
+
+        tools.call("define_collision", {
+          handler: { between: ["player", "coin"], emit: "coin-collected" },
+        });
+
+        return tools.call("detect_collisions").data;
+      });
+
+      // With layers set correctly, collision IS detected
+      expect(result.collisionsDetected.length).toBe(1);
+      expect(result.eventsEmitted.length).toBe(1);
+      expect(result.eventsEmitted[0].event).toBe("coin-collected");
+    });
+
+    test("TUI-style player-coin collision emits events through step()", async ({
+      page,
+    }) => {
+      const result = await page.evaluate(() => {
+        const tools = window.__SUPER_MO__.tools;
+
+        // Simulate TUI setup with player and coin templates
+        tools.call("define_template", {
+          name: "tui-player",
+          template: {
+            tags: ["player"],
+            components: {
+              Position: { x: 5, y: 14 },
+              Velocity: { vx: 0, vy: 0 },
+              Collider: { width: 1, height: 1, layer: "player" },
+              Health: { lives: 3 },
+              Stats: { coins: 0, score: 0 },
+            },
+          },
+        });
+
+        tools.call("define_template", {
+          name: "tui-coin",
+          template: {
+            tags: ["coin"],
+            components: {
+              Position: { x: 0, y: 0 },
+              Collider: { width: 1, height: 1, layer: "coin" },
+            },
+          },
+        });
+
+        // Spawn player and coin at overlapping positions
+        tools.call("spawn_entity", {
+          template: "tui-player",
+          id: "tui-player-1",
+        });
+        tools.call("spawn_entity", {
+          template: "tui-coin",
+          id: "tui-coin-1",
+          at: { x: 5, y: 14 }, // Same position as player
+        });
+
+        // Define collision handler (uses emit, not actions)
+        tools.call("define_collision", {
+          handler: {
+            between: ["player", "coin"],
+            emit: "coin_collected",
+          },
+        });
+
+        // Step the engine
+        const stepResult = tools.call("step", { frames: 1 });
+        return stepResult.data;
+      });
+
+      expect(result.collisionsDetected).toBe(1);
+      expect(result.eventsEmitted).toContain("coin_collected");
+    });
+  });
 });
