@@ -179,6 +179,9 @@ const keysPressed = new Set<string>();
 // Track which pane is focused (game vs chat)
 let chatFocused = false;
 
+// Event stream state (toggle with 'e' key)
+let showEventStream = true;
+
 // AI state
 let aiBackend: AIBackend = "none";
 let anthropic: Anthropic | null = null;
@@ -436,10 +439,11 @@ function renderGame(): void {
   );
 
   // Update status bar
+  const eventHint = showEventStream ? "E Events✓" : "E Events";
   const controls =
     mode === "playing"
-      ? "← → Move | ↑ Jump | P Pause | Tab AI | Q Quit"
-      : "Enter Start | Tab AI | Q Quit";
+      ? `← → Move | ↑ Jump | P Pause | ${eventHint} | Tab AI | Q Quit`
+      : `Enter Start | ${eventHint} | Tab AI | Q Quit`;
   statusBar.setContent(` ${controls}`);
 
   screen.render();
@@ -510,7 +514,14 @@ function gameLoop(): void {
       }
     }
 
-    engine.step(dt, inputState);
+    const stepResult = engine.step(dt, inputState);
+
+    // Show events in console if enabled
+    if (showEventStream && stepResult.eventsEmitted.length > 0) {
+      for (const eventName of stepResult.eventsEmitted) {
+        logToConsole(`{magenta-fg}⚡ ${eventName}{/magenta-fg}`);
+      }
+    }
   }
 
   renderGame();
@@ -783,6 +794,17 @@ screen.key(["p"], () => {
   }
 });
 
+// Toggle event stream (only when not in chat)
+screen.key(["e"], () => {
+  if (chatFocused) return;
+  showEventStream = !showEventStream;
+  logToConsole(
+    showEventStream
+      ? "{green-fg}Event stream enabled{/green-fg}"
+      : "{yellow-fg}Event stream disabled{/yellow-fg}"
+  );
+});
+
 /**
  * Focus the chat input pane.
  */
@@ -892,8 +914,9 @@ logToConsole("{bold}{cyan-fg}━━━━━━━━━━━━━━━━━
 logToConsole("{bold}{cyan-fg}  Super Mo Terminal UI  {/cyan-fg}{/bold}");
 logToConsole("{bold}{cyan-fg}━━━━━━━━━━━━━━━━━━━━━━━━━{/cyan-fg}{/bold}");
 logToConsole("");
-logToConsole("{gray-fg}Press Enter to start{/gray-fg}");
-logToConsole("{gray-fg}Press Tab to chat with AI{/gray-fg}");
+logToConsole("{gray-fg}Enter - Start game{/gray-fg}");
+logToConsole("{gray-fg}Tab   - Chat with AI{/gray-fg}");
+logToConsole("{gray-fg}E     - Toggle event stream{/gray-fg}");
 logToConsole("");
 
 // Initial render
