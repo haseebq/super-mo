@@ -42,10 +42,11 @@ const ENTITY_CHARS: Record<string, string> = {
   default: "□",
 };
 
-// Create blessed screen
+// Create blessed screen with mouse support
 const screen: BlessedScreen = blessed.screen({
   smartCSR: true,
   title: "Super Mo - Terminal Edition",
+  mouse: true, // Enable mouse support
 });
 
 // Create main container
@@ -771,10 +772,50 @@ screen.key(["p"], () => {
   }
 });
 
-// Tab to focus console
-screen.key(["tab"], () => {
+// Track which pane is focused
+let chatFocused = false;
+
+/**
+ * Focus the chat input pane.
+ */
+function focusChat(): void {
+  chatFocused = true;
   consoleInput.focus();
   consoleInput.readInput();
+  consoleBox.style.border.fg = "yellow"; // Highlight active pane
+  gameBox.style.border.fg = "gray";
+  screen.render();
+}
+
+/**
+ * Focus the game pane (unfocus chat).
+ */
+function focusGame(): void {
+  chatFocused = false;
+  consoleInput.cancel();
+  gameBox.focus(); // Return focus to game pane for controls
+  gameBox.style.border.fg = "cyan"; // Highlight active pane
+  consoleBox.style.border.fg = "green";
+  screen.render();
+}
+
+// Tab to toggle between panes
+screen.key(["tab"], () => {
+  if (chatFocused) {
+    focusGame();
+  } else {
+    focusChat();
+  }
+});
+
+// Mouse click on game pane focuses it
+gameBox.on("click", () => {
+  focusGame();
+});
+
+// Mouse click on console pane focuses it
+consoleBox.on("click", () => {
+  focusChat();
 });
 
 // Console input handling
@@ -783,13 +824,19 @@ consoleInput.on("submit", async (value: string) => {
     await processAIMessage(value.trim());
   }
   consoleInput.clearValue();
+  // Stay in chat mode after submit
   consoleInput.focus();
   screen.render();
 });
 
+// Tab in console cycles back to game
+consoleInput.key(["tab"], () => {
+  focusGame();
+});
+
+// Escape in console returns to game
 consoleInput.key(["escape"], () => {
-  consoleInput.cancel();
-  screen.render();
+  focusGame();
 });
 
 // Quit
