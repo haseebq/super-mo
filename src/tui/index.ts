@@ -5,12 +5,18 @@
  * A text-based interface for playing the game in a terminal.
  * Features split-screen with game view and AI chat console.
  *
- * Usage: npm run tui
+ * Usage:
+ *   npm run tui                              # Game only (no AI)
+ *   ANTHROPIC_API_KEY=sk-... npm run tui     # With Claude API
+ *   SUPER_MO_API_URL=https://... npm run tui # With Cloudflare Worker
  */
 
 import blessed from "blessed";
 import Anthropic from "@anthropic-ai/sdk";
 import { GameEngine, ToolExecutor } from "../engine/index.js";
+
+// AI backend types
+type AIBackend = "none" | "anthropic" | "cloudflare";
 
 // Type definitions for blessed (minimal)
 type BlessedScreen = ReturnType<typeof blessed.screen>;
@@ -168,20 +174,31 @@ const inputState = {
 const keysPressed = new Set<string>();
 
 // AI state
+let aiBackend: AIBackend = "none";
 let anthropic: Anthropic | null = null;
+let cloudflareUrl: string | null = null;
 const conversationHistory: Array<{ role: string; content: unknown }> = [];
 let isProcessingAI = false;
 
-// Initialize Anthropic client if API key is available
+// Default Cloudflare Pages URL
+const DEFAULT_API_URL = "https://super-mo.pages.dev";
+
+// Initialize AI backend based on environment variables
 const apiKey = process.env.ANTHROPIC_API_KEY;
+const workerUrl = process.env.SUPER_MO_API_URL ?? DEFAULT_API_URL;
+
 if (apiKey) {
+  // Use Anthropic API if key is provided (more powerful, supports full tool use)
   anthropic = new Anthropic({ apiKey });
-  logToConsole("{green-fg}✓ AI connected{/green-fg}");
+  aiBackend = "anthropic";
+  logToConsole("{green-fg}✓ AI connected (Claude){/green-fg}");
   logToConsole("{gray-fg}Type a message and press Enter{/gray-fg}");
 } else {
-  logToConsole("{yellow-fg}⚠ No ANTHROPIC_API_KEY{/yellow-fg}");
-  logToConsole("{gray-fg}AI chat disabled. Set the{/gray-fg}");
-  logToConsole("{gray-fg}environment variable to enable.{/gray-fg}");
+  // Default to Cloudflare Worker
+  cloudflareUrl = workerUrl.replace(/\/$/, "");
+  aiBackend = "cloudflare";
+  logToConsole("{green-fg}✓ AI connected (Cloudflare){/green-fg}");
+  logToConsole("{gray-fg}Type a message and press Enter{/gray-fg}");
 }
 
 /**
@@ -520,23 +537,91 @@ function getToolDefinitions(): Anthropic.Tool[] {
 }
 
 /**
- * Process AI message with tool use loop.
+ * Process AI message via Cloudflare Worker.
  */
-async function processAIMessage(userMessage: string): Promise<void> {
-  if (!anthropic) {
-    logToConsole("{red-fg}AI not available{/red-fg}");
-    return;
-  }
+async function processCloudflareMessage(userMessage: string): Promise<void> {
+  if (!cloudflareUrl) return;
 
-  if (isProcessingAI) {
-    logToConsole("{yellow-fg}Still processing...{/yellow-fg}");
-    return;
-  }
+  const state = engine.getState();
 
-  isProcessingAI = true;
+  // Build a simplified state snapshot for the API
+  const stateSnapshot = {
+    mode: engine.getMode(),
+    entities: state.entities.length,
+    player: state.entities.find((e) => e.tags.includes("player"))?.components,
+    rules: state.rules,
+  };
+
+  try {
+    const response = await fetch(`${cloudflareUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt: userMessage,
+        state: stateSnapshot,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error((errorData as { error?: string }).error ?? `HTTP ${response.status}`);
+    }
+
+    const data = await response.json() as {
+      response?: string;
+      tool_calls?: Array<{ name: string; arguments: { patch?: { ops?: unknown[] }; explanation?: string } }>;
+    };
+
+    // Show AI response
+    if (data.response) {
+      logToConsole(`{blue-fg}AI:{/blue-fg} ${data.response}`);
+    }
+
+    // Process tool calls (apply_patch operations)
+    if (data.tool_calls && Array.isArray(data.tool_calls)) {
+      for (const call of data.tool_calls) {
+        if (call.name === "apply_patch" && call.arguments?.patch?.ops) {
+          const ops = call.arguments.patch.ops as Array<{ op: string; [key: string]: unknown }>;
+          for (const op of ops) {
+            logToConsole(`{magenta-fg}⚙ ${op.op}{/magenta-fg}`);
+
+            // Map apply_patch ops to engine tools
+            if (op.op === "setRule" && typeof op.path === "string" && typeof op.value === "number") {
+              tools.call("set_rule", { path: op.path, value: op.value });
+              logToConsole(`{green-fg}  ✓ Set ${op.path} = ${op.value}{/green-fg}`);
+            } else if (op.op === "removeEntities" && op.filter) {
+              const filter = op.filter as { kind?: string };
+              if (filter.kind) {
+                const result = tools.call("get_entities", { tag: filter.kind });
+                if (result.success && Array.isArray(result.data)) {
+                  for (const entity of result.data) {
+                    tools.call("destroy_entity", { id: entity.id });
+                  }
+                  logToConsole(`{green-fg}  ✓ Removed ${result.data.length} ${filter.kind}(s){/green-fg}`);
+                }
+              }
+            }
+          }
+
+          if (call.arguments.explanation) {
+            logToConsole(`{blue-fg}AI:{/blue-fg} ${call.arguments.explanation}`);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    const err = error as Error;
+    logToConsole(`{red-fg}Error: ${err.message}{/red-fg}`);
+  }
+}
+
+/**
+ * Process AI message via Anthropic API (with full tool use).
+ */
+async function processAnthropicMessage(userMessage: string): Promise<void> {
+  if (!anthropic) return;
 
   if (userMessage) {
-    logToConsole(`{white-fg}You:{/white-fg} ${userMessage}`);
     conversationHistory.push({ role: "user", content: userMessage });
   }
 
@@ -566,7 +651,6 @@ Be concise. Use tools to make requested changes. Confirm what you did.`;
         messages: conversationHistory as Anthropic.MessageParam[],
       });
 
-      // Check if we need to process tool calls
       const toolUseBlocks = response.content.filter(
         (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
       );
@@ -574,10 +658,8 @@ Be concise. Use tools to make requested changes. Confirm what you did.`;
         (b): b is Anthropic.TextBlock => b.type === "text"
       );
 
-      // Add assistant response to history
       conversationHistory.push({ role: "assistant", content: response.content });
 
-      // Process tool calls
       if (toolUseBlocks.length > 0) {
         const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
@@ -600,19 +682,47 @@ Be concise. Use tools to make requested changes. Confirm what you did.`;
           });
         }
 
-        // Add tool results to history
         conversationHistory.push({ role: "user", content: toolResults });
-
-        // Continue loop if stop reason was tool_use
         continueLoop = response.stop_reason === "tool_use";
       } else {
         continueLoop = false;
       }
 
-      // Show text response
       for (const text of textBlocks) {
         logToConsole(`{blue-fg}AI:{/blue-fg} ${text.text}`);
       }
+    }
+  } catch (error) {
+    const err = error as Error;
+    logToConsole(`{red-fg}Error: ${err.message}{/red-fg}`);
+  }
+}
+
+/**
+ * Process AI message (routes to appropriate backend).
+ */
+async function processAIMessage(userMessage: string): Promise<void> {
+  if (aiBackend === "none") {
+    logToConsole("{red-fg}AI not available{/red-fg}");
+    return;
+  }
+
+  if (isProcessingAI) {
+    logToConsole("{yellow-fg}Still processing...{/yellow-fg}");
+    return;
+  }
+
+  isProcessingAI = true;
+
+  if (userMessage) {
+    logToConsole(`{white-fg}You:{/white-fg} ${userMessage}`);
+  }
+
+  try {
+    if (aiBackend === "cloudflare") {
+      await processCloudflareMessage(userMessage);
+    } else if (aiBackend === "anthropic") {
+      await processAnthropicMessage(userMessage);
     }
   } catch (error) {
     const err = error as Error;
