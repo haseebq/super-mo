@@ -94,6 +94,8 @@ function handleModeInput(code: string): void {
   if (code === "Enter" || code === "Space") {
     switch (mode) {
       case "title":
+        // Create initial game state when starting from title (if not already done)
+        ensureGameStateExists();
         tools.call("trigger_transition", { trigger: "start" });
         break;
       case "intro":
@@ -209,6 +211,27 @@ function updateOverlays(mode: string): void {
 
 // Flag to skip initial state creation (for testing)
 let skipInitialState = false;
+
+// Track if game state has been initialized
+let gameStateInitialized = false;
+
+/**
+ * Ensure game state exists (creates it if not already done).
+ * Called when transitioning from title screen.
+ */
+function ensureGameStateExists(): void {
+  if (gameStateInitialized) return;
+
+  // Check if player already exists (e.g., from test setup)
+  const result = tools.call("get_entities", { tag: "player" });
+  if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+    gameStateInitialized = true;
+    return;
+  }
+
+  createInitialGameState();
+  gameStateInitialized = true;
+}
 
 /**
  * Create initial game state with sample entities.
