@@ -11,17 +11,21 @@
     "test:quick": "node scripts/quick-test.js",
     "typecheck": "tsc --noEmit",
     "serve": "node scripts/serve.js",
+    "tui": "node scripts/run-tui.js",
     "pages:dev": "npm run build && wrangler pages dev dist --port 4173"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.2",
+    "@types/blessed": "^0.1.27",
     "@types/ws": "^8.18.1",
     "esbuild": "^0.25.0",
     "typescript": "^5.6.3",
     "wrangler": "^3.88.0"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "acorn": "^8.11.3",
+    "blessed": "^0.1.81",
     "pixi.js": "^8.14.3",
     "quickjs-emscripten": "^0.30.0",
     "ws": "^8.18.3"

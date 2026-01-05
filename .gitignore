@@ -6,6 +6,7 @@ build/
 dist/
 SECRETS
 tests/**/*-snapshots/
+.tui-bundle.mjs
 
 # bv (beads viewer) local config and caches
 .bv/
