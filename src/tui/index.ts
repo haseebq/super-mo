@@ -591,12 +591,16 @@ async function processCloudflareMessage(userMessage: string): Promise<void> {
     rules: state.rules,
   };
 
+  // Add user message to conversation history
+  conversationHistory.push({ role: "user", content: userMessage });
+
   try {
     const response = await fetch(`${cloudflareUrl}/api/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         prompt: userMessage,
+        messages: conversationHistory, // Send full conversation for context
         state: stateSnapshot,
       }),
     });
@@ -611,9 +615,10 @@ async function processCloudflareMessage(userMessage: string): Promise<void> {
       tool_calls?: Array<{ name: string; arguments: { patch?: { ops?: unknown[] }; explanation?: string } }>;
     };
 
-    // Show AI response
+    // Show AI response and add to conversation history
     if (data.response) {
       logToConsole(`{blue-fg}AI:{/blue-fg} ${data.response}`);
+      conversationHistory.push({ role: "assistant", content: data.response });
     }
 
     // Process tool calls (apply_patch operations)
