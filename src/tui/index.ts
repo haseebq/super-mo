@@ -357,15 +357,13 @@ function createInitialGameState(): void {
 
   // Define event handler for coin collection (actions triggered by collision)
   tools.call("define_event", {
-    event: {
-      name: "coin_collected",
-      actions: [
-        { type: "add", target: "data.player.Stats.coins", value: "1" },
-        { type: "add", target: "data.player.Stats.score", value: "rules.scoring.coinValue" },
-        { type: "destroy", target: "data.coin" },
-        { type: "emit", event: "score_changed" },
-      ],
-    },
+    event: "coin_collected",
+    actions: [
+      { type: "add", target: "data.player.Stats.coins", value: "1" },
+      { type: "add", target: "data.player.Stats.score", value: "rules.scoring.coinValue" },
+      { type: "destroy", target: "data.coin" },
+      { type: "emit", event: "score_changed" },
+    ],
   });
 
   logToConsole("{cyan-fg}Game initialized!{/cyan-fg}");

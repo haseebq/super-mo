@@ -79,6 +79,7 @@ import {
   getAvailableTriggers,
 } from "./modes.js";
 import { Action, System, CollisionHandler } from "./state.js";
+import { ToolArgsMap, ToolName } from "./tool-types.js";
 
 export interface ToolResult<T = unknown> {
   success: boolean;
@@ -510,8 +511,18 @@ export class ToolExecutor {
   }
 
   /**
-   * Execute a tool call.
+   * Execute a tool call with type-safe arguments.
+   *
+   * @example
+   * // TypeScript will verify these arguments at compile time:
+   * tools.call("spawn_entity", { template: "player", at: { x: 10, y: 20 } });
+   * tools.call("define_collision", { handler: { between: ["a", "b"], emit: "hit" } });
+   *
+   * // This would be a compile error (missing required 'template'):
+   * tools.call("spawn_entity", { at: { x: 10, y: 20 } }); // Error!
    */
+  call<T extends ToolName>(toolName: T, args: ToolArgsMap[T]): ToolResult;
+  call(toolName: string, args?: Record<string, unknown>): ToolResult;
   call(toolName: string, args: Record<string, unknown> = {}): ToolResult {
     try {
       switch (toolName) {

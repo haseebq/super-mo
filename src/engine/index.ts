@@ -16,5 +16,6 @@ export * from "./events.js";
 export * from "./rules.js";
 export * from "./modes.js";
 export * from "./tools.js";
+export * from "./tool-types.js";
 // Note: connection.js is Node.js-only (uses WebSocket, readline)
 // Import directly: import { ... } from "./engine/connection.js"
