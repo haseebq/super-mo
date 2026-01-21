@@ -20,7 +20,7 @@
     "@types/ws": "^8.18.1",
     "esbuild": "^0.25.0",
     "typescript": "^5.6.3",
-    "wrangler": "^3.88.0"
+    "wrangler": "^3.114.17"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
